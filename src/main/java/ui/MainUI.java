@@ -11,12 +11,22 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import util.DatabaseManager;
+import service.ServiceService;
+import service.PackageService;
+import service.ProductService;
+import service.InvoiceService;
+import model.Service;
+import model.Package;
+import model.Product;
+import model.Invoice;
+import java.util.List;
 
 public class MainUI extends Application {
 
     private BorderPane mainLayout;
     private StackPane contentArea;
     private VBox sidebar;
+    private VBox invoiceTableRows;
 
     @Override
     public void start(Stage stage) {
@@ -316,7 +326,10 @@ public class MainUI extends Application {
         Button btnViewServices = createCleanButton("⚙ Xem Dịch Vụ", "#2196F3");
         Button btnViewPackages = createCleanButton("📦 Xem Gói", "#2196F3");
 
-        btnNewInvoice.setOnAction(e -> showInvoiceManagement());
+        btnNewInvoice.setOnAction(e -> {
+            CreateInvoiceForm form = new CreateInvoiceForm(() -> refreshInvoiceTable(invoiceTableRows));
+            form.show();
+        });
         btnViewServices.setOnAction(e -> showServiceManagement());
         btnViewPackages.setOnAction(e -> showPackageManagement());
 
@@ -426,31 +439,1029 @@ public class MainUI extends Application {
     }
 
     private void showInvoiceManagement() {
-        VBox view = createModernView("🧾 Quản Lý Hóa Đơn", "Tạo và quản lý hóa đơn cho khách hàng");
+        VBox view = new VBox(25);
+        view.setPadding(new Insets(30));
+
+        // Header
+        HBox header = new HBox(20);
+        header.setAlignment(Pos.CENTER_LEFT);
+        
+        Label title = new Label("🧾 Quản Lý Hóa Đơn");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        // Create tableRows container first
+        invoiceTableRows = new VBox(0);
+        
+        Button btnNew = new Button("+ Tạo Hóa Đơn Mới");
+        btnNew.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 24px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnNew.setOnMouseEntered(e -> btnNew.setOpacity(0.9));
+        btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
+        btnNew.setOnAction(e -> {
+            CreateInvoiceForm form = new CreateInvoiceForm(() -> refreshInvoiceTable(invoiceTableRows));
+            form.show();
+        });
+        
+        header.getChildren().addAll(title, spacer, btnNew);
+
+        // Search and filter bar
+        HBox filterBar = new HBox(15);
+        filterBar.setAlignment(Pos.CENTER_LEFT);
+        filterBar.setPadding(new Insets(20));
+        filterBar.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;"
+        );
+        
+        TextField searchField = new TextField();
+        searchField.setPromptText("🔍 Tìm kiếm hóa đơn...");
+        searchField.setPrefWidth(300);
+        searchField.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 10px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        
+        // Filter buttons
+        HBox filterButtons = new HBox(8);
+        Button btnAll = createFilterButton("Tất cả", true);
+        Button btnPaid = createFilterButton("Đã thanh toán", false);
+        Button btnUnpaid = createFilterButton("Chưa thanh toán", false);
+        filterButtons.getChildren().addAll(btnAll, btnPaid, btnUnpaid);
+        
+        DatePicker datePicker = new DatePicker();
+        datePicker.setPromptText("Chọn ngày");
+        datePicker.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-font-size: 14px;"
+        );
+        
+        filterBar.getChildren().addAll(searchField, filterButtons, datePicker);
+
+        // Table
+        VBox tableContainer = new VBox(0);
+        tableContainer.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-padding: 20;"
+        );
+        
+        Label tableTitle = new Label("Danh Sách Hóa Đơn");
+        tableTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121; -fx-padding: 0 0 15 0;");
+        
+        // Table header
+        HBox tableHeader = new HBox(0);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+        tableHeader.setPadding(new Insets(12, 0, 12, 0));
+        tableHeader.setStyle(
+            "-fx-background-color: #F9FAFB;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        );
+        
+        Label hMaHD = new Label("Mã HĐ");
+        hMaHD.setPrefWidth(100);
+        hMaHD.setMinWidth(100);
+        hMaHD.setMaxWidth(100);
+        hMaHD.setPadding(new Insets(0, 15, 0, 15));
+        hMaHD.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hMaHD.setAlignment(Pos.CENTER_LEFT);
+        
+        Label hKhachHang = new Label("Khách Hàng");
+        hKhachHang.setPrefWidth(200);
+        hKhachHang.setMinWidth(200);
+        hKhachHang.setMaxWidth(200);
+        hKhachHang.setPadding(new Insets(0, 15, 0, 15));
+        hKhachHang.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hKhachHang.setAlignment(Pos.CENTER_LEFT);
+        
+        Label hDichVu = new Label("Dịch Vụ");
+        hDichVu.setPrefWidth(200);
+        hDichVu.setMinWidth(200);
+        hDichVu.setMaxWidth(200);
+        hDichVu.setPadding(new Insets(0, 15, 0, 15));
+        hDichVu.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hDichVu.setAlignment(Pos.CENTER_LEFT);
+        
+        Label hTongTien = new Label("Tổng Tiền");
+        hTongTien.setPrefWidth(150);
+        hTongTien.setMinWidth(150);
+        hTongTien.setMaxWidth(150);
+        hTongTien.setPadding(new Insets(0, 15, 0, 15));
+        hTongTien.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hTongTien.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label hTrangThai = new Label("Trạng Thái");
+        hTrangThai.setPrefWidth(150);
+        hTrangThai.setMinWidth(150);
+        hTrangThai.setMaxWidth(150);
+        hTrangThai.setPadding(new Insets(0, 15, 0, 15));
+        hTrangThai.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hTrangThai.setAlignment(Pos.CENTER);
+        
+        Label hThaoTac = new Label("Thao Tác");
+        hThaoTac.setPrefWidth(150);
+        hThaoTac.setMinWidth(150);
+        hThaoTac.setMaxWidth(150);
+        hThaoTac.setPadding(new Insets(0, 15, 0, 15));
+        hThaoTac.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hThaoTac.setAlignment(Pos.CENTER);
+        
+        tableHeader.getChildren().addAll(hMaHD, hKhachHang, hDichVu, hTongTien, hTrangThai, hThaoTac);
+        
+        // Load data from database
+        refreshInvoiceTable(invoiceTableRows);
+        
+        // Wrap invoiceTableRows in ScrollPane for scrolling
+        ScrollPane scrollPane = new ScrollPane(invoiceTableRows);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        
+        tableContainer.getChildren().addAll(tableTitle, tableHeader, scrollPane);
+        VBox.setVgrow(tableContainer, Priority.ALWAYS);
+
+        view.getChildren().addAll(header, filterBar, tableContainer);
+        
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
+    }
+    
+    private void refreshInvoiceTable(VBox tableRows) {
+        tableRows.getChildren().clear();
+        InvoiceService invoiceService = new InvoiceService();
+        List<Invoice> invoices = invoiceService.getAllInvoices();
+        
+        if (invoices.isEmpty()) {
+            Label emptyState = new Label("Chưa có hóa đơn nào");
+            emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
+            tableRows.getChildren().add(emptyState);
+        } else {
+            for (Invoice invoice : invoices) {
+                tableRows.getChildren().add(createInvoiceRow(
+                    invoice.getId(),
+                    invoice.getCustomerName(),
+                    "Dịch vụ",
+                    String.format("%.0f đ", invoice.getTotalAmount()),
+                    invoice.getStatus(),
+                    tableRows
+                ));
+            }
+        }
+    }
+    
+    private HBox createInvoiceRow(int id, String customerName, String service, String totalAmount, String status, VBox tableRows) {
+        HBox row = new HBox(0);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(0));
+        row.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        );
+        
+        row.setOnMouseEntered(e -> row.setStyle(
+            "-fx-background-color: #f9fafb;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        ));
+        row.setOnMouseExited(e -> row.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        ));
+        
+        Label lblId = new Label(String.valueOf(id));
+        lblId.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 500;");
+        lblId.setPrefWidth(100);
+        lblId.setMinWidth(100);
+        lblId.setMaxWidth(100);
+        lblId.setPadding(new Insets(12, 15, 12, 15));
+        lblId.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblCustomer = new Label(customerName);
+        lblCustomer.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121;");
+        lblCustomer.setPrefWidth(200);
+        lblCustomer.setMinWidth(200);
+        lblCustomer.setMaxWidth(200);
+        lblCustomer.setPadding(new Insets(12, 15, 12, 15));
+        lblCustomer.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblService = new Label(service);
+        lblService.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+        lblService.setPrefWidth(200);
+        lblService.setMinWidth(200);
+        lblService.setMaxWidth(200);
+        lblService.setPadding(new Insets(12, 15, 12, 15));
+        lblService.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblTotal = new Label(totalAmount);
+        lblTotal.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        lblTotal.setPrefWidth(150);
+        lblTotal.setMinWidth(150);
+        lblTotal.setMaxWidth(150);
+        lblTotal.setPadding(new Insets(12, 15, 12, 15));
+        lblTotal.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label lblStatus = new Label(status.equals("nhap") ? "Chưa thanh toán" : "Đã thanh toán");
+        lblStatus.setStyle(
+            "-fx-font-size: 12px;" +
+            "-fx-text-fill: " + (status.equals("nhap") ? "#f44336" : "#4CAF50") + ";" +
+            "-fx-background-color: " + (status.equals("nhap") ? "#FFEBEE" : "#E8F5E9") + ";" +
+            "-fx-padding: 4px 10px;" +
+            "-fx-background-radius: 6;"
+        );
+        lblStatus.setPrefWidth(150);
+        lblStatus.setMinWidth(150);
+        lblStatus.setMaxWidth(150);
+        lblStatus.setAlignment(Pos.CENTER);
+        
+        HBox actions = new HBox(6);
+        actions.setAlignment(Pos.CENTER);
+        actions.setPrefWidth(150);
+        actions.setMinWidth(150);
+        actions.setMaxWidth(150);
+        actions.setPadding(new Insets(12, 15, 12, 15));
+        
+        Button btnView = new Button("👁");
+        btnView.setStyle(
+            "-fx-background-color: #E3F2FD;" +
+            "-fx-text-fill: #2196F3;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 8px 10px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;"
+        );
+        
+        Button btnDelete = new Button("🗑");
+        btnDelete.setStyle(
+            "-fx-background-color: #FFEBEE;" +
+            "-fx-text-fill: #f44336;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 8px 10px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;"
+        );
+        btnDelete.setOnAction(e -> {
+            showDeleteConfirmation("hóa đơn", "HĐ #" + id, () -> {
+                InvoiceService invoiceService = new InvoiceService();
+                if (invoiceService.deleteInvoice(id)) {
+                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+                    successAlert.setTitle("Thành công");
+                    successAlert.setHeaderText(null);
+                    successAlert.setContentText("Xóa hóa đơn thành công!");
+                    successAlert.showAndWait();
+                    refreshInvoiceTable(tableRows);
+                } else {
+                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                    errorAlert.setTitle("Lỗi");
+                    errorAlert.setHeaderText(null);
+                    errorAlert.setContentText("Không thể xóa hóa đơn!");
+                    errorAlert.showAndWait();
+                }
+            });
+        });
+        
+        actions.getChildren().addAll(btnView, btnDelete);
+        
+        row.getChildren().addAll(lblId, lblCustomer, lblService, lblTotal, lblStatus, actions);
+        return row;
     }
 
     private void showServiceManagement() {
-        VBox view = createModernView("🔧 Quản Lý Dịch Vụ", "Danh sách dịch vụ rửa xe với giá theo loại xe");
+        VBox view = new VBox(25);
+        view.setPadding(new Insets(30));
+
+        // Header
+        HBox header = new HBox(20);
+        header.setAlignment(Pos.CENTER_LEFT);
+        
+        Label title = new Label("🔧 Quản Lý Dịch Vụ");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        // Create tableRows container first so it can be referenced in button action
+        VBox tableRows = new VBox(0);
+        
+        Button btnNew = new Button("+ Thêm Dịch Vụ");
+        btnNew.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 24px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnNew.setOnMouseEntered(e -> btnNew.setOpacity(0.9));
+        btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
+        btnNew.setOnAction(e -> {
+            ServiceForm form = new ServiceForm(() -> refreshServiceTable(tableRows));
+            form.show();
+        });
+        
+        header.getChildren().addAll(title, spacer, btnNew);
+
+        // Search bar
+        HBox searchBar = new HBox(15);
+        searchBar.setAlignment(Pos.CENTER_LEFT);
+        searchBar.setPadding(new Insets(20));
+        searchBar.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;"
+        );
+        
+        TextField searchField = new TextField();
+        searchField.setPromptText("🔍 Tìm kiếm dịch vụ...");
+        searchField.setPrefWidth(300);
+        searchField.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 10px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        
+        searchBar.getChildren().add(searchField);
+
+        // Table container
+        VBox tableContainer = new VBox(0);
+        tableContainer.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-padding: 20;"
+        );
+        
+        Label tableTitle = new Label("Danh Sách Dịch Vụ");
+        tableTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121; -fx-padding: 0 0 15 0;");
+        
+        // Table header with fixed widths
+        HBox tableHeader = new HBox(0);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+        tableHeader.setPadding(new Insets(12, 0, 12, 0));
+        tableHeader.setStyle(
+            "-fx-background-color: #F9FAFB;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        );
+        
+        Label hName = new Label("Tên Dịch Vụ");
+        hName.setPrefWidth(200);
+        hName.setMinWidth(200);
+        hName.setPadding(new Insets(0, 15, 0, 15));
+        hName.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hName.setAlignment(Pos.CENTER_LEFT);
+        
+        Label hDesc = new Label("Mô Tả");
+        hDesc.setPrefWidth(450);
+        hDesc.setMinWidth(100);
+        hDesc.setPadding(new Insets(0, 15, 0, 15));
+        hDesc.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hDesc.setAlignment(Pos.CENTER_LEFT);
+        
+        Label hPriceSmall = new Label("Giá (Xe Nhỏ)");
+        hPriceSmall.setPrefWidth(150);
+        hPriceSmall.setMinWidth(150);
+        hPriceSmall.setPadding(new Insets(0, 15, 0, 15));
+        hPriceSmall.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hPriceSmall.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label hPriceLarge = new Label("Giá (Xe Lớn)");
+        hPriceLarge.setPrefWidth(150);
+        hPriceLarge.setMinWidth(150);
+        hPriceLarge.setPadding(new Insets(0, 15, 0, 15));
+        hPriceLarge.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hPriceLarge.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label hAction = new Label("Thao Tác");
+        hAction.setPrefWidth(150);
+        hAction.setMinWidth(150);
+        hAction.setPadding(new Insets(0, 15, 0, 15));
+        hAction.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hAction.setAlignment(Pos.CENTER);
+        
+        tableHeader.getChildren().addAll(hName, hDesc, hPriceSmall, hPriceLarge, hAction);
+        HBox.setHgrow(hDesc, Priority.ALWAYS);
+        
+        // Load data from database
+        refreshServiceTable(tableRows);
+        
+        // Wrap tableRows in ScrollPane for scrolling
+        ScrollPane scrollPane = new ScrollPane(tableRows);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        
+        tableContainer.getChildren().addAll(tableTitle, tableHeader, scrollPane);
+        VBox.setVgrow(tableContainer, Priority.ALWAYS);
+
+        view.getChildren().addAll(header, searchBar, tableContainer);
+        
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
+    }
+    
+    private void refreshServiceTable(VBox tableRows) {
+        tableRows.getChildren().clear();
+        ServiceService serviceService = new ServiceService();
+        List<Service> services = serviceService.getAllServices();
+        
+        if (services.isEmpty()) {
+            Label emptyState = new Label("Chưa có dịch vụ nào");
+            emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
+            tableRows.getChildren().add(emptyState);
+        } else {
+            for (Service service : services) {
+                tableRows.getChildren().add(createServiceRow(
+                    service.getId(),
+                    service.getName(),
+                    service.getDescription(),
+                    String.format("%.0f đ", service.getPriceSmall()),
+                    String.format("%.0f đ", service.getPriceLarge()),
+                    tableRows
+                ));
+            }
+        }
+    }
+
+    private HBox createServiceRow(int id, String name, String description, String priceSmall, String priceLarge, VBox tableRows) {
+        HBox row = new HBox(0);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(0));
+        row.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        );
+        
+        row.setOnMouseEntered(e -> row.setStyle(
+            "-fx-background-color: #f9fafb;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        ));
+        row.setOnMouseExited(e -> row.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        ));
+        
+        // Name cell
+        Label lblName = new Label(name);
+        lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 500;");
+        lblName.setPrefWidth(200);
+        lblName.setMinWidth(200);
+        lblName.setPadding(new Insets(12, 15, 12, 15));
+        lblName.setAlignment(Pos.CENTER_LEFT);
+        
+        // Description cell
+        Label lblDesc = new Label(description);
+        lblDesc.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+        lblDesc.setPrefWidth(450);
+        lblDesc.setMinWidth(100);
+        lblDesc.setPadding(new Insets(12, 15, 12, 15));
+        lblDesc.setAlignment(Pos.CENTER_LEFT);
+        lblDesc.setWrapText(true);
+        
+        // Price small cell
+        Label lblPriceSmall = new Label(priceSmall);
+        lblPriceSmall.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        lblPriceSmall.setPrefWidth(150);
+        lblPriceSmall.setMinWidth(150);
+        lblPriceSmall.setPadding(new Insets(12, 15, 12, 15));
+        lblPriceSmall.setAlignment(Pos.CENTER_RIGHT);
+        
+        // Price large cell
+        Label lblPriceLarge = new Label(priceLarge);
+        lblPriceLarge.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        lblPriceLarge.setPrefWidth(150);
+        lblPriceLarge.setMinWidth(150);
+        lblPriceLarge.setPadding(new Insets(12, 15, 12, 15));
+        lblPriceLarge.setAlignment(Pos.CENTER_RIGHT);
+        
+        // Actions cell
+        HBox actions = new HBox(6);
+        actions.setAlignment(Pos.CENTER);
+        actions.setPrefWidth(150);
+        actions.setMinWidth(150);
+        actions.setPadding(new Insets(12, 15, 12, 15));
+        
+        Button btnEdit = new Button("✏");
+        btnEdit.setStyle(
+            "-fx-background-color: #E3F2FD;" +
+            "-fx-text-fill: #2196F3;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 8px 10px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;"
+        );
+        btnEdit.setOnAction(e -> {
+            ServiceForm form = new ServiceForm(name, description, priceSmall, priceLarge, () -> refreshServiceTable(tableRows));
+            form.show();
+        });
+        
+        Button btnDelete = new Button("🗑");
+        btnDelete.setStyle(
+            "-fx-background-color: #FFEBEE;" +
+            "-fx-text-fill: #f44336;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 8px 10px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;"
+        );
+        btnDelete.setOnAction(e -> {
+            showDeleteConfirmation("dịch vụ", name, () -> {
+                ServiceService serviceService = new ServiceService();
+                if (serviceService.deleteService(id)) {
+                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+                    successAlert.setTitle("Thành công");
+                    successAlert.setHeaderText(null);
+                    successAlert.setContentText("Xóa dịch vụ thành công!");
+                    successAlert.showAndWait();
+                    refreshServiceTable(tableRows);
+                } else {
+                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                    errorAlert.setTitle("Lỗi");
+                    errorAlert.setHeaderText(null);
+                    errorAlert.setContentText("Không thể xóa dịch vụ!");
+                    errorAlert.showAndWait();
+                }
+            });
+        });
+        
+        actions.getChildren().addAll(btnEdit, btnDelete);
+        
+        row.getChildren().addAll(lblName, lblDesc, lblPriceSmall, lblPriceLarge, actions);
+        HBox.setHgrow(lblDesc, Priority.ALWAYS);
+        return row;
     }
 
     private void showPackageManagement() {
-        VBox view = createModernView("📦 Quản Lý Gói Dịch Vụ", "Các gói combo dịch vụ tiết kiệm");
+        VBox view = new VBox(25);
+        view.setPadding(new Insets(30));
+
+        // Header
+        HBox header = new HBox(20);
+        header.setAlignment(Pos.CENTER_LEFT);
+        
+        Label title = new Label("📦 Quản Lý Gói Dịch Vụ");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        // Create tableRows container first so it can be referenced in button action
+        VBox tableRows = new VBox(0);
+        
+        Button btnNew = new Button("+ Tạo Gói Mới");
+        btnNew.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 24px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnNew.setOnMouseEntered(e -> btnNew.setOpacity(0.9));
+        btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
+        btnNew.setOnAction(e -> {
+            PackageForm form = new PackageForm(() -> refreshPackageTable(tableRows));
+            form.show();
+        });
+        
+        header.getChildren().addAll(title, spacer, btnNew);
+
+        // Search bar
+        HBox searchBar = new HBox(15);
+        searchBar.setAlignment(Pos.CENTER_LEFT);
+        searchBar.setPadding(new Insets(20));
+        searchBar.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;"
+        );
+        
+        TextField searchField = new TextField();
+        searchField.setPromptText("🔍 Tìm kiếm gói dịch vụ...");
+        searchField.setPrefWidth(300);
+        searchField.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 10px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        
+        searchBar.getChildren().add(searchField);
+
+        // Table container
+        VBox tableContainer = new VBox(0);
+        tableContainer.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-padding: 20;"
+        );
+        
+        Label tableTitle = new Label("Danh Sách Gói Dịch Vụ");
+        tableTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121; -fx-padding: 0 0 15 0;");
+        
+        // Table header
+        HBox tableHeader = new HBox(0);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+        tableHeader.setPadding(new Insets(12, 0, 12, 0));
+        tableHeader.setStyle(
+            "-fx-background-color: #F9FAFB;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        );
+        
+        Label hName = new Label("Tên Gói");
+        hName.setPrefWidth(180);
+        hName.setMinWidth(180);
+        hName.setPadding(new Insets(0, 15, 0, 15));
+        hName.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hName.setAlignment(Pos.CENTER_LEFT);
+        
+        Label hDesc = new Label("Mô Tả");
+        hDesc.setPrefWidth(420);
+        hDesc.setMinWidth(100);
+        hDesc.setPadding(new Insets(0, 15, 0, 15));
+        hDesc.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hDesc.setAlignment(Pos.CENTER_LEFT);
+        
+        Label hPrice = new Label("Giá Gói");
+        hPrice.setPrefWidth(120);
+        hPrice.setMinWidth(120);
+        hPrice.setPadding(new Insets(0, 15, 0, 15));
+        hPrice.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hPrice.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label hSavings = new Label("Tiết Kiệm");
+        hSavings.setPrefWidth(120);
+        hSavings.setMinWidth(120);
+        hSavings.setPadding(new Insets(0, 15, 0, 15));
+        hSavings.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hSavings.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label hStatus = new Label("Trạng Thái");
+        hStatus.setPrefWidth(100);
+        hStatus.setMinWidth(100);
+        hStatus.setPadding(new Insets(0, 15, 0, 15));
+        hStatus.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hStatus.setAlignment(Pos.CENTER);
+        
+        Label hAction = new Label("Thao Tác");
+        hAction.setPrefWidth(150);
+        hAction.setMinWidth(150);
+        hAction.setPadding(new Insets(0, 15, 0, 15));
+        hAction.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hAction.setAlignment(Pos.CENTER);
+        
+        tableHeader.getChildren().addAll(hName, hDesc, hPrice, hSavings, hStatus, hAction);
+        HBox.setHgrow(hDesc, Priority.ALWAYS);
+        
+        // Load data from database
+        refreshPackageTable(tableRows);
+        
+        // Wrap tableRows in ScrollPane for scrolling
+        ScrollPane scrollPane = new ScrollPane(tableRows);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        
+        tableContainer.getChildren().addAll(tableTitle, tableHeader, scrollPane);
+        VBox.setVgrow(tableContainer, Priority.ALWAYS);
+
+        view.getChildren().addAll(header, searchBar, tableContainer);
+        
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
+    }
+    
+    private void refreshPackageTable(VBox tableRows) {
+        tableRows.getChildren().clear();
+        PackageService packageService = new PackageService();
+        List<Package> packages = packageService.getAllPackages();
+        
+        if (packages.isEmpty()) {
+            Label emptyState = new Label("Chưa có gói dịch vụ nào");
+            emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
+            tableRows.getChildren().add(emptyState);
+        } else {
+            for (Package pkg : packages) {
+                tableRows.getChildren().add(createPackageRow(
+                    pkg.getId(),
+                    pkg.getName(),
+                    pkg.getDescription(),
+                    String.format("%.0f đ", pkg.getPrice()),
+                    String.format("%.0f đ", pkg.getSavings()),
+                    pkg.getStatus(),
+                    tableRows
+                ));
+            }
+        }
     }
 
     private void showProductManagement() {
-        VBox view = createModernView("🛒 Quản Lý Sản Phẩm", "Sản phẩm bán kèm và quản lý tồn kho");
+        VBox view = new VBox(25);
+        view.setPadding(new Insets(30));
+
+        // Header
+        HBox header = new HBox(20);
+        header.setAlignment(Pos.CENTER_LEFT);
+        
+        Label title = new Label("🛒 Quản Lý Sản Phẩm");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        // Create tableRows container first so it can be referenced in button action
+        VBox tableRows = new VBox(0);
+        
+        Button btnNew = new Button("+ Thêm Sản Phẩm");
+        btnNew.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 24px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnNew.setOnMouseEntered(e -> btnNew.setOpacity(0.9));
+        btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
+        btnNew.setOnAction(e -> {
+            ProductForm form = new ProductForm(() -> refreshProductTable(tableRows));
+            form.show();
+        });
+        
+        header.getChildren().addAll(title, spacer, btnNew);
+
+        // Search bar
+        HBox searchBar = new HBox(15);
+        searchBar.setAlignment(Pos.CENTER_LEFT);
+        searchBar.setPadding(new Insets(20));
+        searchBar.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;"
+        );
+        
+        TextField searchField = new TextField();
+        searchField.setPromptText("🔍 Tìm kiếm sản phẩm...");
+        searchField.setPrefWidth(300);
+        searchField.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 10px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        
+        // Category filter buttons
+        HBox categoryButtons = new HBox(8);
+        Button btnAllCat = createFilterButton("Tất cả", true);
+        Button btnWater = createFilterButton("Nước rửa xe", false);
+        Button btnSolution = createFilterButton("Dung dịch", false);
+        Button btnAccessory = createFilterButton("Phụ kiện", false);
+        categoryButtons.getChildren().addAll(btnAllCat, btnWater, btnSolution, btnAccessory);
+        
+        searchBar.getChildren().addAll(searchField, categoryButtons);
+
+        // Table container
+        VBox tableContainer = new VBox(0);
+        tableContainer.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-padding: 20;"
+        );
+        
+        Label tableTitle = new Label("Danh Sách Sản Phẩm");
+        tableTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121; -fx-padding: 0 0 15 0;");
+        
+        // Table header
+        HBox tableHeader = new HBox(0);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+        tableHeader.setPadding(new Insets(12, 0, 12, 0));
+        tableHeader.setStyle(
+            "-fx-background-color: #F9FAFB;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        );
+        
+        Label hName = new Label("Tên Sản Phẩm");
+        hName.setPrefWidth(350);
+        hName.setMinWidth(100);
+        hName.setPadding(new Insets(0, 15, 0, 15));
+        hName.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hName.setAlignment(Pos.CENTER_LEFT);
+        
+        Label hCategory = new Label("Danh Mục");
+        hCategory.setPrefWidth(150);
+        hCategory.setMinWidth(150);
+        hCategory.setPadding(new Insets(0, 15, 0, 15));
+        hCategory.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hCategory.setAlignment(Pos.CENTER_LEFT);
+        
+        Label hPrice = new Label("Giá Bán");
+        hPrice.setPrefWidth(120);
+        hPrice.setMinWidth(120);
+        hPrice.setPadding(new Insets(0, 15, 0, 15));
+        hPrice.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hPrice.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label hStock = new Label("Tồn Kho");
+        hStock.setPrefWidth(100);
+        hStock.setMinWidth(100);
+        hStock.setPadding(new Insets(0, 15, 0, 15));
+        hStock.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hStock.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label hStatus = new Label("Trạng Thái");
+        hStatus.setPrefWidth(100);
+        hStatus.setMinWidth(100);
+        hStatus.setPadding(new Insets(0, 15, 0, 15));
+        hStatus.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hStatus.setAlignment(Pos.CENTER);
+        
+        Label hAction = new Label("Thao Tác");
+        hAction.setPrefWidth(150);
+        hAction.setMinWidth(150);
+        hAction.setPadding(new Insets(0, 15, 0, 15));
+        hAction.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hAction.setAlignment(Pos.CENTER);
+        
+        tableHeader.getChildren().addAll(hName, hCategory, hPrice, hStock, hStatus, hAction);
+        HBox.setHgrow(hName, Priority.ALWAYS);
+        
+        // Load data from database
+        refreshProductTable(tableRows);
+        
+        // Wrap tableRows in ScrollPane for scrolling
+        ScrollPane scrollPane = new ScrollPane(tableRows);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        
+        tableContainer.getChildren().addAll(tableTitle, tableHeader, scrollPane);
+        VBox.setVgrow(tableContainer, Priority.ALWAYS);
+
+        view.getChildren().addAll(header, searchBar, tableContainer);
+        
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
     }
+    
+    private void refreshProductTable(VBox tableRows) {
+        tableRows.getChildren().clear();
+        ProductService productService = new ProductService();
+        List<Product> products = productService.getAllProducts();
+        
+        if (products.isEmpty()) {
+            Label emptyState = new Label("Chưa có sản phẩm nào");
+            emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
+            tableRows.getChildren().add(emptyState);
+        } else {
+            for (Product product : products) {
+                tableRows.getChildren().add(createProductRow(
+                    product.getId(),
+                    product.getName(),
+                    product.getCategory(),
+                    String.format("%.0f đ", product.getPrice()),
+                    String.valueOf(product.getStock()),
+                    product.getStatus(),
+                    tableRows
+                ));
+            }
+        }
+    }
 
     private void showReport() {
-        VBox view = createModernView("📈 Báo Cáo & Thống Kê", "Phân tích doanh thu và hiệu suất kinh doanh");
+        VBox view = new VBox(25);
+        view.setPadding(new Insets(30));
+
+        Label title = new Label("📈 Báo Cáo & Thống Kê");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+
+        // Date range selector
+        HBox dateRange = new HBox(15);
+        dateRange.setAlignment(Pos.CENTER_LEFT);
+        dateRange.setPadding(new Insets(20));
+        dateRange.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;"
+        );
+        
+        Label lblFrom = new Label("Từ ngày:");
+        lblFrom.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
+        DatePicker dateFrom = new DatePicker();
+        
+        Label lblTo = new Label("Đến ngày:");
+        lblTo.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
+        DatePicker dateTo = new DatePicker();
+        
+        Button btnExport = new Button("� Xuất Báo Cáo");
+        btnExport.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        
+        dateRange.getChildren().addAll(lblFrom, dateFrom, lblTo, dateTo, btnExport);
+
+        // Stats overview
+        GridPane statsGrid = new GridPane();
+        statsGrid.setHgap(20);
+        statsGrid.setVgap(20);
+
+        VBox stat1 = createReportStatCard("Tổng Doanh Thu", "0đ", "+0%");
+        VBox stat2 = createReportStatCard("Tổng Hóa Đơn", "0", "+0%");
+        VBox stat3 = createReportStatCard("Khách Hàng Mới", "0", "+0%");
+        VBox stat4 = createReportStatCard("Dịch Vụ Phổ Biến", "N/A", "");
+
+        statsGrid.add(stat1, 0, 0);
+        statsGrid.add(stat2, 1, 0);
+        statsGrid.add(stat3, 2, 0);
+        statsGrid.add(stat4, 3, 0);
+
+        // Chart placeholder
+        VBox chartContainer = new VBox(15);
+        chartContainer.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-padding: 25;"
+        );
+        chartContainer.setPrefHeight(350);
+        
+        Label chartTitle = new Label("Biểu Đồ Doanh Thu Theo Tháng");
+        chartTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        Label chartPlaceholder = new Label("📊 Biểu đồ sẽ hiển thị tại đây");
+        chartPlaceholder.setStyle("-fx-font-size: 16px; -fx-text-fill: #9e9e9e;");
+        VBox.setVgrow(chartPlaceholder, Priority.ALWAYS);
+        chartPlaceholder.setMaxHeight(Double.MAX_VALUE);
+        chartPlaceholder.setAlignment(Pos.CENTER);
+        
+        chartContainer.getChildren().addAll(chartTitle, chartPlaceholder);
+
+        view.getChildren().addAll(title, dateRange, statsGrid, chartContainer);
+        
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
     }
@@ -467,6 +1478,489 @@ public class MainUI extends Application {
 
         view.getChildren().addAll(lblTitle, lblSubtitle);
         return view;
+    }
+
+    private VBox createServiceCard(String name, String description, String price) {
+        VBox card = new VBox(12);
+        card.setAlignment(Pos.TOP_LEFT);
+        card.setPadding(new Insets(20));
+        card.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 8, 0, 0, 2);"
+        );
+        card.setPrefWidth(280);
+        card.setPrefHeight(180);
+        
+        Label lblName = new Label(name);
+        lblName.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        Label lblDesc = new Label(description);
+        lblDesc.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+        lblDesc.setWrapText(true);
+        
+        Label lblPrice = new Label(price);
+        lblPrice.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #2196F3;");
+        
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+        
+        HBox actions = new HBox(10);
+        Button btnEdit = new Button("✏ Sửa");
+        btnEdit.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-text-fill: #616161;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 6px 12px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;"
+        );
+        
+        Button btnDelete = new Button("🗑 Xóa");
+        btnDelete.setStyle(
+            "-fx-background-color: #ffebee;" +
+            "-fx-text-fill: #f44336;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 6px 12px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;"
+        );
+        
+        actions.getChildren().addAll(btnEdit, btnDelete);
+        
+        card.getChildren().addAll(lblName, lblDesc, lblPrice, spacer, actions);
+        return card;
+    }
+
+    private VBox createProductCard(String name, String price, String stock) {
+        VBox card = new VBox(12);
+        card.setAlignment(Pos.TOP_CENTER);
+        card.setPadding(new Insets(20));
+        card.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 8, 0, 0, 2);"
+        );
+        card.setPrefWidth(220);
+        card.setPrefHeight(200);
+        
+        // Product image placeholder
+        StackPane imagePlaceholder = new StackPane();
+        imagePlaceholder.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;"
+        );
+        imagePlaceholder.setPrefSize(80, 80);
+        Label imgIcon = new Label("📦");
+        imgIcon.setStyle("-fx-font-size: 36px;");
+        imagePlaceholder.getChildren().add(imgIcon);
+        
+        Label lblName = new Label(name);
+        lblName.setStyle("-fx-font-size: 15px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        lblName.setWrapText(true);
+        lblName.setMaxWidth(180);
+        lblName.setAlignment(Pos.CENTER);
+        
+        Label lblPrice = new Label(price);
+        lblPrice.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #2196F3;");
+        
+        Label lblStock = new Label(stock);
+        lblStock.setStyle("-fx-font-size: 12px; -fx-text-fill: #757575;");
+        
+        card.getChildren().addAll(imagePlaceholder, lblName, lblPrice, lblStock);
+        return card;
+    }
+
+    private VBox createPackageCard(String name, String description, String price, String savings) {
+        VBox card = new VBox(15);
+        card.setAlignment(Pos.TOP_CENTER);
+        card.setPadding(new Insets(30));
+        card.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 16;" +
+            "-fx-border-color: #2196F3;" +
+            "-fx-border-width: 2;" +
+            "-fx-border-radius: 16;" +
+            "-fx-effect: dropshadow(gaussian, rgba(33,150,243,0.2), 15, 0, 0, 5);"
+        );
+        card.setPrefWidth(280);
+        card.setPrefHeight(280);
+        
+        Label lblName = new Label(name);
+        lblName.setStyle("-fx-font-size: 24px; -fx-font-weight: 600; -fx-text-fill: #2196F3;");
+        
+        Label lblDesc = new Label(description);
+        lblDesc.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
+        lblDesc.setWrapText(true);
+        lblDesc.setMaxWidth(220);
+        lblDesc.setAlignment(Pos.CENTER);
+        
+        Label lblPrice = new Label(price);
+        lblPrice.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #212121;");
+        
+        Label lblSavings = new Label(savings);
+        lblSavings.setStyle(
+            "-fx-font-size: 13px;" +
+            "-fx-text-fill: #4CAF50;" +
+            "-fx-background-color: #E8F5E9;" +
+            "-fx-padding: 6px 12px;" +
+            "-fx-background-radius: 6;"
+        );
+        
+        Button btnSelect = new Button("Chọn Gói");
+        btnSelect.setMaxWidth(Double.MAX_VALUE);
+        btnSelect.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        
+        card.getChildren().addAll(lblName, lblDesc, lblPrice, lblSavings, btnSelect);
+        return card;
+    }
+
+    private VBox createReportStatCard(String title, String value, String change) {
+        VBox card = new VBox(10);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setPadding(new Insets(20));
+        card.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;"
+        );
+        card.setPrefWidth(260);
+        card.setPrefHeight(120);
+        
+        Label lblTitle = new Label(title);
+        lblTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575; -fx-font-weight: 500;");
+        
+        HBox valueBox = new HBox(10);
+        valueBox.setAlignment(Pos.BASELINE_LEFT);
+        
+        Label lblValue = new Label(value);
+        lblValue.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #212121;");
+        
+        if (!change.isEmpty()) {
+            Label lblChange = new Label(change);
+            lblChange.setStyle(
+                "-fx-font-size: 13px;" +
+                "-fx-text-fill: " + (change.startsWith("+") ? "#4CAF50" : "#f44336") + ";" +
+                "-fx-font-weight: 600;"
+            );
+            valueBox.getChildren().addAll(lblValue, lblChange);
+        } else {
+            valueBox.getChildren().add(lblValue);
+        }
+        
+        card.getChildren().addAll(lblTitle, valueBox);
+        return card;
+    }
+
+
+
+
+    private Button createFilterButton(String text, boolean active) {
+        Button btn = new Button(text);
+        if (active) {
+            btn.setStyle(
+                "-fx-background-color: #2196F3;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 13px;" +
+                "-fx-font-weight: 600;" +
+                "-fx-padding: 8px 16px;" +
+                "-fx-background-radius: 8;" +
+                "-fx-cursor: hand;" +
+                "-fx-border-color: transparent;"
+            );
+        } else {
+            btn.setStyle(
+                "-fx-background-color: #f5f5f5;" +
+                "-fx-text-fill: #616161;" +
+                "-fx-font-size: 13px;" +
+                "-fx-font-weight: 600;" +
+                "-fx-padding: 8px 16px;" +
+                "-fx-background-radius: 8;" +
+                "-fx-cursor: hand;" +
+                "-fx-border-color: transparent;"
+            );
+        }
+        
+        btn.setOnMouseEntered(e -> {
+            if (!btn.getStyle().contains("#2196F3")) {
+                btn.setStyle(btn.getStyle() + "-fx-background-color: #eeeeee;");
+            }
+        });
+        btn.setOnMouseExited(e -> {
+            if (!btn.getStyle().contains("#2196F3")) {
+                btn.setStyle(btn.getStyle().replace("-fx-background-color: #eeeeee;", "-fx-background-color: #f5f5f5;"));
+            }
+        });
+        
+        return btn;
+    }
+
+
+    private HBox createProductRow(int id, String name, String category, String price, String stock, String status, VBox tableRows) {
+        HBox row = new HBox(0);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(0));
+        row.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        );
+        
+        row.setOnMouseEntered(e -> row.setStyle(
+            "-fx-background-color: #f9fafb;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        ));
+        row.setOnMouseExited(e -> row.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        ));
+        
+        Label lblName = new Label(name);
+        lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 500;");
+        lblName.setPrefWidth(350);
+        lblName.setMinWidth(100);
+        lblName.setPadding(new Insets(12, 15, 12, 15));
+        lblName.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblCategory = new Label(category);
+        lblCategory.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+        lblCategory.setPrefWidth(150);
+        lblCategory.setMinWidth(150);
+        lblCategory.setMaxWidth(150);
+        lblCategory.setPadding(new Insets(12, 15, 12, 15));
+        lblCategory.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblPrice = new Label(price);
+        lblPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        lblPrice.setPrefWidth(120);
+        lblPrice.setMinWidth(120);
+        lblPrice.setMaxWidth(120);
+        lblPrice.setPadding(new Insets(12, 15, 12, 15));
+        lblPrice.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label lblStock = new Label(stock);
+        lblStock.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121;");
+        lblStock.setPrefWidth(100);
+        lblStock.setMinWidth(100);
+        lblStock.setMaxWidth(100);
+        lblStock.setPadding(new Insets(12, 15, 12, 15));
+        lblStock.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label lblStatus = new Label(status);
+        lblStatus.setStyle(
+            "-fx-font-size: 12px;" +
+            "-fx-text-fill: #4CAF50;" +
+            "-fx-background-color: #E8F5E9;" +
+            "-fx-padding: 4px 10px;" +
+            "-fx-background-radius: 6;"
+        );
+        lblStatus.setPrefWidth(100);
+        lblStatus.setMinWidth(100);
+        lblStatus.setMaxWidth(100);
+        lblStatus.setAlignment(Pos.CENTER);
+        
+        HBox actions = new HBox(6);
+        actions.setAlignment(Pos.CENTER);
+        actions.setPrefWidth(150);
+        actions.setMinWidth(150);
+        actions.setMaxWidth(150);
+        actions.setPadding(new Insets(12, 15, 12, 15));
+        
+        Button btnEdit = new Button("✏");
+        btnEdit.setStyle(
+            "-fx-background-color: #E3F2FD;" +
+            "-fx-text-fill: #2196F3;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 8px 10px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;"
+        );
+        btnEdit.setOnAction(e -> {
+            ProductForm form = new ProductForm(id, name, category, price, stock, () -> refreshProductTable(tableRows));
+            form.show();
+        });
+        
+        Button btnDelete = new Button("🗑");
+        btnDelete.setStyle(
+            "-fx-background-color: #FFEBEE;" +
+            "-fx-text-fill: #f44336;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 8px 10px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;"
+        );
+        btnDelete.setOnAction(e -> {
+            showDeleteConfirmation("sản phẩm", name, () -> {
+                ProductService productService = new ProductService();
+                if (productService.deleteProduct(id)) {
+                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+                    successAlert.setTitle("Thành công");
+                    successAlert.setHeaderText(null);
+                    successAlert.setContentText("Xóa sản phẩm thành công!");
+                    successAlert.showAndWait();
+                    refreshProductTable(tableRows);
+                } else {
+                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                    errorAlert.setTitle("Lỗi");
+                    errorAlert.setHeaderText(null);
+                    errorAlert.setContentText("Không thể xóa sản phẩm!");
+                    errorAlert.showAndWait();
+                }
+            });
+        });
+        
+        actions.getChildren().addAll(btnEdit, btnDelete);
+        
+        row.getChildren().addAll(lblName, lblCategory, lblPrice, lblStock, lblStatus, actions);
+        HBox.setHgrow(lblName, Priority.ALWAYS);
+        return row;
+    }
+
+    private HBox createPackageRow(int id, String name, String description, String price, String savings, String status, VBox tableRows) {
+        HBox row = new HBox(0);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(0));
+        row.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        );
+        
+        row.setOnMouseEntered(e -> row.setStyle(
+            "-fx-background-color: #f9fafb;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        ));
+        row.setOnMouseExited(e -> row.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        ));
+        
+        Label lblName = new Label(name);
+        lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 600;");
+        lblName.setPrefWidth(180);
+        lblName.setMinWidth(180);
+        lblName.setPadding(new Insets(12, 15, 12, 15));
+        lblName.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblDesc = new Label(description);
+        lblDesc.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+        lblDesc.setPrefWidth(420);
+        lblDesc.setMinWidth(100);
+        lblDesc.setPadding(new Insets(12, 15, 12, 15));
+        lblDesc.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblPrice = new Label(price);
+        lblPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        lblPrice.setPrefWidth(150);
+        lblPrice.setMinWidth(150);
+        lblPrice.setMaxWidth(150);
+        lblPrice.setPadding(new Insets(12, 15, 12, 15));
+        lblPrice.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label lblSavings = new Label(savings);
+        lblSavings.setStyle("-fx-font-size: 13px; -fx-text-fill: #4CAF50; -fx-font-weight: 600;");
+        lblSavings.setPrefWidth(120);
+        lblSavings.setMinWidth(120);
+        lblSavings.setMaxWidth(120);
+        lblSavings.setPadding(new Insets(12, 15, 12, 15));
+        lblSavings.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label lblStatus = new Label(status);
+        lblStatus.setStyle(
+            "-fx-font-size: 12px;" +
+            "-fx-text-fill: #2196F3;" +
+            "-fx-background-color: #E3F2FD;" +
+            "-fx-padding: 4px 10px;" +
+            "-fx-background-radius: 6;"
+        );
+        lblStatus.setPrefWidth(100);
+        lblStatus.setMinWidth(100);
+        lblStatus.setMaxWidth(100);
+        lblStatus.setAlignment(Pos.CENTER);
+        
+        HBox actions = new HBox(6);
+        actions.setAlignment(Pos.CENTER);
+        actions.setPrefWidth(150);
+        actions.setMinWidth(150);
+        actions.setMaxWidth(150);
+        actions.setPadding(new Insets(12, 15, 12, 15));
+        
+        Button btnEdit = new Button("✏");
+        btnEdit.setStyle(
+            "-fx-background-color: #E3F2FD;" +
+            "-fx-text-fill: #2196F3;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 8px 10px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;"
+        );
+        btnEdit.setOnAction(e -> {
+            PackageForm form = new PackageForm(id, name, description, price, savings, () -> refreshPackageTable(tableRows));
+            form.show();
+        });
+        
+        Button btnDelete = new Button("🗑");
+        btnDelete.setStyle(
+            "-fx-background-color: #FFEBEE;" +
+            "-fx-text-fill: #f44336;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 8px 10px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;"
+        );
+        btnDelete.setOnAction(e -> {
+            showDeleteConfirmation("gói dịch vụ", name, () -> {
+                PackageService packageService = new PackageService();
+                if (packageService.deletePackage(id)) {
+                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+                    successAlert.setTitle("Thành công");
+                    successAlert.setHeaderText(null);
+                    successAlert.setContentText("Xóa gói dịch vụ thành công!");
+                    successAlert.showAndWait();
+                    refreshPackageTable(tableRows);
+                } else {
+                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                    errorAlert.setTitle("Lỗi");
+                    errorAlert.setHeaderText(null);
+                    errorAlert.setContentText("Không thể xóa gói dịch vụ!");
+                    errorAlert.showAndWait();
+                }
+            });
+        });
+        
+        actions.getChildren().addAll(btnEdit, btnDelete);
+        
+        row.getChildren().addAll(lblName, lblDesc, lblPrice, lblSavings, lblStatus, actions);
+        HBox.setHgrow(lblDesc, Priority.ALWAYS);
+        return row;
     }
 
     private void handleLogout() {
@@ -590,5 +2084,92 @@ public class MainUI extends Application {
 
     public static void main(String[] args) {
         launch();
+    }
+
+    private void showDeleteConfirmation(String itemType, String itemName, Runnable onConfirm) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Xác nhận xóa");
+        
+        DialogPane dialogPane = dialog.getDialogPane();
+        
+        VBox content = new VBox(25);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(40, 50, 35, 50));
+        content.setStyle("-fx-background-color: white;");
+        content.setMinWidth(420);
+        
+        // Warning icon
+        StackPane iconContainer = new StackPane();
+        iconContainer.setStyle(
+            "-fx-background-color: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);" +
+            "-fx-background-radius: 50;" +
+            "-fx-pref-width: 80;" +
+            "-fx-pref-height: 80;"
+        );
+        
+        Label iconLabel = new Label("🗑");
+        iconLabel.setStyle(
+            "-fx-font-size: 42px;" +
+            "-fx-text-fill: #f44336;"
+        );
+        iconContainer.getChildren().add(iconLabel);
+        
+        Label message = new Label("Xác nhận xóa " + itemType);
+        message.setStyle(
+            "-fx-font-size: 22px;" +
+            "-fx-text-fill: #212121;" +
+            "-fx-font-weight: 600;"
+        );
+        
+        Label subMessage = new Label("Bạn có chắc chắn muốn xóa " + itemType + " \"" + itemName + "\"?\nHành động này không thể hoàn tác.");
+        subMessage.setStyle(
+            "-fx-font-size: 14px;" +
+            "-fx-text-fill: #757575;" +
+            "-fx-text-alignment: center;"
+        );
+        subMessage.setWrapText(true);
+        subMessage.setMaxWidth(350);
+        
+        content.getChildren().addAll(iconContainer, message, subMessage);
+        dialogPane.setContent(content);
+        
+        ButtonType btnYes = new ButtonType("Xóa", ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnNo = new ButtonType("Hủy", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialogPane.getButtonTypes().addAll(btnNo, btnYes);
+        
+        dialogPane.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 16;" +
+            "-fx-border-radius: 16;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 25, 0, 0, 8);"
+        );
+        
+        dialogPane.lookupButton(btnYes).setStyle(
+            "-fx-background-color: #f44336;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 32px;" +
+            "-fx-background-radius: 10;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 120;"
+        );
+        
+        dialogPane.lookupButton(btnNo).setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-text-fill: #616161;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 32px;" +
+            "-fx-background-radius: 10;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 120;"
+        );
+        
+        dialog.showAndWait().ifPresent(response -> {
+            if (response == btnYes) {
+                onConfirm.run();
+            }
+        });
     }
 }
