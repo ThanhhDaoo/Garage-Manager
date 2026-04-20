@@ -8,6 +8,17 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import service.InvoiceService;
+import service.ServiceService;
+import service.PackageService;
+import service.ProductService;
+import service.InvoiceItemService;
+import model.Service;
+import model.Package;
+import model.Product;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CreateInvoiceForm {
     
@@ -25,6 +36,11 @@ public class CreateInvoiceForm {
     private TextField txtPhone;
     private TextField txtPlate;
     private Runnable onInvoiceCreated;
+    
+    // Track selected items for saving to database
+    private List<Map<String, Object>> selectedServices = new ArrayList<>();
+    private List<Map<String, Object>> selectedPackages = new ArrayList<>();
+    private List<Map<String, Object>> selectedProducts = new ArrayList<>();
     
     public CreateInvoiceForm() {}
     
@@ -207,22 +223,13 @@ public class CreateInvoiceForm {
         // Content container
         currentServiceContent = new VBox(15);
         
-        // Initialize services content
+        // Initialize services content - Load from database
         servicesContainer = new VBox(10);
-        servicesContainer.getChildren().addAll(
-            createServiceItem("Rửa Xe Cơ Bản", "50,000đ", "100,000đ"),
-            createServiceItem("Rửa Xe Cao Cấp", "100,000đ", "200,000đ"),
-            createServiceItem("Đánh Bóng Xe", "200,000đ", "400,000đ"),
-            createServiceItem("Phủ Ceramic", "2,000,000đ", "5,000,000đ")
-        );
+        loadServicesFromDatabase();
         
-        // Initialize packages content
+        // Initialize packages content - Load from database
         packagesContainer = new VBox(10);
-        packagesContainer.getChildren().addAll(
-            createPackageItem("Gói VIP 1", "Rửa xe cơ bản + Hút bụi nội thất", "120,000đ"),
-            createPackageItem("Gói VIP 2", "Rửa xe cao cấp + Đánh bóng + Hút bụi", "280,000đ"),
-            createPackageItem("Gói VIP 3", "Rửa xe + Đánh bóng + Phủ wax + Vệ sinh nội thất", "450,000đ")
-        );
+        loadPackagesFromDatabase();
         
         // Set initial content to services
         currentServiceContent.getChildren().add(servicesContainer);
@@ -358,14 +365,9 @@ public class CreateInvoiceForm {
         Label sectionTitle = new Label("Chọn Sản Phẩm");
         sectionTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
         
-        // Available products
+        // Available products - Load from database
         VBox productsBox = new VBox(10);
-        productsBox.getChildren().addAll(
-            createProductItem("Nước Rửa Xe Foam", "150,000đ"),
-            createProductItem("Dung Dịch Đánh Bóng", "200,000đ"),
-            createProductItem("Khăn Lau Xe", "50,000đ"),
-            createProductItem("Wax Đánh Bóng", "300,000đ")
-        );
+        loadProductsFromDatabase(productsBox);
         
         // Selected products display
         Label selectedTitle = new Label("Sản phẩm đã chọn:");
@@ -556,7 +558,15 @@ public class CreateInvoiceForm {
         HBox selectedItem = createSelectedItem(name, price);
         selectedServicesBox.getChildren().add(selectedItem);
         
-        updateTotal(parsePrice(price));
+        double unitPrice = parsePrice(price);
+        updateTotal(unitPrice);
+        
+        // Track for database
+        Map<String, Object> item = new HashMap<>();
+        item.put("name", name);
+        item.put("price", unitPrice);
+        item.put("hbox", selectedItem);
+        selectedServices.add(item);
     }
     
     private void addSelectedPackage(String name, String price) {
@@ -567,7 +577,15 @@ public class CreateInvoiceForm {
         HBox selectedItem = createSelectedItem(name, price);
         selectedPackagesBox.getChildren().add(selectedItem);
         
-        updateTotal(parsePrice(price));
+        double unitPrice = parsePrice(price);
+        updateTotal(unitPrice);
+        
+        // Track for database
+        Map<String, Object> item = new HashMap<>();
+        item.put("name", name);
+        item.put("price", unitPrice);
+        item.put("hbox", selectedItem);
+        selectedPackages.add(item);
     }
     
     private void addSelectedProduct(String name, String price, int quantity) {
@@ -576,13 +594,23 @@ public class CreateInvoiceForm {
         }
         
         String displayText = name + " (x" + quantity + ")";
-        double itemTotal = parsePrice(price) * quantity;
+        double unitPrice = parsePrice(price);
+        double itemTotal = unitPrice * quantity;
         String displayPrice = formatPrice(itemTotal);
         
         HBox selectedItem = createSelectedItem(displayText, displayPrice);
         selectedProductsBox.getChildren().add(selectedItem);
         
         updateTotal(itemTotal);
+        
+        // Track for database
+        Map<String, Object> item = new HashMap<>();
+        item.put("name", name);
+        item.put("unitPrice", unitPrice);
+        item.put("quantity", quantity);
+        item.put("totalPrice", itemTotal);
+        item.put("hbox", selectedItem);
+        selectedProducts.add(item);
     }
     
     private HBox createSelectedItem(String name, String price) {
@@ -620,6 +648,15 @@ public class CreateInvoiceForm {
             VBox parent = (VBox) item.getParent();
             parent.getChildren().remove(item);
             updateTotal(-parsePrice(price));
+            
+            // Remove from tracking lists
+            if (parent == selectedServicesBox) {
+                selectedServices.removeIf(s -> s.get("hbox") == item);
+            } else if (parent == selectedPackagesBox) {
+                selectedPackages.removeIf(p -> p.get("hbox") == item);
+            } else if (parent == selectedProductsBox) {
+                selectedProducts.removeIf(p -> p.get("hbox") == item);
+            }
             
             if (parent.getChildren().isEmpty()) {
                 Label emptyLabel = new Label("Chưa chọn");
@@ -723,7 +760,7 @@ public class CreateInvoiceForm {
             
             // Save invoice to database
             InvoiceService invoiceService = new InvoiceService();
-            boolean success = invoiceService.addInvoice(
+            int invoiceId = invoiceService.addInvoice(
                 txtName.getText().trim(),
                 txtPhone.getText().trim(),
                 txtPlate.getText().trim(),
@@ -734,7 +771,46 @@ public class CreateInvoiceForm {
                 ""
             );
             
-            if (success) {
+            if (invoiceId > 0) {
+                // Save invoice items
+                InvoiceItemService itemService = new InvoiceItemService();
+                
+                // Save services
+                for (Map<String, Object> service : selectedServices) {
+                    itemService.addInvoiceItem(
+                        invoiceId,
+                        "service",
+                        (String) service.get("name"),
+                        1,
+                        (Double) service.get("price"),
+                        (Double) service.get("price")
+                    );
+                }
+                
+                // Save packages
+                for (Map<String, Object> pkg : selectedPackages) {
+                    itemService.addInvoiceItem(
+                        invoiceId,
+                        "package",
+                        (String) pkg.get("name"),
+                        1,
+                        (Double) pkg.get("price"),
+                        (Double) pkg.get("price")
+                    );
+                }
+                
+                // Save products
+                for (Map<String, Object> product : selectedProducts) {
+                    itemService.addInvoiceItem(
+                        invoiceId,
+                        "product",
+                        (String) product.get("name"),
+                        (Integer) product.get("quantity"),
+                        (Double) product.get("unitPrice"),
+                        (Double) product.get("totalPrice")
+                    );
+                }
+                
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Thành công");
                 alert.setHeaderText(null);
@@ -758,6 +834,85 @@ public class CreateInvoiceForm {
         
         buttons.getChildren().addAll(btnCancel, btnCreate);
         return buttons;
+    }
+    
+    private void loadServicesFromDatabase() {
+        ServiceService serviceService = new ServiceService();
+        List<Service> services = serviceService.getAllServices();
+        
+        if (services.isEmpty()) {
+            Label emptyLabel = new Label("Chưa có dịch vụ nào");
+            emptyLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #9e9e9e;");
+            servicesContainer.getChildren().add(emptyLabel);
+        } else {
+            // Wrap in ScrollPane for many services
+            VBox servicesList = new VBox(10);
+            for (Service service : services) {
+                String priceSedan = String.format("%,.0fđ", service.getPriceSmall());
+                String priceSUV = String.format("%,.0fđ", service.getPriceLarge());
+                servicesList.getChildren().add(
+                    createServiceItem(service.getName(), priceSedan, priceSUV)
+                );
+            }
+            
+            ScrollPane scrollPane = new ScrollPane(servicesList);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setMaxHeight(300);
+            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+            servicesContainer.getChildren().add(scrollPane);
+        }
+    }
+    
+    private void loadPackagesFromDatabase() {
+        PackageService packageService = new PackageService();
+        List<Package> packages = packageService.getAllPackages();
+        
+        if (packages.isEmpty()) {
+            Label emptyLabel = new Label("Chưa có gói dịch vụ nào");
+            emptyLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #9e9e9e;");
+            packagesContainer.getChildren().add(emptyLabel);
+        } else {
+            // Wrap in ScrollPane for many packages
+            VBox packagesList = new VBox(10);
+            for (Package pkg : packages) {
+                String price = String.format("%,.0fđ", pkg.getPrice());
+                packagesList.getChildren().add(
+                    createPackageItem(pkg.getName(), pkg.getDescription(), price)
+                );
+            }
+            
+            ScrollPane scrollPane = new ScrollPane(packagesList);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setMaxHeight(300);
+            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+            packagesContainer.getChildren().add(scrollPane);
+        }
+    }
+    
+    private void loadProductsFromDatabase(VBox productsBox) {
+        ProductService productService = new ProductService();
+        List<Product> products = productService.getAllProducts();
+        
+        if (products.isEmpty()) {
+            Label emptyLabel = new Label("Chưa có sản phẩm nào");
+            emptyLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #9e9e9e;");
+            productsBox.getChildren().add(emptyLabel);
+        } else {
+            // Wrap in ScrollPane for many products
+            VBox productsList = new VBox(10);
+            for (Product product : products) {
+                String price = String.format("%,.0fđ", product.getPrice());
+                productsList.getChildren().add(
+                    createProductItem(product.getName(), price)
+                );
+            }
+            
+            ScrollPane scrollPane = new ScrollPane(productsList);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setMaxHeight(300);
+            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+            productsBox.getChildren().add(scrollPane);
+        }
     }
     
     private void updateTotal(double amount) {

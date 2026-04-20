@@ -68,12 +68,12 @@ public class InvoiceDAO {
         return null;
     }
     
-    public boolean addInvoice(Invoice invoice) {
+    public int addInvoice(Invoice invoice) {
         String sql = "INSERT INTO invoices (customer_name, phone, license_plate, vehicle_type, total_before_discount, discount, total_amount, notes, status) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             pstmt.setString(1, invoice.getCustomerName());
             pstmt.setString(2, invoice.getPhone());
@@ -85,11 +85,17 @@ public class InvoiceDAO {
             pstmt.setString(8, invoice.getNotes());
             pstmt.setString(9, "nhap");
             
-            return pstmt.executeUpdate() > 0;
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                ResultSet rs = pstmt.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false;
+        return -1;
     }
     
     public boolean updateInvoice(Invoice invoice) {

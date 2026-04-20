@@ -61,6 +61,18 @@ CREATE TABLE IF NOT EXISTS invoices (
     created_at TEXT DEFAULT (datetime('now','localtime'))
 );
 
+-- Bảng invoice_items (Chi tiết hóa đơn)
+CREATE TABLE IF NOT EXISTS invoice_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_id INTEGER NOT NULL,
+    item_type TEXT NOT NULL, -- 'service', 'package', 'product'
+    item_name TEXT NOT NULL,
+    quantity INTEGER DEFAULT 1,
+    unit_price REAL NOT NULL DEFAULT 0,
+    total_price REAL NOT NULL DEFAULT 0,
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+);
+
 -- =====================================================
 -- DỮ LIỆU MẪU
 -- =====================================================

@@ -303,19 +303,40 @@ public class MainUI extends Application {
         Label title = new Label("■ Dashboard");
         title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
 
+        // Load statistics from database
+        InvoiceService invoiceService = new InvoiceService();
+        List<Invoice> allInvoices = invoiceService.getAllInvoices();
+        
+        // Calculate today's revenue (invoices with status "paid")
+        double todayRevenue = allInvoices.stream()
+            .filter(inv -> inv.getStatus().equals("paid"))
+            .mapToDouble(Invoice::getTotalAmount)
+            .sum();
+        
+        // Count total invoices
+        int totalInvoices = allInvoices.size();
+        
+        // Count unique customers (by phone number)
+        long uniqueCustomers = allInvoices.stream()
+            .map(Invoice::getPhone)
+            .filter(phone -> phone != null && !phone.trim().isEmpty())
+            .distinct()
+            .count();
+
         GridPane statsGrid = new GridPane();
         statsGrid.setHgap(20);
         statsGrid.setVgap(20);
 
-        VBox card1 = createCleanStatCard("Doanh Thu Hôm Nay", "Doanh Thu Hôm Nay", "0 đ", "#2196F3");
-        VBox card2 = createCleanStatCard("Hóa Đơn", "Hóa Đơn", "0", "#2196F3");
-        VBox card3 = createCleanStatCard("Xe Đang Rửa", "Xe Đang Rửa", "0", "#2196F3");
-        VBox card4 = createCleanStatCard("Khách Hàng", "Khách Hàng", "0", "#2196F3");
+        VBox card1 = createCleanStatCard("Doanh Thu Hôm Nay", "Doanh Thu Hôm Nay", 
+            String.format("%,.0f đ", todayRevenue), "#2196F3");
+        VBox card2 = createCleanStatCard("Hóa Đơn", "Hóa Đơn", 
+            String.valueOf(totalInvoices), "#2196F3");
+        VBox card3 = createCleanStatCard("Khách Hàng", "Khách Hàng", 
+            String.valueOf(uniqueCustomers), "#2196F3");
 
         statsGrid.add(card1, 0, 0);
         statsGrid.add(card2, 1, 0);
         statsGrid.add(card3, 2, 0);
-        statsGrid.add(card4, 3, 0);
 
         Label quickTitle = new Label("⚡ Thao Tác Nhanh");
         quickTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
@@ -503,6 +524,34 @@ public class MainUI extends Application {
         Button btnAll = createFilterButton("Tất cả", true);
         Button btnPaid = createFilterButton("Đã thanh toán", false);
         Button btnUnpaid = createFilterButton("Chưa thanh toán", false);
+        
+        // Store current filter
+        final String[] currentStatus = {""};
+        
+        // Add search listener
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            refreshInvoiceTableWithFilter(invoiceTableRows, newVal, currentStatus[0]);
+        });
+        
+        // Add filter button actions
+        btnAll.setOnAction(e -> {
+            currentStatus[0] = "";
+            updateFilterButtonStyles(btnAll, btnPaid, btnUnpaid);
+            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "");
+        });
+        
+        btnPaid.setOnAction(e -> {
+            currentStatus[0] = "paid";
+            updateFilterButtonStyles(btnPaid, btnAll, btnUnpaid);
+            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "paid");
+        });
+        
+        btnUnpaid.setOnAction(e -> {
+            currentStatus[0] = "nhap";
+            updateFilterButtonStyles(btnUnpaid, btnAll, btnPaid);
+            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "nhap");
+        });
+        
         filterButtons.getChildren().addAll(btnAll, btnPaid, btnUnpaid);
         
         DatePicker datePicker = new DatePicker();
@@ -572,17 +621,17 @@ public class MainUI extends Application {
         hTongTien.setAlignment(Pos.CENTER_RIGHT);
         
         Label hTrangThai = new Label("Trạng Thái");
-        hTrangThai.setPrefWidth(150);
-        hTrangThai.setMinWidth(150);
-        hTrangThai.setMaxWidth(150);
+        hTrangThai.setPrefWidth(120);
+        hTrangThai.setMinWidth(120);
+        hTrangThai.setMaxWidth(120);
         hTrangThai.setPadding(new Insets(0, 15, 0, 15));
         hTrangThai.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hTrangThai.setAlignment(Pos.CENTER);
         
         Label hThaoTac = new Label("Thao Tác");
-        hThaoTac.setPrefWidth(150);
-        hThaoTac.setMinWidth(150);
-        hThaoTac.setMaxWidth(150);
+        hThaoTac.setPrefWidth(180);
+        hThaoTac.setMinWidth(180);
+        hThaoTac.setMaxWidth(180);
         hThaoTac.setPadding(new Insets(0, 15, 0, 15));
         hThaoTac.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hThaoTac.setAlignment(Pos.CENTER);
@@ -608,12 +657,35 @@ public class MainUI extends Application {
     }
     
     private void refreshInvoiceTable(VBox tableRows) {
+        refreshInvoiceTableWithFilter(tableRows, "", "");
+    }
+    
+    private void refreshInvoiceTableWithFilter(VBox tableRows, String searchText, String status) {
         tableRows.getChildren().clear();
         InvoiceService invoiceService = new InvoiceService();
         List<Invoice> invoices = invoiceService.getAllInvoices();
         
+        // Filter by status
+        if (status != null && !status.trim().isEmpty()) {
+            invoices = invoices.stream()
+                .filter(i -> i.getStatus().equals(status))
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
+        // Filter by search text
+        if (searchText != null && !searchText.trim().isEmpty()) {
+            String search = searchText.toLowerCase().trim();
+            invoices = invoices.stream()
+                .filter(i -> i.getCustomerName().toLowerCase().contains(search) || 
+                            (i.getPhone() != null && i.getPhone().contains(search)) ||
+                            (i.getLicensePlate() != null && i.getLicensePlate().toLowerCase().contains(search)))
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
         if (invoices.isEmpty()) {
-            Label emptyState = new Label("Chưa có hóa đơn nào");
+            Label emptyState = new Label((searchText != null && !searchText.trim().isEmpty()) || 
+                                        (status != null && !status.trim().isEmpty()) ? 
+                "Không tìm thấy hóa đơn nào" : "Chưa có hóa đơn nào");
             emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
             tableRows.getChildren().add(emptyState);
         } else {
@@ -691,17 +763,36 @@ public class MainUI extends Application {
             "-fx-padding: 4px 10px;" +
             "-fx-background-radius: 6;"
         );
-        lblStatus.setPrefWidth(150);
-        lblStatus.setMinWidth(150);
-        lblStatus.setMaxWidth(150);
+        lblStatus.setPrefWidth(120);
+        lblStatus.setMinWidth(120);
+        lblStatus.setMaxWidth(120);
         lblStatus.setAlignment(Pos.CENTER);
         
         HBox actions = new HBox(6);
         actions.setAlignment(Pos.CENTER);
-        actions.setPrefWidth(150);
-        actions.setMinWidth(150);
-        actions.setMaxWidth(150);
+        actions.setPrefWidth(180);
+        actions.setMinWidth(180);
+        actions.setMaxWidth(180);
         actions.setPadding(new Insets(12, 15, 12, 15));
+        
+        Button btnPDF = new Button("Xuất");
+        btnPDF.setStyle(
+            "-fx-background-color: #4CAF50;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 18px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 60;"
+        );
+        btnPDF.setOnAction(e -> {
+            InvoiceService invoiceService = new InvoiceService();
+            Invoice invoice = invoiceService.getInvoiceById(id);
+            if (invoice != null) {
+                exportInvoiceToPDF(invoice);
+            }
+        });
         
         Button btnView = new Button("👁");
         btnView.setStyle(
@@ -714,6 +805,9 @@ public class MainUI extends Application {
             "-fx-min-width: 32;" +
             "-fx-min-height: 32;"
         );
+        btnView.setOnAction(e -> {
+            showInvoiceDetail(id, tableRows);
+        });
         
         Button btnDelete = new Button("🗑");
         btnDelete.setStyle(
@@ -737,7 +831,7 @@ public class MainUI extends Application {
             });
         });
         
-        actions.getChildren().addAll(btnView, btnDelete);
+        actions.getChildren().addAll(btnPDF, btnView, btnDelete);
         
         row.getChildren().addAll(lblId, lblCustomer, lblService, lblTotal, lblStatus, actions);
         return row;
@@ -801,6 +895,11 @@ public class MainUI extends Application {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
+        
+        // Add search listener
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            refreshServiceTableWithSearch(tableRows, newVal);
+        });
         
         searchBar.getChildren().add(searchField);
 
@@ -885,12 +984,26 @@ public class MainUI extends Application {
     }
     
     private void refreshServiceTable(VBox tableRows) {
+        refreshServiceTableWithSearch(tableRows, "");
+    }
+    
+    private void refreshServiceTableWithSearch(VBox tableRows, String searchText) {
         tableRows.getChildren().clear();
         ServiceService serviceService = new ServiceService();
         List<Service> services = serviceService.getAllServices();
         
+        // Filter by search text
+        if (searchText != null && !searchText.trim().isEmpty()) {
+            String search = searchText.toLowerCase().trim();
+            services = services.stream()
+                .filter(s -> s.getName().toLowerCase().contains(search) || 
+                            (s.getDescription() != null && s.getDescription().toLowerCase().contains(search)))
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
         if (services.isEmpty()) {
-            Label emptyState = new Label("Chưa có dịch vụ nào");
+            Label emptyState = new Label(searchText != null && !searchText.trim().isEmpty() ? 
+                "Không tìm thấy dịch vụ nào" : "Chưa có dịch vụ nào");
             emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
             tableRows.getChildren().add(emptyState);
         } else {
@@ -1072,6 +1185,11 @@ public class MainUI extends Application {
             "-fx-font-size: 14px;"
         );
         
+        // Add search listener
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            refreshPackageTableWithSearch(tableRows, newVal);
+        });
+        
         searchBar.getChildren().add(searchField);
 
         // Table container
@@ -1162,12 +1280,26 @@ public class MainUI extends Application {
     }
     
     private void refreshPackageTable(VBox tableRows) {
+        refreshPackageTableWithSearch(tableRows, "");
+    }
+    
+    private void refreshPackageTableWithSearch(VBox tableRows, String searchText) {
         tableRows.getChildren().clear();
         PackageService packageService = new PackageService();
         List<Package> packages = packageService.getAllPackages();
         
+        // Filter by search text
+        if (searchText != null && !searchText.trim().isEmpty()) {
+            String search = searchText.toLowerCase().trim();
+            packages = packages.stream()
+                .filter(p -> p.getName().toLowerCase().contains(search) || 
+                            (p.getDescription() != null && p.getDescription().toLowerCase().contains(search)))
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
         if (packages.isEmpty()) {
-            Label emptyState = new Label("Chưa có gói dịch vụ nào");
+            Label emptyState = new Label(searchText != null && !searchText.trim().isEmpty() ? 
+                "Không tìm thấy gói dịch vụ nào" : "Chưa có gói dịch vụ nào");
             emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
             tableRows.getChildren().add(emptyState);
         } else {
@@ -1250,6 +1382,40 @@ public class MainUI extends Application {
         Button btnWater = createFilterButton("Nước rửa xe", false);
         Button btnSolution = createFilterButton("Dung dịch", false);
         Button btnAccessory = createFilterButton("Phụ kiện", false);
+        
+        // Store current filter
+        final String[] currentCategory = {""};
+        
+        // Add search listener
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            refreshProductTableWithFilter(tableRows, newVal, currentCategory[0]);
+        });
+        
+        // Add filter button actions
+        btnAllCat.setOnAction(e -> {
+            currentCategory[0] = "";
+            updateFilterButtonStyles(btnAllCat, btnWater, btnSolution, btnAccessory);
+            refreshProductTableWithFilter(tableRows, searchField.getText(), "");
+        });
+        
+        btnWater.setOnAction(e -> {
+            currentCategory[0] = "Nước rửa xe";
+            updateFilterButtonStyles(btnWater, btnAllCat, btnSolution, btnAccessory);
+            refreshProductTableWithFilter(tableRows, searchField.getText(), "Nước rửa xe");
+        });
+        
+        btnSolution.setOnAction(e -> {
+            currentCategory[0] = "Dung dịch";
+            updateFilterButtonStyles(btnSolution, btnAllCat, btnWater, btnAccessory);
+            refreshProductTableWithFilter(tableRows, searchField.getText(), "Dung dịch");
+        });
+        
+        btnAccessory.setOnAction(e -> {
+            currentCategory[0] = "Phụ kiện";
+            updateFilterButtonStyles(btnAccessory, btnAllCat, btnWater, btnSolution);
+            refreshProductTableWithFilter(tableRows, searchField.getText(), "Phụ kiện");
+        });
+        
         categoryButtons.getChildren().addAll(btnAllCat, btnWater, btnSolution, btnAccessory);
         
         searchBar.getChildren().addAll(searchField, categoryButtons);
@@ -1342,12 +1508,34 @@ public class MainUI extends Application {
     }
     
     private void refreshProductTable(VBox tableRows) {
+        refreshProductTableWithFilter(tableRows, "", "");
+    }
+    
+    private void refreshProductTableWithFilter(VBox tableRows, String searchText, String category) {
         tableRows.getChildren().clear();
         ProductService productService = new ProductService();
         List<Product> products = productService.getAllProducts();
         
+        // Filter by category
+        if (category != null && !category.trim().isEmpty()) {
+            products = products.stream()
+                .filter(p -> p.getCategory().equals(category))
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
+        // Filter by search text
+        if (searchText != null && !searchText.trim().isEmpty()) {
+            String search = searchText.toLowerCase().trim();
+            products = products.stream()
+                .filter(p -> p.getName().toLowerCase().contains(search) || 
+                            p.getCategory().toLowerCase().contains(search))
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
         if (products.isEmpty()) {
-            Label emptyState = new Label("Chưa có sản phẩm nào");
+            Label emptyState = new Label((searchText != null && !searchText.trim().isEmpty()) || 
+                                        (category != null && !category.trim().isEmpty()) ? 
+                "Không tìm thấy sản phẩm nào" : "Chưa có sản phẩm nào");
             emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
             tableRows.getChildren().add(emptyState);
         } else {
@@ -1364,6 +1552,34 @@ public class MainUI extends Application {
             }
         }
     }
+    
+    private void updateFilterButtonStyles(Button activeBtn, Button... otherBtns) {
+        // Set active button style
+        activeBtn.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 8px 16px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;" +
+            "-fx-border-color: transparent;"
+        );
+        
+        // Set inactive button styles
+        for (Button btn : otherBtns) {
+            btn.setStyle(
+                "-fx-background-color: #f5f5f5;" +
+                "-fx-text-fill: #616161;" +
+                "-fx-font-size: 13px;" +
+                "-fx-font-weight: 600;" +
+                "-fx-padding: 8px 16px;" +
+                "-fx-background-radius: 8;" +
+                "-fx-cursor: hand;" +
+                "-fx-border-color: transparent;"
+            );
+        }
+    }
 
     private void showReport() {
         VBox view = new VBox(25);
@@ -1371,6 +1587,24 @@ public class MainUI extends Application {
 
         Label title = new Label("📈 Báo Cáo & Thống Kê");
         title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+
+        // Load data from database
+        InvoiceService invoiceService = new InvoiceService();
+        List<Invoice> allInvoices = invoiceService.getAllInvoices();
+        
+        // Calculate stats
+        double totalRevenue = allInvoices.stream()
+            .filter(inv -> inv.getStatus().equals("paid"))
+            .mapToDouble(Invoice::getTotalAmount)
+            .sum();
+        
+        int totalInvoices = allInvoices.size();
+        
+        long uniqueCustomers = allInvoices.stream()
+            .map(Invoice::getPhone)
+            .filter(phone -> phone != null && !phone.isEmpty())
+            .distinct()
+            .count();
 
         // Date range selector
         HBox dateRange = new HBox(15);
@@ -1391,8 +1625,24 @@ public class MainUI extends Application {
         Label lblTo = new Label("Đến ngày:");
         lblTo.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
         DatePicker dateTo = new DatePicker();
+
+        // Stats overview - declare first for use in lambda
+        GridPane statsGrid = new GridPane();
+        statsGrid.setHgap(20);
+        statsGrid.setVgap(20);
         
-        Button btnExport = new Button("� Xuất Báo Cáo");
+        Button btnFilter = new Button("Lọc");
+        btnFilter.setStyle(
+            "-fx-background-color: #4CAF50;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        
+        Button btnExport = new Button("📊 Xuất PDF");
         btnExport.setStyle(
             "-fx-background-color: #2196F3;" +
             "-fx-text-fill: white;" +
@@ -1403,24 +1653,33 @@ public class MainUI extends Application {
             "-fx-cursor: hand;"
         );
         
-        dateRange.getChildren().addAll(lblFrom, dateFrom, lblTo, dateTo, btnExport);
+        // Filter button action
+        btnFilter.setOnAction(e -> {
+            List<Invoice> filtered = ReportHelper.filterInvoicesByDateRange(allInvoices, dateFrom.getValue(), dateTo.getValue());
+            updateReportStats(filtered, statsGrid);
+        });
+        
+        // Export button action
+        btnExport.setOnAction(e -> {
+            List<Invoice> filtered = ReportHelper.filterInvoicesByDateRange(allInvoices, dateFrom.getValue(), dateTo.getValue());
+            ReportHelper.exportReportToPDF(filtered, dateFrom.getValue(), dateTo.getValue(), mainLayout.getScene().getWindow());
+        });
+        
+        dateRange.getChildren().clear();
+        dateRange.getChildren().addAll(lblFrom, dateFrom, lblTo, dateTo, btnFilter, btnExport);
 
-        // Stats overview
-        GridPane statsGrid = new GridPane();
-        statsGrid.setHgap(20);
-        statsGrid.setVgap(20);
-
-        VBox stat1 = createReportStatCard("Tổng Doanh Thu", "0đ", "+0%");
-        VBox stat2 = createReportStatCard("Tổng Hóa Đơn", "0", "+0%");
-        VBox stat3 = createReportStatCard("Khách Hàng Mới", "0", "+0%");
-        VBox stat4 = createReportStatCard("Dịch Vụ Phổ Biến", "N/A", "");
+        VBox stat1 = createReportStatCard("Tổng Doanh Thu", String.format("%,.0fđ", totalRevenue), "");
+        VBox stat2 = createReportStatCard("Tổng Hóa Đơn", String.valueOf(totalInvoices), "");
+        VBox stat3 = createReportStatCard("Khách Hàng", String.valueOf(uniqueCustomers), "");
+        VBox stat4 = createReportStatCard("Đã Thanh Toán", 
+            String.valueOf(allInvoices.stream().filter(inv -> inv.getStatus().equals("paid")).count()), "");
 
         statsGrid.add(stat1, 0, 0);
         statsGrid.add(stat2, 1, 0);
         statsGrid.add(stat3, 2, 0);
         statsGrid.add(stat4, 3, 0);
 
-        // Chart placeholder
+        // Revenue chart by month
         VBox chartContainer = new VBox(15);
         chartContainer.setStyle(
             "-fx-background-color: white;" +
@@ -1430,23 +1689,114 @@ public class MainUI extends Application {
             "-fx-border-radius: 12;" +
             "-fx-padding: 25;"
         );
-        chartContainer.setPrefHeight(350);
+        chartContainer.setPrefHeight(450);
         
-        Label chartTitle = new Label("Biểu Đồ Doanh Thu Theo Tháng");
+        Label chartTitle = new Label("📊 Biểu Đồ Doanh Thu Theo Tháng");
         chartTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
         
-        Label chartPlaceholder = new Label("📊 Biểu đồ sẽ hiển thị tại đây");
-        chartPlaceholder.setStyle("-fx-font-size: 16px; -fx-text-fill: #9e9e9e;");
-        VBox.setVgrow(chartPlaceholder, Priority.ALWAYS);
-        chartPlaceholder.setMaxHeight(Double.MAX_VALUE);
-        chartPlaceholder.setAlignment(Pos.CENTER);
+        // Create bar chart
+        javafx.scene.chart.CategoryAxis xAxis = new javafx.scene.chart.CategoryAxis();
+        xAxis.setLabel("Tháng");
+        xAxis.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
         
-        chartContainer.getChildren().addAll(chartTitle, chartPlaceholder);
+        javafx.scene.chart.NumberAxis yAxis = new javafx.scene.chart.NumberAxis();
+        yAxis.setLabel("Doanh Thu (VNĐ)");
+        yAxis.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
+        
+        javafx.scene.chart.BarChart<String, Number> barChart = new javafx.scene.chart.BarChart<>(xAxis, yAxis);
+        barChart.setTitle("");
+        barChart.setLegendVisible(false);
+        barChart.setPrefHeight(320);
+        barChart.setStyle(
+            "-fx-background-color: transparent;" +
+            "CHART_COLOR_1: #2196F3;"
+        );
+        
+        javafx.scene.chart.XYChart.Series<String, Number> series = new javafx.scene.chart.XYChart.Series<>();
+        
+        // Calculate revenue by month
+        java.util.Map<String, Double> revenueByMonth = new java.util.HashMap<>();
+        for (Invoice invoice : allInvoices) {
+            if (invoice.getStatus().equals("paid") && invoice.getCreatedAt() != null) {
+                try {
+                    String month = invoice.getCreatedAt().substring(0, 7); // YYYY-MM
+                    revenueByMonth.put(month, revenueByMonth.getOrDefault(month, 0.0) + invoice.getTotalAmount());
+                } catch (Exception e) {
+                    // Skip invalid dates
+                }
+            }
+        }
+        
+        // Add data to chart (last 6 months)
+        java.util.List<String> sortedMonths = new java.util.ArrayList<>(revenueByMonth.keySet());
+        java.util.Collections.sort(sortedMonths);
+        java.util.Collections.reverse(sortedMonths);
+        
+        int count = 0;
+        for (String month : sortedMonths) {
+            if (count >= 6) break;
+            series.getData().add(new javafx.scene.chart.XYChart.Data<>(month, revenueByMonth.get(month)));
+            count++;
+        }
+        
+        // If no data, show sample months
+        if (series.getData().isEmpty()) {
+            series.getData().add(new javafx.scene.chart.XYChart.Data<>("2026-04", 0));
+            series.getData().add(new javafx.scene.chart.XYChart.Data<>("2026-03", 0));
+            series.getData().add(new javafx.scene.chart.XYChart.Data<>("2026-02", 0));
+        }
+        
+        barChart.getData().add(series);
+        
+        // Apply CSS styling
+        try {
+            String css = getClass().getResource("/chart-styles.css").toExternalForm();
+            barChart.getStylesheets().add(css);
+        } catch (Exception e) {
+            // If CSS not found, apply inline styles
+            barChart.setStyle(
+                ".chart-bar { -fx-background-color: #2196F3; -fx-background-radius: 4px; }"
+            );
+        }
+        
+        chartContainer.getChildren().addAll(chartTitle, barChart);
 
         view.getChildren().addAll(title, dateRange, statsGrid, chartContainer);
         
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
+    }
+    
+    private void updateReportStats(List<Invoice> filteredInvoices, GridPane statsGrid) {
+        // Calculate stats
+        double totalRevenue = filteredInvoices.stream()
+            .filter(inv -> inv.getStatus().equals("paid"))
+            .mapToDouble(Invoice::getTotalAmount)
+            .sum();
+        
+        int totalInvoices = filteredInvoices.size();
+        
+        long uniqueCustomers = filteredInvoices.stream()
+            .map(Invoice::getPhone)
+            .filter(phone -> phone != null && !phone.isEmpty())
+            .distinct()
+            .count();
+        
+        long paidInvoices = filteredInvoices.stream()
+            .filter(inv -> inv.getStatus().equals("paid"))
+            .count();
+
+        // Update stats cards
+        statsGrid.getChildren().clear();
+        VBox stat1 = createReportStatCard("Tổng Doanh Thu", String.format("%,.0fđ", totalRevenue), "");
+        VBox stat2 = createReportStatCard("Tổng Hóa Đơn", String.valueOf(totalInvoices), "");
+        VBox stat3 = createReportStatCard("Khách Hàng", String.valueOf(uniqueCustomers), "");
+        VBox stat4 = createReportStatCard("Đã Thanh Toán", String.valueOf(paidInvoices), "");
+
+        statsGrid.add(stat1, 0, 0);
+        statsGrid.add(stat2, 1, 0);
+        statsGrid.add(stat3, 2, 0);
+        statsGrid.add(stat4, 3, 0);
     }
 
     private VBox createModernView(String title, String subtitle) {
@@ -2045,6 +2395,441 @@ public class MainUI extends Application {
                 }
             }
         });
+    }
+
+    private void showInvoiceDetail(int invoiceId, VBox tableRows) {
+        InvoiceService invoiceService = new InvoiceService();
+        Invoice invoice = invoiceService.getInvoiceById(invoiceId);
+        
+        if (invoice == null) {
+            showErrorAlert("Lỗi", "Không tìm thấy hóa đơn!");
+            return;
+        }
+        
+        // Load invoice items
+        service.InvoiceItemService itemService = new service.InvoiceItemService();
+        List<model.InvoiceItem> items = itemService.getItemsByInvoiceId(invoiceId);
+        
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        dialogStage.setTitle("Chi Tiết Hóa Đơn #" + invoiceId);
+        
+        VBox content = new VBox(20);
+        content.setPadding(new Insets(30));
+        content.setStyle("-fx-background-color: white;");
+        
+        // Header
+        Label title = new Label("📋 Chi Tiết Hóa Đơn #" + invoiceId);
+        title.setStyle(
+            "-fx-font-size: 24px;" +
+            "-fx-text-fill: #212121;" +
+            "-fx-font-weight: 600;"
+        );
+        
+        // Customer info section
+        VBox customerSection = new VBox(12);
+        customerSection.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 12;" +
+            "-fx-padding: 20;"
+        );
+        
+        Label customerTitle = new Label("Thông Tin Khách Hàng");
+        customerTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        Label lblCustomer = new Label("Tên: " + invoice.getCustomerName());
+        lblCustomer.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        
+        Label lblPhone = new Label("SĐT: " + (invoice.getPhone() != null ? invoice.getPhone() : "N/A"));
+        lblPhone.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        
+        Label lblPlate = new Label("Biển số: " + (invoice.getLicensePlate() != null ? invoice.getLicensePlate() : "N/A"));
+        lblPlate.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        
+        Label lblVehicle = new Label("Loại xe: " + (invoice.getVehicleType() != null ? invoice.getVehicleType() : "N/A"));
+        lblVehicle.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        
+        customerSection.getChildren().addAll(customerTitle, lblCustomer, lblPhone, lblPlate, lblVehicle);
+        
+        // Invoice items section
+        VBox itemsSection = new VBox(12);
+        itemsSection.setStyle(
+            "-fx-background-color: #FFF3E0;" +
+            "-fx-background-radius: 12;" +
+            "-fx-padding: 20;"
+        );
+        
+        Label itemsTitle = new Label("Chi Tiết Dịch Vụ & Sản Phẩm");
+        itemsTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        if (items.isEmpty()) {
+            Label noItems = new Label("Không có chi tiết");
+            noItems.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
+            itemsSection.getChildren().addAll(itemsTitle, noItems);
+        } else {
+            VBox itemsList = new VBox(8);
+            for (model.InvoiceItem item : items) {
+                HBox itemRow = new HBox(10);
+                itemRow.setAlignment(Pos.CENTER_LEFT);
+                
+                String itemTypeIcon = "";
+                if (item.getItemType().equals("service")) {
+                    itemTypeIcon = "🔧";
+                } else if (item.getItemType().equals("package")) {
+                    itemTypeIcon = "📦";
+                } else if (item.getItemType().equals("product")) {
+                    itemTypeIcon = "🛒";
+                }
+                
+                Label lblIcon = new Label(itemTypeIcon);
+                lblIcon.setStyle("-fx-font-size: 14px;");
+                
+                Label lblName = new Label(item.getItemName());
+                lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+                lblName.setPrefWidth(250);
+                
+                Label lblQty = new Label("x" + item.getQuantity());
+                lblQty.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
+                lblQty.setPrefWidth(40);
+                
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                
+                Label lblPrice = new Label(String.format("%,.0f đ", item.getTotalPrice()));
+                lblPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+                
+                itemRow.getChildren().addAll(lblIcon, lblName, lblQty, spacer, lblPrice);
+                itemsList.getChildren().add(itemRow);
+            }
+            itemsSection.getChildren().addAll(itemsTitle, itemsList);
+        }
+        
+        // Payment info section
+        VBox paymentSection = new VBox(12);
+        paymentSection.setStyle(
+            "-fx-background-color: #E3F2FD;" +
+            "-fx-background-radius: 12;" +
+            "-fx-padding: 20;"
+        );
+        
+        Label paymentTitle = new Label("Thông Tin Thanh Toán");
+        paymentTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        Label lblTotal = new Label(String.format("Tổng tiền: %,.0f đ", invoice.getTotalAmount()));
+        lblTotal.setStyle("-fx-font-size: 18px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        
+        Label lblDiscount = new Label(String.format("Giảm giá: %,.0f đ", invoice.getDiscount()));
+        lblDiscount.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        
+        Label lblFinal = new Label(String.format("Thành tiền: %,.0f đ", invoice.getTotalAmount() - invoice.getDiscount()));
+        lblFinal.setStyle("-fx-font-size: 20px; -fx-text-fill: #4CAF50; -fx-font-weight: bold;");
+        
+        paymentSection.getChildren().addAll(paymentTitle, lblTotal, lblDiscount, lblFinal);
+        
+        // Status section
+        VBox statusSection = new VBox(15);
+        statusSection.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 12;" +
+            "-fx-padding: 20;"
+        );
+        
+        Label statusTitle = new Label("Trạng Thái Thanh Toán");
+        statusTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        HBox statusBox = new HBox(15);
+        statusBox.setAlignment(Pos.CENTER_LEFT);
+        
+        ToggleGroup statusGroup = new ToggleGroup();
+        
+        RadioButton rbUnpaid = new RadioButton("Chưa thanh toán");
+        rbUnpaid.setToggleGroup(statusGroup);
+        rbUnpaid.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        if (invoice.getStatus().equals("nhap")) {
+            rbUnpaid.setSelected(true);
+        }
+        
+        RadioButton rbPaid = new RadioButton("Đã thanh toán");
+        rbPaid.setToggleGroup(statusGroup);
+        rbPaid.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        if (invoice.getStatus().equals("paid")) {
+            rbPaid.setSelected(true);
+        }
+        
+        statusBox.getChildren().addAll(rbUnpaid, rbPaid);
+        statusSection.getChildren().addAll(statusTitle, statusBox);
+        
+        // Notes section
+        if (invoice.getNotes() != null && !invoice.getNotes().trim().isEmpty()) {
+            VBox notesSection = new VBox(10);
+            notesSection.setStyle(
+                "-fx-background-color: #FFF3E0;" +
+                "-fx-background-radius: 12;" +
+                "-fx-padding: 20;"
+            );
+            
+            Label notesTitle = new Label("Ghi Chú");
+            notesTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+            
+            Label lblNotes = new Label(invoice.getNotes());
+            lblNotes.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+            lblNotes.setWrapText(true);
+            
+            notesSection.getChildren().addAll(notesTitle, lblNotes);
+            content.getChildren().add(notesSection);
+        }
+        
+        // Buttons
+        HBox buttonBox = new HBox(15);
+        buttonBox.setAlignment(Pos.CENTER_RIGHT);
+        buttonBox.setPadding(new Insets(10, 0, 0, 0));
+        
+        Button btnClose = new Button("Đóng");
+        btnClose.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-text-fill: #616161;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 32px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 120;"
+        );
+        btnClose.setOnMouseEntered(e -> btnClose.setStyle(
+            btnClose.getStyle() + "-fx-background-color: #e0e0e0;"
+        ));
+        btnClose.setOnMouseExited(e -> btnClose.setStyle(
+            btnClose.getStyle().replace("-fx-background-color: #e0e0e0;", "-fx-background-color: #f5f5f5;")
+        ));
+        btnClose.setOnAction(e -> dialogStage.close());
+        
+        Button btnUpdate = new Button("Cập Nhật");
+        btnUpdate.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 32px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 120;"
+        );
+        btnUpdate.setOnMouseEntered(e -> btnUpdate.setOpacity(0.9));
+        btnUpdate.setOnMouseExited(e -> btnUpdate.setOpacity(1.0));
+        btnUpdate.setOnAction(e -> {
+            // Get selected status
+            RadioButton selected = (RadioButton) statusGroup.getSelectedToggle();
+            String newStatus = selected == rbPaid ? "paid" : "nhap";
+            
+            // Update status in database
+            if (invoiceService.updateInvoiceStatus(invoiceId, newStatus)) {
+                showSuccessAlert("Thành công", "Cập nhật trạng thái thành công!");
+                refreshInvoiceTable(tableRows);
+                dialogStage.close();
+            } else {
+                showErrorAlert("Lỗi", "Không thể cập nhật trạng thái!");
+            }
+        });
+        
+        buttonBox.getChildren().addAll(btnClose, btnUpdate);
+        
+        content.getChildren().addAll(title, customerSection, itemsSection, paymentSection, statusSection, buttonBox);
+        
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
+        
+        Scene scene = new Scene(scrollPane, 650, 750);
+        dialogStage.setScene(scene);
+        dialogStage.showAndWait();
+    }
+    
+    private void exportInvoiceToPDF(Invoice invoice) {
+        try {
+            // Load invoice items
+            service.InvoiceItemService itemService = new service.InvoiceItemService();
+            List<model.InvoiceItem> items = itemService.getItemsByInvoiceId(invoice.getId());
+            
+            // Create file chooser
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Lưu Hóa Đơn PDF");
+            fileChooser.setInitialFileName("HoaDon_" + invoice.getId() + ".pdf");
+            fileChooser.getExtensionFilters().add(
+                new javafx.stage.FileChooser.ExtensionFilter("PDF Files", "*.pdf")
+            );
+            
+            java.io.File file = fileChooser.showSaveDialog(mainLayout.getScene().getWindow());
+            if (file == null) {
+                return; // User cancelled
+            }
+            
+            // Create PDF using iText
+            com.itextpdf.kernel.pdf.PdfWriter writer = new com.itextpdf.kernel.pdf.PdfWriter(file);
+            com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
+            com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf);
+            
+            // Add Vietnamese font support
+            com.itextpdf.kernel.font.PdfFont font = com.itextpdf.kernel.font.PdfFontFactory.createFont(
+                com.itextpdf.io.font.constants.StandardFonts.HELVETICA);
+            
+            // Title
+            com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph("HOA DON DICH VU")
+                .setFont(font)
+                .setFontSize(24)
+                .setBold()
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
+            document.add(title);
+            
+            // Company info
+            com.itextpdf.layout.element.Paragraph companyInfo = new com.itextpdf.layout.element.Paragraph("MTProAuto - He Thong Quan Ly")
+                .setFont(font)
+                .setFontSize(12)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
+            document.add(companyInfo);
+            
+            document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+            
+            // Invoice number and date
+            document.add(new com.itextpdf.layout.element.Paragraph("Ma hoa don: #" + invoice.getId())
+                .setFont(font)
+                .setFontSize(12));
+            document.add(new com.itextpdf.layout.element.Paragraph("Ngay tao: " + 
+                (invoice.getCreatedAt() != null ? invoice.getCreatedAt() : "N/A"))
+                .setFont(font)
+                .setFontSize(12));
+            
+            document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+            
+            // Customer information
+            document.add(new com.itextpdf.layout.element.Paragraph("THONG TIN KHACH HANG")
+                .setFont(font)
+                .setFontSize(14)
+                .setBold());
+            document.add(new com.itextpdf.layout.element.Paragraph("Ten khach hang: " + invoice.getCustomerName())
+                .setFont(font)
+                .setFontSize(12));
+            document.add(new com.itextpdf.layout.element.Paragraph("So dien thoai: " + 
+                (invoice.getPhone() != null ? invoice.getPhone() : "N/A"))
+                .setFont(font)
+                .setFontSize(12));
+            document.add(new com.itextpdf.layout.element.Paragraph("Bien so xe: " + 
+                (invoice.getLicensePlate() != null ? invoice.getLicensePlate() : "N/A"))
+                .setFont(font)
+                .setFontSize(12));
+            document.add(new com.itextpdf.layout.element.Paragraph("Loai xe: " + 
+                (invoice.getVehicleType() != null ? invoice.getVehicleType() : "N/A"))
+                .setFont(font)
+                .setFontSize(12));
+            
+            document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+            
+            // Invoice items
+            if (!items.isEmpty()) {
+                document.add(new com.itextpdf.layout.element.Paragraph("CHI TIET DICH VU & SAN PHAM")
+                    .setFont(font)
+                    .setFontSize(14)
+                    .setBold());
+                
+                // Create items table
+                com.itextpdf.layout.element.Table itemsTable = new com.itextpdf.layout.element.Table(4);
+                itemsTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+                
+                // Header row
+                itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
+                    new com.itextpdf.layout.element.Paragraph("Ten").setFont(font).setBold()));
+                itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
+                    new com.itextpdf.layout.element.Paragraph("Loai").setFont(font).setBold()));
+                itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
+                    new com.itextpdf.layout.element.Paragraph("SL").setFont(font).setBold()));
+                itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
+                    new com.itextpdf.layout.element.Paragraph("Thanh tien").setFont(font).setBold()));
+                
+                // Data rows
+                for (model.InvoiceItem item : items) {
+                    String itemTypeText = "";
+                    if (item.getItemType().equals("service")) {
+                        itemTypeText = "Dich vu";
+                    } else if (item.getItemType().equals("package")) {
+                        itemTypeText = "Goi";
+                    } else if (item.getItemType().equals("product")) {
+                        itemTypeText = "San pham";
+                    }
+                    
+                    itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
+                        new com.itextpdf.layout.element.Paragraph(item.getItemName()).setFont(font)));
+                    itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
+                        new com.itextpdf.layout.element.Paragraph(itemTypeText).setFont(font)));
+                    itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
+                        new com.itextpdf.layout.element.Paragraph(String.valueOf(item.getQuantity())).setFont(font)));
+                    itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
+                        new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VND", item.getTotalPrice())).setFont(font)));
+                }
+                
+                document.add(itemsTable);
+                document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+            }
+            
+            // Payment details
+            document.add(new com.itextpdf.layout.element.Paragraph("TONG KET THANH TOAN")
+                .setFont(font)
+                .setFontSize(14)
+                .setBold());
+            
+            // Create table
+            com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(2);
+            table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            
+            // Add rows
+            table.addCell(new com.itextpdf.layout.element.Cell().add(
+                new com.itextpdf.layout.element.Paragraph("Tong tien:").setFont(font)));
+            table.addCell(new com.itextpdf.layout.element.Cell().add(
+                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VND", invoice.getTotalAmount())).setFont(font)));
+            
+            table.addCell(new com.itextpdf.layout.element.Cell().add(
+                new com.itextpdf.layout.element.Paragraph("Giam gia:").setFont(font)));
+            table.addCell(new com.itextpdf.layout.element.Cell().add(
+                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VND", invoice.getDiscount())).setFont(font)));
+            
+            table.addCell(new com.itextpdf.layout.element.Cell().add(
+                new com.itextpdf.layout.element.Paragraph("Thanh tien:").setFont(font).setBold()));
+            table.addCell(new com.itextpdf.layout.element.Cell().add(
+                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VND", 
+                    invoice.getTotalAmount() - invoice.getDiscount())).setFont(font).setBold()));
+            
+            document.add(table);
+            
+            document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+            
+            // Status
+            String statusText = invoice.getStatus().equals("paid") ? "Da thanh toan" : "Chua thanh toan";
+            document.add(new com.itextpdf.layout.element.Paragraph("Trang thai: " + statusText)
+                .setFont(font)
+                .setFontSize(12)
+                .setBold());
+            
+            // Notes
+            if (invoice.getNotes() != null && !invoice.getNotes().trim().isEmpty()) {
+                document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+                document.add(new com.itextpdf.layout.element.Paragraph("Ghi chu: " + invoice.getNotes())
+                    .setFont(font)
+                    .setFontSize(12));
+            }
+            
+            // Footer
+            document.add(new com.itextpdf.layout.element.Paragraph("\n\n"));
+            document.add(new com.itextpdf.layout.element.Paragraph("Cam on quy khach!")
+                .setFont(font)
+                .setFontSize(12)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            
+            document.close();
+            
+            showSuccessAlert("Thành công", "Xuất hóa đơn PDF thành công!\nĐã lưu tại: " + file.getAbsolutePath());
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            showErrorAlert("Lỗi", "Không thể xuất PDF: " + e.getMessage());
+        }
     }
 
     public static void main(String[] args) {

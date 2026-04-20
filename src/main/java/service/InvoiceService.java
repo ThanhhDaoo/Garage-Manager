@@ -15,10 +15,10 @@ public class InvoiceService {
         return invoiceDAO.getInvoiceById(id);
     }
     
-    public boolean addInvoice(String customerName, String phone, String licensePlate, String vehicleType,
+    public int addInvoice(String customerName, String phone, String licensePlate, String vehicleType,
                               double totalBeforeDiscount, double discount, double totalAmount, String notes) {
         if (customerName == null || customerName.trim().isEmpty()) {
-            return false;
+            return -1;
         }
         Invoice invoice = new Invoice(0, customerName, phone, licensePlate, vehicleType,
                                      totalBeforeDiscount, discount, totalAmount, notes, "nhap", null);
@@ -37,5 +37,14 @@ public class InvoiceService {
     
     public boolean deleteInvoice(int id) {
         return invoiceDAO.deleteInvoice(id);
+    }
+    
+    public boolean updateInvoiceStatus(int id, String status) {
+        Invoice invoice = invoiceDAO.getInvoiceById(id);
+        if (invoice == null) {
+            return false;
+        }
+        invoice.setStatus(status);
+        return invoiceDAO.updateInvoice(invoice);
     }
 }
