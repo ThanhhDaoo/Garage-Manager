@@ -43,8 +43,9 @@ public class ServiceForm {
         this.onSave = onSave;
     }
     
-    public ServiceForm(String serviceName, String description, String priceSedan, String priceSUV, Runnable onSave) {
+    public ServiceForm(int serviceId, String serviceName, String description, String priceSedan, String priceSUV, Runnable onSave) {
         this.isEdit = true;
+        this.serviceId = serviceId;
         this.serviceName = serviceName;
         this.description = description;
         this.priceSedan = priceSedan;

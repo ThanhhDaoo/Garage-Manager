@@ -15,6 +15,9 @@ public class ProductForm {
     private boolean isEdit;
     private int productId;
     private String productName;
+    private String productCategory;
+    private String productPrice;
+    private String productStock;
     private TextField txtName;
     private ToggleGroup categoryGroup;
     private TextArea txtDesc;
@@ -39,6 +42,9 @@ public class ProductForm {
         this.isEdit = true;
         this.productId = id;
         this.productName = productName;
+        this.productCategory = category;
+        this.productPrice = price;
+        this.productStock = stock;
         this.onSave = onSave;
     }
     
@@ -101,6 +107,9 @@ public class ProductForm {
             "-fx-font-size: 14px;"
         );
         txtName.setPrefWidth(400);
+        if (isEdit && productName != null) {
+            txtName.setText(productName);
+        }
         
         // Category
         Label lblCategory = new Label("Danh mục *");
@@ -121,6 +130,17 @@ public class ProductForm {
         RadioButton rbAccessory = new RadioButton("Phụ kiện");
         rbAccessory.setToggleGroup(categoryGroup);
         rbAccessory.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        
+        // Set selected category if editing
+        if (isEdit && productCategory != null) {
+            if (productCategory.equals("Dung dịch")) {
+                rbSolution.setSelected(true);
+            } else if (productCategory.equals("Phụ kiện")) {
+                rbAccessory.setSelected(true);
+            } else {
+                rbWater.setSelected(true);
+            }
+        }
         
         categoryBox.getChildren().addAll(rbWater, rbSolution, rbAccessory);
         
@@ -151,6 +171,9 @@ public class ProductForm {
             "-fx-font-size: 14px;"
         );
         txtPrice.setPrefWidth(400);
+        if (isEdit && productPrice != null) {
+            txtPrice.setText(productPrice.replace("đ", "").trim());
+        }
         
         // Cost price
         Label lblCostPrice = new Label("Giá nhập");
@@ -181,6 +204,9 @@ public class ProductForm {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
+        if (isEdit && productStock != null) {
+            txtStock.setText(productStock);
+        }
         
         Label lblUnit = new Label("đơn vị");
         lblUnit.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");

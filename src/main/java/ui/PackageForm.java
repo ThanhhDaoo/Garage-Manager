@@ -19,6 +19,9 @@ public class PackageForm {
     private boolean isEdit;
     private int packageId;
     private String packageName;
+    private String packageDescription;
+    private String packagePrice;
+    private String packageSavings;
     private List<CheckBox> serviceCheckBoxes;
     private RadioButton rbActive;
     private RadioButton rbInactive;
@@ -43,6 +46,9 @@ public class PackageForm {
         this.isEdit = true;
         this.packageId = id;
         this.packageName = packageName;
+        this.packageDescription = description;
+        this.packagePrice = price;
+        this.packageSavings = savings;
         this.serviceCheckBoxes = new ArrayList<>();
         this.onSave = onSave;
     }
@@ -106,6 +112,9 @@ public class PackageForm {
             "-fx-font-size: 14px;"
         );
         txtName.setPrefWidth(400);
+        if (isEdit && packageName != null) {
+            txtName.setText(packageName);
+        }
         
         // Description
         Label lblDesc = new Label("Mô tả gói *");
@@ -120,6 +129,9 @@ public class PackageForm {
         );
         txtDesc.setPrefRowCount(3);
         txtDesc.setPrefWidth(400);
+        if (isEdit && packageDescription != null) {
+            txtDesc.setText(packageDescription);
+        }
         
         // Services selection
         Label lblServices = new Label("Chọn dịch vụ trong gói *");
@@ -181,6 +193,9 @@ public class PackageForm {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
+        if (isEdit && packagePrice != null) {
+            txtPriceSedan.setText(packagePrice.replace("đ", "").trim());
+        }
         sedanBox.getChildren().addAll(lblSedan, txtPriceSedan);
         
         VBox suvBox = new VBox(8);
@@ -196,6 +211,9 @@ public class PackageForm {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
+        if (isEdit && packagePrice != null) {
+            txtPriceSUV.setText(packagePrice.replace("đ", "").trim());
+        }
         suvBox.getChildren().addAll(lblSUV, txtPriceSUV);
         
         priceBox.getChildren().addAll(sedanBox, suvBox);

@@ -10,6 +10,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
+import javafx.stage.Modality;
 import util.DatabaseManager;
 import service.ServiceService;
 import service.PackageService;
@@ -729,18 +730,9 @@ public class MainUI extends Application {
             showDeleteConfirmation("hóa đơn", "HĐ #" + id, () -> {
                 InvoiceService invoiceService = new InvoiceService();
                 if (invoiceService.deleteInvoice(id)) {
-                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
-                    successAlert.setTitle("Thành công");
-                    successAlert.setHeaderText(null);
-                    successAlert.setContentText("Xóa hóa đơn thành công!");
-                    successAlert.showAndWait();
                     refreshInvoiceTable(tableRows);
                 } else {
-                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                    errorAlert.setTitle("Lỗi");
-                    errorAlert.setHeaderText(null);
-                    errorAlert.setContentText("Không thể xóa hóa đơn!");
-                    errorAlert.showAndWait();
+                    showErrorAlert("Lỗi", "Không thể xóa hóa đơn!");
                 }
             });
         });
@@ -988,7 +980,7 @@ public class MainUI extends Application {
             "-fx-min-height: 32;"
         );
         btnEdit.setOnAction(e -> {
-            ServiceForm form = new ServiceForm(name, description, priceSmall, priceLarge, () -> refreshServiceTable(tableRows));
+            ServiceForm form = new ServiceForm(id, name, description, priceSmall, priceLarge, () -> refreshServiceTable(tableRows));
             form.show();
         });
         
@@ -1007,18 +999,9 @@ public class MainUI extends Application {
             showDeleteConfirmation("dịch vụ", name, () -> {
                 ServiceService serviceService = new ServiceService();
                 if (serviceService.deleteService(id)) {
-                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
-                    successAlert.setTitle("Thành công");
-                    successAlert.setHeaderText(null);
-                    successAlert.setContentText("Xóa dịch vụ thành công!");
-                    successAlert.showAndWait();
                     refreshServiceTable(tableRows);
                 } else {
-                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                    errorAlert.setTitle("Lỗi");
-                    errorAlert.setHeaderText(null);
-                    errorAlert.setContentText("Không thể xóa dịch vụ!");
-                    errorAlert.showAndWait();
+                    showErrorAlert("Lỗi", "Không thể xóa dịch vụ!");
                 }
             });
         });
@@ -1815,18 +1798,9 @@ public class MainUI extends Application {
             showDeleteConfirmation("sản phẩm", name, () -> {
                 ProductService productService = new ProductService();
                 if (productService.deleteProduct(id)) {
-                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
-                    successAlert.setTitle("Thành công");
-                    successAlert.setHeaderText(null);
-                    successAlert.setContentText("Xóa sản phẩm thành công!");
-                    successAlert.showAndWait();
                     refreshProductTable(tableRows);
                 } else {
-                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                    errorAlert.setTitle("Lỗi");
-                    errorAlert.setHeaderText(null);
-                    errorAlert.setContentText("Không thể xóa sản phẩm!");
-                    errorAlert.showAndWait();
+                    showErrorAlert("Lỗi", "Không thể xóa sản phẩm!");
                 }
             });
         });
@@ -1940,18 +1914,9 @@ public class MainUI extends Application {
             showDeleteConfirmation("gói dịch vụ", name, () -> {
                 PackageService packageService = new PackageService();
                 if (packageService.deletePackage(id)) {
-                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
-                    successAlert.setTitle("Thành công");
-                    successAlert.setHeaderText(null);
-                    successAlert.setContentText("Xóa gói dịch vụ thành công!");
-                    successAlert.showAndWait();
                     refreshPackageTable(tableRows);
                 } else {
-                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                    errorAlert.setTitle("Lỗi");
-                    errorAlert.setHeaderText(null);
-                    errorAlert.setContentText("Không thể xóa gói dịch vụ!");
-                    errorAlert.showAndWait();
+                    showErrorAlert("Lỗi", "Không thể xóa gói dịch vụ!");
                 }
             });
         });
@@ -2087,30 +2052,29 @@ public class MainUI extends Application {
     }
 
     private void showDeleteConfirmation(String itemType, String itemName, Runnable onConfirm) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Xác nhận xóa");
-        
-        DialogPane dialogPane = dialog.getDialogPane();
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        dialogStage.setTitle("Xác nhận xóa");
         
         VBox content = new VBox(25);
         content.setAlignment(Pos.CENTER);
-        content.setPadding(new Insets(40, 50, 35, 50));
+        content.setPadding(new Insets(40, 50, 40, 50));
         content.setStyle("-fx-background-color: white;");
-        content.setMinWidth(420);
         
-        // Warning icon
+        // Warning icon with blue theme
         StackPane iconContainer = new StackPane();
         iconContainer.setStyle(
-            "-fx-background-color: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);" +
+            "-fx-background-color: #E3F2FD;" +
             "-fx-background-radius: 50;" +
             "-fx-pref-width: 80;" +
             "-fx-pref-height: 80;"
         );
         
-        Label iconLabel = new Label("🗑");
+        Label iconLabel = new Label("?");
         iconLabel.setStyle(
-            "-fx-font-size: 42px;" +
-            "-fx-text-fill: #f44336;"
+            "-fx-font-size: 48px;" +
+            "-fx-text-fill: #2196F3;" +
+            "-fx-font-weight: bold;"
         );
         iconContainer.getChildren().add(iconLabel);
         
@@ -2121,55 +2085,204 @@ public class MainUI extends Application {
             "-fx-font-weight: 600;"
         );
         
-        Label subMessage = new Label("Bạn có chắc chắn muốn xóa " + itemType + " \"" + itemName + "\"?\nHành động này không thể hoàn tác.");
+        Label subMessage = new Label("Bạn có chắc chắn muốn xóa " + itemType + ":");
         subMessage.setStyle(
             "-fx-font-size: 14px;" +
-            "-fx-text-fill: #757575;" +
-            "-fx-text-alignment: center;"
-        );
-        subMessage.setWrapText(true);
-        subMessage.setMaxWidth(350);
-        
-        content.getChildren().addAll(iconContainer, message, subMessage);
-        dialogPane.setContent(content);
-        
-        ButtonType btnYes = new ButtonType("Xóa", ButtonBar.ButtonData.OK_DONE);
-        ButtonType btnNo = new ButtonType("Hủy", ButtonBar.ButtonData.CANCEL_CLOSE);
-        dialogPane.getButtonTypes().addAll(btnNo, btnYes);
-        
-        dialogPane.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 16;" +
-            "-fx-border-radius: 16;" +
-            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 25, 0, 0, 8);"
+            "-fx-text-fill: #757575;"
         );
         
-        dialogPane.lookupButton(btnYes).setStyle(
-            "-fx-background-color: #f44336;" +
-            "-fx-text-fill: white;" +
-            "-fx-font-size: 14px;" +
-            "-fx-font-weight: 600;" +
-            "-fx-padding: 12px 32px;" +
-            "-fx-background-radius: 10;" +
-            "-fx-cursor: hand;" +
-            "-fx-min-width: 120;"
+        Label itemLabel = new Label("\"" + itemName + "\"");
+        itemLabel.setStyle(
+            "-fx-font-size: 15px;" +
+            "-fx-text-fill: #2196F3;" +
+            "-fx-font-weight: 600;"
         );
         
-        dialogPane.lookupButton(btnNo).setStyle(
+        Label warningLabel = new Label("Hành động này không thể hoàn tác!");
+        warningLabel.setStyle(
+            "-fx-font-size: 13px;" +
+            "-fx-text-fill: #2196F3;" +
+            "-fx-font-style: italic;"
+        );
+        
+        // Buttons
+        HBox buttonBox = new HBox(15);
+        buttonBox.setAlignment(Pos.CENTER);
+        buttonBox.setPadding(new Insets(10, 0, 0, 0));
+        
+        Button btnCancel = new Button("Hủy");
+        btnCancel.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-text-fill: #616161;" +
             "-fx-font-size: 14px;" +
             "-fx-font-weight: 600;" +
             "-fx-padding: 12px 32px;" +
-            "-fx-background-radius: 10;" +
+            "-fx-background-radius: 8;" +
             "-fx-cursor: hand;" +
             "-fx-min-width: 120;"
         );
+        btnCancel.setOnMouseEntered(e -> btnCancel.setStyle(
+            btnCancel.getStyle() + "-fx-background-color: #e0e0e0;"
+        ));
+        btnCancel.setOnMouseExited(e -> btnCancel.setStyle(
+            btnCancel.getStyle().replace("-fx-background-color: #e0e0e0;", "-fx-background-color: #f5f5f5;")
+        ));
+        btnCancel.setOnAction(e -> dialogStage.close());
         
-        dialog.showAndWait().ifPresent(response -> {
-            if (response == btnYes) {
-                onConfirm.run();
-            }
+        Button btnDelete = new Button("Xác nhận");
+        btnDelete.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 32px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 120;"
+        );
+        btnDelete.setOnMouseEntered(e -> btnDelete.setOpacity(0.9));
+        btnDelete.setOnMouseExited(e -> btnDelete.setOpacity(1.0));
+        btnDelete.setOnAction(e -> {
+            dialogStage.close();
+            onConfirm.run();
         });
+        
+        buttonBox.getChildren().addAll(btnCancel, btnDelete);
+        
+        content.getChildren().addAll(iconContainer, message, subMessage, itemLabel, warningLabel, buttonBox);
+        
+        Scene scene = new Scene(content);
+        dialogStage.setScene(scene);
+        dialogStage.showAndWait();
+    }
+    
+    private void showSuccessAlert(String title, String message) {
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        dialogStage.setTitle(title);
+        
+        VBox content = new VBox(20);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(35, 50, 35, 50));
+        content.setStyle("-fx-background-color: white;");
+        
+        // Success icon with blue theme
+        StackPane iconContainer = new StackPane();
+        iconContainer.setStyle(
+            "-fx-background-color: #E3F2FD;" +
+            "-fx-background-radius: 50;" +
+            "-fx-pref-width: 70;" +
+            "-fx-pref-height: 70;"
+        );
+        
+        Label iconLabel = new Label("✓");
+        iconLabel.setStyle(
+            "-fx-font-size: 42px;" +
+            "-fx-text-fill: #2196F3;" +
+            "-fx-font-weight: bold;"
+        );
+        iconContainer.getChildren().add(iconLabel);
+        
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle(
+            "-fx-font-size: 20px;" +
+            "-fx-text-fill: #212121;" +
+            "-fx-font-weight: 600;"
+        );
+        
+        Label messageLabel = new Label(message);
+        messageLabel.setStyle(
+            "-fx-font-size: 14px;" +
+            "-fx-text-fill: #757575;"
+        );
+        messageLabel.setWrapText(true);
+        messageLabel.setMaxWidth(350);
+        messageLabel.setAlignment(Pos.CENTER);
+        
+        Button btnOk = new Button("OK");
+        btnOk.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 40px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 120;"
+        );
+        btnOk.setOnMouseEntered(e -> btnOk.setOpacity(0.9));
+        btnOk.setOnMouseExited(e -> btnOk.setOpacity(1.0));
+        btnOk.setOnAction(e -> dialogStage.close());
+        
+        content.getChildren().addAll(iconContainer, titleLabel, messageLabel, btnOk);
+        
+        Scene scene = new Scene(content);
+        dialogStage.setScene(scene);
+        dialogStage.showAndWait();
+    }
+    
+    private void showErrorAlert(String title, String message) {
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        dialogStage.setTitle(title);
+        
+        VBox content = new VBox(20);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(35, 50, 35, 50));
+        content.setStyle("-fx-background-color: white;");
+        
+        // Error icon with orange/warning theme (not red)
+        StackPane iconContainer = new StackPane();
+        iconContainer.setStyle(
+            "-fx-background-color: #FFF3E0;" +
+            "-fx-background-radius: 50;" +
+            "-fx-pref-width: 70;" +
+            "-fx-pref-height: 70;"
+        );
+        
+        Label iconLabel = new Label("!");
+        iconLabel.setStyle(
+            "-fx-font-size: 42px;" +
+            "-fx-text-fill: #FF9800;" +
+            "-fx-font-weight: bold;"
+        );
+        iconContainer.getChildren().add(iconLabel);
+        
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle(
+            "-fx-font-size: 20px;" +
+            "-fx-text-fill: #212121;" +
+            "-fx-font-weight: 600;"
+        );
+        
+        Label messageLabel = new Label(message);
+        messageLabel.setStyle(
+            "-fx-font-size: 14px;" +
+            "-fx-text-fill: #757575;"
+        );
+        messageLabel.setWrapText(true);
+        messageLabel.setMaxWidth(350);
+        messageLabel.setAlignment(Pos.CENTER);
+        
+        Button btnOk = new Button("OK");
+        btnOk.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 40px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 120;"
+        );
+        btnOk.setOnMouseEntered(e -> btnOk.setOpacity(0.9));
+        btnOk.setOnMouseExited(e -> btnOk.setOpacity(1.0));
+        btnOk.setOnAction(e -> dialogStage.close());
+        
+        content.getChildren().addAll(iconContainer, titleLabel, messageLabel, btnOk);
+        
+        Scene scene = new Scene(content);
+        dialogStage.setScene(scene);
+        dialogStage.showAndWait();
     }
 }
