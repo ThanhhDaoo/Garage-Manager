@@ -64,67 +64,73 @@ public class ReportHelper {
             com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
             com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf);
             
-            // Use standard Times Roman font consistently
-            com.itextpdf.kernel.font.PdfFont font = com.itextpdf.kernel.font.PdfFontFactory.createFont(
-                com.itextpdf.io.font.constants.StandardFonts.TIMES_ROMAN);
+            // Sử dụng font hỗ trợ tiếng Việt từ PDFFontHelper
+            com.itextpdf.kernel.font.PdfFont font = util.PDFFontHelper.createVietnameseFont();
+            com.itextpdf.kernel.font.PdfFont boldFont = util.PDFFontHelper.createVietnameseFont(true);
             
-            // Title
-            document.add(new com.itextpdf.layout.element.Paragraph("BAO CAO DOANH THU")
-                .setFont(font)
+            // In thông tin font để debug
+            System.out.println("=== XUẤT BÁO CÁO PDF ===");
+            if (util.PDFFontHelper.testVietnameseSupport(font)) {
+                System.out.println("✓ Font hỗ trợ tiếng Việt");
+            } else {
+                System.out.println("⚠ Font có thể không hỗ trợ đầy đủ tiếng Việt");
+            }
+            
+            // Title với font đậm
+            document.add(new com.itextpdf.layout.element.Paragraph("BÁO CÁO DOANH THU")
+                .setFont(boldFont)
                 .setFontSize(24)
-                .setBold()
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
             
-            document.add(new com.itextpdf.layout.element.Paragraph("MTProAuto - He Thong Quan Ly Gara")
-                .setFont(font)
+            document.add(new com.itextpdf.layout.element.Paragraph("MTProAuto - Hệ Thống Quản Lý Gara")
+                .setFont(boldFont)
                 .setFontSize(12)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
             
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
             
             // Date range
-            String dateRangeText = "Thoi gian: ";
+            String dateRangeText = "Thời gian: ";
             if (fromDate != null && toDate != null) {
-                dateRangeText += fromDate + " den " + toDate;
+                dateRangeText += fromDate + " đến " + toDate;
             } else {
-                dateRangeText += "Tat ca";
+                dateRangeText += "Tất cả";
             }
             document.add(new com.itextpdf.layout.element.Paragraph(dateRangeText)
                 .setFont(font)
                 .setFontSize(12));
             
-            document.add(new com.itextpdf.layout.element.Paragraph("Ngay xuat: " + java.time.LocalDate.now())
+            document.add(new com.itextpdf.layout.element.Paragraph("Ngày xuất: " + java.time.LocalDate.now())
                 .setFont(font)
                 .setFontSize(12));
             
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
             
-            // Stats table
-            document.add(new com.itextpdf.layout.element.Paragraph("TONG QUAN")
-                .setFont(font)
-                .setFontSize(14)
-                .setBold());
+            // Stats table với font đậm cho tiêu đề
+            document.add(new com.itextpdf.layout.element.Paragraph("TỔNG QUAN")
+                .setFont(boldFont)
+                .setFontSize(14));
             
             com.itextpdf.layout.element.Table statsTable = new com.itextpdf.layout.element.Table(2);
             statsTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             
             statsTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Tong doanh thu:").setFont(font)));
+                new com.itextpdf.layout.element.Paragraph("Tổng doanh thu:").setFont(font)));
             statsTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VND", totalRevenue)).setFont(font)));
+                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VNĐ", totalRevenue)).setFont(font)));
             
             statsTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Tong hoa don:").setFont(font)));
+                new com.itextpdf.layout.element.Paragraph("Tổng hóa đơn:").setFont(font)));
             statsTable.addCell(new com.itextpdf.layout.element.Cell().add(
                 new com.itextpdf.layout.element.Paragraph(String.valueOf(totalInvoices)).setFont(font)));
             
             statsTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Khach hang:").setFont(font)));
+                new com.itextpdf.layout.element.Paragraph("Khách hàng:").setFont(font)));
             statsTable.addCell(new com.itextpdf.layout.element.Cell().add(
                 new com.itextpdf.layout.element.Paragraph(String.valueOf(uniqueCustomers)).setFont(font)));
             
             statsTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Da thanh toan:").setFont(font)));
+                new com.itextpdf.layout.element.Paragraph("Đã thanh toán:").setFont(font)));
             statsTable.addCell(new com.itextpdf.layout.element.Cell().add(
                 new com.itextpdf.layout.element.Paragraph(String.valueOf(paidInvoices)).setFont(font)));
             
@@ -132,24 +138,23 @@ public class ReportHelper {
             
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
             
-            // Invoice list
-            document.add(new com.itextpdf.layout.element.Paragraph("CHI TIET HOA DON")
-                .setFont(font)
-                .setFontSize(14)
-                .setBold());
+            // Invoice list với font đậm cho tiêu đề
+            document.add(new com.itextpdf.layout.element.Paragraph("CHI TIẾT HÓA ĐƠN")
+                .setFont(boldFont)
+                .setFontSize(14));
             
             com.itextpdf.layout.element.Table invoiceTable = new com.itextpdf.layout.element.Table(4);
             invoiceTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             
-            // Header
+            // Header với font đậm
             invoiceTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Ma HD").setFont(font).setBold()));
+                new com.itextpdf.layout.element.Paragraph("Mã HĐ").setFont(boldFont)));
             invoiceTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Khach hang").setFont(font).setBold()));
+                new com.itextpdf.layout.element.Paragraph("Khách hàng").setFont(boldFont)));
             invoiceTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Tong tien").setFont(font).setBold()));
+                new com.itextpdf.layout.element.Paragraph("Tổng tiền").setFont(boldFont)));
             invoiceTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Trang thai").setFont(font).setBold()));
+                new com.itextpdf.layout.element.Paragraph("Trạng thái").setFont(boldFont)));
             
             // Data rows
             for (Invoice inv : filteredInvoices) {
@@ -160,7 +165,7 @@ public class ReportHelper {
                 invoiceTable.addCell(new com.itextpdf.layout.element.Cell().add(
                     new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", inv.getTotalAmount())).setFont(font)));
                 invoiceTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                    new com.itextpdf.layout.element.Paragraph(inv.getStatus().equals("paid") ? "Da TT" : "Chua TT").setFont(font)));
+                    new com.itextpdf.layout.element.Paragraph(inv.getStatus().equals("paid") ? "Đã TT" : "Chưa TT").setFont(font)));
             }
             
             document.add(invoiceTable);
