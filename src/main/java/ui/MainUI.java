@@ -50,6 +50,14 @@ public class MainUI extends Application {
 
         Scene scene = new Scene(mainLayout, 1400, 800);
         
+        // Apply global font stylesheet
+        try {
+            String css = getClass().getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {
+            System.out.println("Could not load global-styles.css");
+        }
+        
         stage.setScene(scene);
         stage.setTitle("🚗 MTProAuto - Quản Lý Chuyên Nghiệp");
         stage.show();
@@ -2640,6 +2648,10 @@ public class MainUI extends Application {
         scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
         
         Scene scene = new Scene(scrollPane, 650, 750);
+        try {
+            String css = getClass().getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {}
         dialogStage.setScene(scene);
         dialogStage.showAndWait();
     }
@@ -2668,12 +2680,28 @@ public class MainUI extends Application {
             com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
             com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf);
             
-            // Add Vietnamese font support
-            com.itextpdf.kernel.font.PdfFont font = com.itextpdf.kernel.font.PdfFontFactory.createFont(
-                com.itextpdf.io.font.constants.StandardFonts.HELVETICA);
+            // Use Times New Roman font with Vietnamese support
+            com.itextpdf.kernel.font.PdfFont font;
+            try {
+                // Try to use DejaVu Sans which supports Vietnamese characters
+                font = com.itextpdf.kernel.font.PdfFontFactory.createFont("DejaVu Sans", 
+                    com.itextpdf.io.font.PdfEncodings.IDENTITY_H, 
+                    com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
+            } catch (Exception e) {
+                try {
+                    // Fallback to Helvetica with Unicode support
+                    font = com.itextpdf.kernel.font.PdfFontFactory.createFont(
+                        com.itextpdf.io.font.constants.StandardFonts.HELVETICA, 
+                        com.itextpdf.io.font.PdfEncodings.IDENTITY_H);
+                } catch (Exception ex) {
+                    // Final fallback to Times Roman
+                    font = com.itextpdf.kernel.font.PdfFontFactory.createFont(
+                        com.itextpdf.io.font.constants.StandardFonts.TIMES_ROMAN);
+                }
+            }
             
             // Title
-            com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph("HOA DON DICH VU")
+            com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph("HÓA ĐƠN DỊCH VỤ")
                 .setFont(font)
                 .setFontSize(24)
                 .setBold()
@@ -2681,7 +2709,7 @@ public class MainUI extends Application {
             document.add(title);
             
             // Company info
-            com.itextpdf.layout.element.Paragraph companyInfo = new com.itextpdf.layout.element.Paragraph("MTProAuto - He Thong Quan Ly")
+            com.itextpdf.layout.element.Paragraph companyInfo = new com.itextpdf.layout.element.Paragraph("MTProAuto - Hệ Thống Quản Lý")
                 .setFont(font)
                 .setFontSize(12)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
@@ -2690,10 +2718,10 @@ public class MainUI extends Application {
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
             
             // Invoice number and date
-            document.add(new com.itextpdf.layout.element.Paragraph("Ma hoa don: #" + invoice.getId())
+            document.add(new com.itextpdf.layout.element.Paragraph("Mã hóa đơn: #" + invoice.getId())
                 .setFont(font)
                 .setFontSize(12));
-            document.add(new com.itextpdf.layout.element.Paragraph("Ngay tao: " + 
+            document.add(new com.itextpdf.layout.element.Paragraph("Ngày tạo: " + 
                 (invoice.getCreatedAt() != null ? invoice.getCreatedAt() : "N/A"))
                 .setFont(font)
                 .setFontSize(12));
@@ -2701,22 +2729,22 @@ public class MainUI extends Application {
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
             
             // Customer information
-            document.add(new com.itextpdf.layout.element.Paragraph("THONG TIN KHACH HANG")
+            document.add(new com.itextpdf.layout.element.Paragraph("THÔNG TIN KHÁCH HÀNG")
                 .setFont(font)
                 .setFontSize(14)
                 .setBold());
-            document.add(new com.itextpdf.layout.element.Paragraph("Ten khach hang: " + invoice.getCustomerName())
+            document.add(new com.itextpdf.layout.element.Paragraph("Tên khách hàng: " + invoice.getCustomerName())
                 .setFont(font)
                 .setFontSize(12));
-            document.add(new com.itextpdf.layout.element.Paragraph("So dien thoai: " + 
+            document.add(new com.itextpdf.layout.element.Paragraph("Số điện thoại: " + 
                 (invoice.getPhone() != null ? invoice.getPhone() : "N/A"))
                 .setFont(font)
                 .setFontSize(12));
-            document.add(new com.itextpdf.layout.element.Paragraph("Bien so xe: " + 
+            document.add(new com.itextpdf.layout.element.Paragraph("Biển số xe: " + 
                 (invoice.getLicensePlate() != null ? invoice.getLicensePlate() : "N/A"))
                 .setFont(font)
                 .setFontSize(12));
-            document.add(new com.itextpdf.layout.element.Paragraph("Loai xe: " + 
+            document.add(new com.itextpdf.layout.element.Paragraph("Loại xe: " + 
                 (invoice.getVehicleType() != null ? invoice.getVehicleType() : "N/A"))
                 .setFont(font)
                 .setFontSize(12));
@@ -2725,7 +2753,7 @@ public class MainUI extends Application {
             
             // Invoice items
             if (!items.isEmpty()) {
-                document.add(new com.itextpdf.layout.element.Paragraph("CHI TIET DICH VU & SAN PHAM")
+                document.add(new com.itextpdf.layout.element.Paragraph("CHI TIẾT DỊCH VỤ & SẢN PHẨM")
                     .setFont(font)
                     .setFontSize(14)
                     .setBold());
@@ -2736,23 +2764,23 @@ public class MainUI extends Application {
                 
                 // Header row
                 itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                    new com.itextpdf.layout.element.Paragraph("Ten").setFont(font).setBold()));
+                    new com.itextpdf.layout.element.Paragraph("Tên").setFont(font).setBold()));
                 itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                    new com.itextpdf.layout.element.Paragraph("Loai").setFont(font).setBold()));
+                    new com.itextpdf.layout.element.Paragraph("Loại").setFont(font).setBold()));
                 itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
                     new com.itextpdf.layout.element.Paragraph("SL").setFont(font).setBold()));
                 itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                    new com.itextpdf.layout.element.Paragraph("Thanh tien").setFont(font).setBold()));
+                    new com.itextpdf.layout.element.Paragraph("Thành tiền").setFont(font).setBold()));
                 
                 // Data rows
                 for (model.InvoiceItem item : items) {
                     String itemTypeText = "";
                     if (item.getItemType().equals("service")) {
-                        itemTypeText = "Dich vu";
+                        itemTypeText = "Dịch vụ";
                     } else if (item.getItemType().equals("package")) {
-                        itemTypeText = "Goi";
+                        itemTypeText = "Gói";
                     } else if (item.getItemType().equals("product")) {
-                        itemTypeText = "San pham";
+                        itemTypeText = "Sản phẩm";
                     }
                     
                     itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
@@ -2762,7 +2790,7 @@ public class MainUI extends Application {
                     itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
                         new com.itextpdf.layout.element.Paragraph(String.valueOf(item.getQuantity())).setFont(font)));
                     itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                        new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VND", item.getTotalPrice())).setFont(font)));
+                        new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VNĐ", item.getTotalPrice())).setFont(font)));
                 }
                 
                 document.add(itemsTable);
@@ -2770,7 +2798,7 @@ public class MainUI extends Application {
             }
             
             // Payment details
-            document.add(new com.itextpdf.layout.element.Paragraph("TONG KET THANH TOAN")
+            document.add(new com.itextpdf.layout.element.Paragraph("TỔNG KẾT THANH TOÁN")
                 .setFont(font)
                 .setFontSize(14)
                 .setBold());
@@ -2781,19 +2809,19 @@ public class MainUI extends Application {
             
             // Add rows
             table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Tong tien:").setFont(font)));
+                new com.itextpdf.layout.element.Paragraph("Tổng tiền:").setFont(font)));
             table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VND", invoice.getTotalAmount())).setFont(font)));
+                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VNĐ", invoice.getTotalAmount())).setFont(font)));
             
             table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Giam gia:").setFont(font)));
+                new com.itextpdf.layout.element.Paragraph("Giảm giá:").setFont(font)));
             table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VND", invoice.getDiscount())).setFont(font)));
+                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VNĐ", invoice.getDiscount())).setFont(font)));
             
             table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Thanh tien:").setFont(font).setBold()));
+                new com.itextpdf.layout.element.Paragraph("Thành tiền:").setFont(font).setBold()));
             table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VND", 
+                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VNĐ", 
                     invoice.getTotalAmount() - invoice.getDiscount())).setFont(font).setBold()));
             
             document.add(table);
@@ -2801,8 +2829,8 @@ public class MainUI extends Application {
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
             
             // Status
-            String statusText = invoice.getStatus().equals("paid") ? "Da thanh toan" : "Chua thanh toan";
-            document.add(new com.itextpdf.layout.element.Paragraph("Trang thai: " + statusText)
+            String statusText = invoice.getStatus().equals("paid") ? "Đã thanh toán" : "Chưa thanh toán";
+            document.add(new com.itextpdf.layout.element.Paragraph("Trạng thái: " + statusText)
                 .setFont(font)
                 .setFontSize(12)
                 .setBold());
@@ -2810,17 +2838,78 @@ public class MainUI extends Application {
             // Notes
             if (invoice.getNotes() != null && !invoice.getNotes().trim().isEmpty()) {
                 document.add(new com.itextpdf.layout.element.Paragraph("\n"));
-                document.add(new com.itextpdf.layout.element.Paragraph("Ghi chu: " + invoice.getNotes())
+                document.add(new com.itextpdf.layout.element.Paragraph("Ghi chú: " + invoice.getNotes())
                     .setFont(font)
                     .setFontSize(12));
             }
             
-            // Footer
+            // Footer with QR code and signature
             document.add(new com.itextpdf.layout.element.Paragraph("\n\n"));
-            document.add(new com.itextpdf.layout.element.Paragraph("Cam on quy khach!")
-                .setFont(font)
-                .setFontSize(12)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            
+            // Create table for footer (2 columns)
+            com.itextpdf.layout.element.Table footerTable = new com.itextpdf.layout.element.Table(2);
+            footerTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            
+            // Left column - QR Code and bank info
+            com.itextpdf.layout.element.Cell leftCell = new com.itextpdf.layout.element.Cell();
+            leftCell.setBorder(null);
+            
+            try {
+                // Generate QR code for VietQR
+                String qrContent = "TRAN THANH DAO\n0362625218\nMB Bank";
+                com.google.zxing.BarcodeFormat format = com.google.zxing.BarcodeFormat.QR_CODE;
+                com.google.zxing.qrcode.QRCodeWriter qrWriter = new com.google.zxing.qrcode.QRCodeWriter();
+                com.google.zxing.common.BitMatrix bitMatrix = qrWriter.encode(qrContent, format, 150, 150);
+                
+                // Convert BitMatrix to BufferedImage
+                java.awt.image.BufferedImage qrImage = new java.awt.image.BufferedImage(150, 150, java.awt.image.BufferedImage.TYPE_INT_RGB);
+                for (int x = 0; x < 150; x++) {
+                    for (int y = 0; y < 150; y++) {
+                        qrImage.setRGB(x, y, bitMatrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF);
+                    }
+                }
+                
+                // Convert to iText Image
+                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                javax.imageio.ImageIO.write(qrImage, "png", baos);
+                com.itextpdf.io.image.ImageData imageData = com.itextpdf.io.image.ImageDataFactory.create(baos.toByteArray());
+                com.itextpdf.layout.element.Image qrImg = new com.itextpdf.layout.element.Image(imageData);
+                qrImg.setWidth(100);
+                qrImg.setHeight(100);
+                
+                leftCell.add(qrImg);
+                leftCell.add(new com.itextpdf.layout.element.Paragraph("\nThông tin chuyển khoản:")
+                    .setFont(font).setFontSize(10).setBold());
+                leftCell.add(new com.itextpdf.layout.element.Paragraph("Tên: TRẦN THÀNH ĐẠO")
+                    .setFont(font).setFontSize(9));
+                leftCell.add(new com.itextpdf.layout.element.Paragraph("STK: 0362625218")
+                    .setFont(font).setFontSize(9));
+                leftCell.add(new com.itextpdf.layout.element.Paragraph("Ngân hàng: MB Bank")
+                    .setFont(font).setFontSize(9));
+            } catch (Exception e) {
+                leftCell.add(new com.itextpdf.layout.element.Paragraph("Thông tin thanh toán:\nTRẦN THÀNH ĐẠO\n0362625218\nMB Bank")
+                    .setFont(font).setFontSize(10));
+            }
+            
+            // Right column - Date and creator
+            com.itextpdf.layout.element.Cell rightCell = new com.itextpdf.layout.element.Cell();
+            rightCell.setBorder(null);
+            rightCell.setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT);
+            
+            java.time.LocalDate today = java.time.LocalDate.now();
+            rightCell.add(new com.itextpdf.layout.element.Paragraph(
+                String.format("Ngày %d tháng %d năm %d", today.getDayOfMonth(), today.getMonthValue(), today.getYear()))
+                .setFont(font).setFontSize(11));
+            rightCell.add(new com.itextpdf.layout.element.Paragraph("\n\n"));
+            rightCell.add(new com.itextpdf.layout.element.Paragraph("Người tạo hóa đơn")
+                .setFont(font).setFontSize(10).setBold());
+            rightCell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n"));
+            rightCell.add(new com.itextpdf.layout.element.Paragraph("(Ký và ghi rõ họ tên)")
+                .setFont(font).setFontSize(9).setItalic());
+            
+            footerTable.addCell(leftCell);
+            footerTable.addCell(rightCell);
+            document.add(footerTable);
             
             document.close();
             
@@ -2937,6 +3026,10 @@ public class MainUI extends Application {
         content.getChildren().addAll(iconContainer, message, subMessage, itemLabel, warningLabel, buttonBox);
         
         Scene scene = new Scene(content);
+        try {
+            String css = getClass().getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {}
         dialogStage.setScene(scene);
         dialogStage.showAndWait();
     }
@@ -3002,6 +3095,10 @@ public class MainUI extends Application {
         content.getChildren().addAll(iconContainer, titleLabel, messageLabel, btnOk);
         
         Scene scene = new Scene(content);
+        try {
+            String css = getClass().getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {}
         dialogStage.setScene(scene);
         dialogStage.showAndWait();
     }
@@ -3067,6 +3164,10 @@ public class MainUI extends Application {
         content.getChildren().addAll(iconContainer, titleLabel, messageLabel, btnOk);
         
         Scene scene = new Scene(content);
+        try {
+            String css = getClass().getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {}
         dialogStage.setScene(scene);
         dialogStage.showAndWait();
     }

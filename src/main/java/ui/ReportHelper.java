@@ -64,8 +64,9 @@ public class ReportHelper {
             com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
             com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf);
             
+            // Use standard Times Roman font consistently
             com.itextpdf.kernel.font.PdfFont font = com.itextpdf.kernel.font.PdfFontFactory.createFont(
-                com.itextpdf.io.font.constants.StandardFonts.HELVETICA);
+                com.itextpdf.io.font.constants.StandardFonts.TIMES_ROMAN);
             
             // Title
             document.add(new com.itextpdf.layout.element.Paragraph("BAO CAO DOANH THU")
@@ -166,18 +167,20 @@ public class ReportHelper {
             
             document.close();
             
-            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
-            alert.setTitle("Thành công");
-            alert.setHeaderText(null);
-            alert.setContentText("Xuất báo cáo PDF thành công!\nĐã lưu tại: " + file.getAbsolutePath());
+            javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
+                javafx.scene.control.Alert.AlertType.INFORMATION, 
+                "Thành công", 
+                "Xuất báo cáo PDF thành công!\nĐã lưu tại: " + file.getAbsolutePath()
+            );
             alert.showAndWait();
             
         } catch (Exception e) {
             e.printStackTrace();
-            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
-            alert.setTitle("Lỗi");
-            alert.setHeaderText(null);
-            alert.setContentText("Không thể xuất báo cáo: " + e.getMessage());
+            javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
+                javafx.scene.control.Alert.AlertType.ERROR, 
+                "Lỗi", 
+                "Không thể xuất báo cáo: " + e.getMessage()
+            );
             alert.showAndWait();
         }
     }

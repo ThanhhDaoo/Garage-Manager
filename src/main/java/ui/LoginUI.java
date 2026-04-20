@@ -21,6 +21,10 @@ public class LoginUI extends Application {
         root.setCenter(loginBox);
 
         Scene scene = new Scene(root, 1000, 650);
+        try {
+            String css = getClass().getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {}
         stage.setScene(scene);
         stage.setTitle("🚗 MTProAuto - Đăng Nhập");
         stage.show();

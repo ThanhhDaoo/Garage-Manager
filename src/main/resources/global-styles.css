@@ -1,0 +1,16 @@
+/* Global font styling - Times New Roman */
+.root {
+    -fx-font-family: "Times New Roman";
+}
+
+/* All text elements */
+.label, .button, .text-field, .text-area, .combo-box, 
+.choice-box, .date-picker, .spinner, .table-view,
+.list-view, .tree-view, .menu, .menu-item {
+    -fx-font-family: "Times New Roman";
+}
+
+/* Chart text */
+.chart-title, .axis-label, .chart-legend {
+    -fx-font-family: "Times New Roman";
+}

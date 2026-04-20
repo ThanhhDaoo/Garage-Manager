@@ -92,6 +92,10 @@ public class CreateInvoiceForm {
         scrollPane.setContent(mainContent);
         
         Scene scene = new Scene(scrollPane, 1000, 700);
+        try {
+            String css = getClass().getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {}
         stage.setScene(scene);
         stage.show();
     }
@@ -719,37 +723,25 @@ public class CreateInvoiceForm {
         btnCreate.setOnAction(e -> {
             // Validate required fields
             if (txtName.getText().trim().isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Cảnh báo");
-                alert.setHeaderText(null);
-                alert.setContentText("Vui lòng nhập tên khách hàng!");
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng nhập tên khách hàng!");
                 alert.showAndWait();
                 return;
             }
             
             if (txtPhone.getText().trim().isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Cảnh báo");
-                alert.setHeaderText(null);
-                alert.setContentText("Vui lòng nhập số điện thoại!");
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng nhập số điện thoại!");
                 alert.showAndWait();
                 return;
             }
             
             if (txtPlate.getText().trim().isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Cảnh báo");
-                alert.setHeaderText(null);
-                alert.setContentText("Vui lòng nhập biển số xe!");
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng nhập biển số xe!");
                 alert.showAndWait();
                 return;
             }
             
             if (totalAmount <= 0) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Cảnh báo");
-                alert.setHeaderText(null);
-                alert.setContentText("Vui lòng chọn ít nhất một dịch vụ hoặc sản phẩm!");
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng chọn ít nhất một dịch vụ hoặc sản phẩm!");
                 alert.showAndWait();
                 return;
             }
@@ -811,10 +803,7 @@ public class CreateInvoiceForm {
                     );
                 }
                 
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Thành công");
-                alert.setHeaderText(null);
-                alert.setContentText("Tạo hóa đơn thành công!");
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công", "Tạo hóa đơn thành công!");
                 alert.showAndWait();
                 
                 // Call callback to refresh invoice list
@@ -824,10 +813,7 @@ public class CreateInvoiceForm {
                 
                 stage.close();
             } else {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Lỗi");
-                alert.setHeaderText(null);
-                alert.setContentText("Không thể tạo hóa đơn!");
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tạo hóa đơn!");
                 alert.showAndWait();
             }
         });

@@ -80,6 +80,10 @@ public class PackageForm {
         scrollPane.setContent(mainContent);
         
         Scene scene = new Scene(scrollPane, 700, 850);
+        try {
+            String css = getClass().getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {}
         stage.setScene(scene);
         stage.show();
     }
