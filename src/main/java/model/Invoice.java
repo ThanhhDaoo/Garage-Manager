@@ -6,6 +6,7 @@ public class Invoice {
     private String phone;
     private String licensePlate;
     private String vehicleType;
+    private String address;
     private double totalBeforeDiscount;
     private double discount;
     private double totalAmount;
@@ -15,13 +16,14 @@ public class Invoice {
 
     public Invoice() {}
 
-    public Invoice(int id, String customerName, String phone, String licensePlate, String vehicleType,
+    public Invoice(int id, String customerName, String phone, String licensePlate, String vehicleType, String address,
                    double totalBeforeDiscount, double discount, double totalAmount, String notes, String status, String createdAt) {
         this.id = id;
         this.customerName = customerName;
         this.phone = phone;
         this.licensePlate = licensePlate;
         this.vehicleType = vehicleType;
+        this.address = address;
         this.totalBeforeDiscount = totalBeforeDiscount;
         this.discount = discount;
         this.totalAmount = totalAmount;
@@ -44,6 +46,9 @@ public class Invoice {
 
     public String getVehicleType() { return vehicleType; }
     public void setVehicleType(String vehicleType) { this.vehicleType = vehicleType; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
 
     public double getTotalBeforeDiscount() { return totalBeforeDiscount; }
     public void setTotalBeforeDiscount(double totalBeforeDiscount) { this.totalBeforeDiscount = totalBeforeDiscount; }

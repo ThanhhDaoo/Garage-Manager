@@ -21,8 +21,11 @@ public class ServiceDAO {
                     rs.getInt("id"),
                     rs.getString("name"),
                     rs.getString("description"),
-                    rs.getDouble("price_small"),
-                    rs.getDouble("price_large")
+                    rs.getDouble("price_mini"),
+                    rs.getDouble("price_sedan"),
+                    rs.getDouble("price_cuv"),
+                    rs.getDouble("price_suv"),
+                    rs.getDouble("price_pickup")
                 );
                 services.add(service);
             }
@@ -46,8 +49,11 @@ public class ServiceDAO {
                     rs.getInt("id"),
                     rs.getString("name"),
                     rs.getString("description"),
-                    rs.getDouble("price_small"),
-                    rs.getDouble("price_large")
+                    rs.getDouble("price_mini"),
+                    rs.getDouble("price_sedan"),
+                    rs.getDouble("price_cuv"),
+                    rs.getDouble("price_suv"),
+                    rs.getDouble("price_pickup")
                 );
             }
         } catch (SQLException e) {
@@ -57,15 +63,18 @@ public class ServiceDAO {
     }
     
     public boolean addService(Service service) {
-        String sql = "INSERT INTO services (name, description, price_small, price_large) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO services (name, description, price_mini, price_sedan, price_cuv, price_suv, price_pickup) VALUES (?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, service.getName());
             pstmt.setString(2, service.getDescription());
-            pstmt.setDouble(3, service.getPriceSmall());
-            pstmt.setDouble(4, service.getPriceLarge());
+            pstmt.setDouble(3, service.getPriceMini());
+            pstmt.setDouble(4, service.getPriceSedan());
+            pstmt.setDouble(5, service.getPriceCuv());
+            pstmt.setDouble(6, service.getPriceSuv());
+            pstmt.setDouble(7, service.getPricePickup());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -75,16 +84,19 @@ public class ServiceDAO {
     }
     
     public boolean updateService(Service service) {
-        String sql = "UPDATE services SET name = ?, description = ?, price_small = ?, price_large = ? WHERE id = ?";
+        String sql = "UPDATE services SET name = ?, description = ?, price_mini = ?, price_sedan = ?, price_cuv = ?, price_suv = ?, price_pickup = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, service.getName());
             pstmt.setString(2, service.getDescription());
-            pstmt.setDouble(3, service.getPriceSmall());
-            pstmt.setDouble(4, service.getPriceLarge());
-            pstmt.setInt(5, service.getId());
+            pstmt.setDouble(3, service.getPriceMini());
+            pstmt.setDouble(4, service.getPriceSedan());
+            pstmt.setDouble(5, service.getPriceCuv());
+            pstmt.setDouble(6, service.getPriceSuv());
+            pstmt.setDouble(7, service.getPricePickup());
+            pstmt.setInt(8, service.getId());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

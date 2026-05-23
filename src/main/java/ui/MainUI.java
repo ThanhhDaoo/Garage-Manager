@@ -21,6 +21,7 @@ import model.Package;
 import model.Product;
 import model.Invoice;
 import java.util.List;
+import java.time.LocalDate;
 
 public class MainUI extends Application {
 
@@ -731,7 +732,7 @@ public class MainUI extends Application {
             "-fx-border-width: 0 0 1 0;"
         ));
         
-        Label lblId = new Label(String.valueOf(id));
+        Label lblId = new Label(String.format("%05d", id));
         lblId.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 500;");
         lblId.setPrefWidth(100);
         lblId.setMinWidth(100);
@@ -829,7 +830,7 @@ public class MainUI extends Application {
             "-fx-min-height: 32;"
         );
         btnDelete.setOnAction(e -> {
-            showDeleteConfirmation("hóa đơn", "HĐ #" + id, () -> {
+            showDeleteConfirmation("hóa đơn", "HĐ #" + String.format("%05d", id), () -> {
                 InvoiceService invoiceService = new InvoiceService();
                 if (invoiceService.deleteInvoice(id)) {
                     refreshInvoiceTable(tableRows);
@@ -936,41 +937,68 @@ public class MainUI extends Application {
         );
         
         Label hName = new Label("Tên Dịch Vụ");
-        hName.setPrefWidth(200);
-        hName.setMinWidth(200);
-        hName.setPadding(new Insets(0, 15, 0, 15));
+        hName.setPrefWidth(180);
+        hName.setMinWidth(150);
+        hName.setPadding(new Insets(0, 10, 0, 15));
         hName.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hName.setAlignment(Pos.CENTER_LEFT);
         
         Label hDesc = new Label("Mô Tả");
-        hDesc.setPrefWidth(450);
-        hDesc.setMinWidth(100);
-        hDesc.setPadding(new Insets(0, 15, 0, 15));
+        hDesc.setPrefWidth(200);
+        hDesc.setMinWidth(150);
+        hDesc.setPadding(new Insets(0, 10, 0, 10));
         hDesc.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hDesc.setAlignment(Pos.CENTER_LEFT);
         
-        Label hPriceSmall = new Label("Giá (Xe Nhỏ)");
-        hPriceSmall.setPrefWidth(150);
-        hPriceSmall.setMinWidth(150);
-        hPriceSmall.setPadding(new Insets(0, 15, 0, 15));
-        hPriceSmall.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        hPriceSmall.setAlignment(Pos.CENTER_RIGHT);
+        Label hPriceMini = new Label("Mini");
+        hPriceMini.setPrefWidth(100);
+        hPriceMini.setMinWidth(100);
+        hPriceMini.setMaxWidth(100);
+        hPriceMini.setPadding(new Insets(0, 8, 0, 8));
+        hPriceMini.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #1976D2;");
+        hPriceMini.setAlignment(Pos.CENTER_RIGHT);
         
-        Label hPriceLarge = new Label("Giá (Xe Lớn)");
-        hPriceLarge.setPrefWidth(150);
-        hPriceLarge.setMinWidth(150);
-        hPriceLarge.setPadding(new Insets(0, 15, 0, 15));
-        hPriceLarge.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        hPriceLarge.setAlignment(Pos.CENTER_RIGHT);
+        Label hPriceSedan = new Label("Sedan");
+        hPriceSedan.setPrefWidth(100);
+        hPriceSedan.setMinWidth(100);
+        hPriceSedan.setMaxWidth(100);
+        hPriceSedan.setPadding(new Insets(0, 8, 0, 8));
+        hPriceSedan.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #388E3C;");
+        hPriceSedan.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label hPriceCuv = new Label("CUV");
+        hPriceCuv.setPrefWidth(100);
+        hPriceCuv.setMinWidth(100);
+        hPriceCuv.setMaxWidth(100);
+        hPriceCuv.setPadding(new Insets(0, 8, 0, 8));
+        hPriceCuv.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #F57C00;");
+        hPriceCuv.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label hPriceSuv = new Label("SUV");
+        hPriceSuv.setPrefWidth(100);
+        hPriceSuv.setMinWidth(100);
+        hPriceSuv.setMaxWidth(100);
+        hPriceSuv.setPadding(new Insets(0, 8, 0, 8));
+        hPriceSuv.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #C2185B;");
+        hPriceSuv.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label hPricePickup = new Label("Pickup");
+        hPricePickup.setPrefWidth(100);
+        hPricePickup.setMinWidth(100);
+        hPricePickup.setMaxWidth(100);
+        hPricePickup.setPadding(new Insets(0, 8, 0, 8));
+        hPricePickup.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7B1FA2;");
+        hPricePickup.setAlignment(Pos.CENTER_RIGHT);
         
         Label hAction = new Label("Thao Tác");
-        hAction.setPrefWidth(150);
-        hAction.setMinWidth(150);
-        hAction.setPadding(new Insets(0, 15, 0, 15));
+        hAction.setPrefWidth(100);
+        hAction.setMinWidth(100);
+        hAction.setMaxWidth(100);
+        hAction.setPadding(new Insets(0, 15, 0, 10));
         hAction.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hAction.setAlignment(Pos.CENTER);
         
-        tableHeader.getChildren().addAll(hName, hDesc, hPriceSmall, hPriceLarge, hAction);
+        tableHeader.getChildren().addAll(hName, hDesc, hPriceMini, hPriceSedan, hPriceCuv, hPriceSuv, hPricePickup, hAction);
         HBox.setHgrow(hDesc, Priority.ALWAYS);
         
         // Load data from database
@@ -1016,19 +1044,12 @@ public class MainUI extends Application {
             tableRows.getChildren().add(emptyState);
         } else {
             for (Service service : services) {
-                tableRows.getChildren().add(createServiceRow(
-                    service.getId(),
-                    service.getName(),
-                    service.getDescription(),
-                    String.format("%.0f đ", service.getPriceSmall()),
-                    String.format("%.0f đ", service.getPriceLarge()),
-                    tableRows
-                ));
+                tableRows.getChildren().add(createServiceRow(service, tableRows));
             }
         }
     }
 
-    private HBox createServiceRow(int id, String name, String description, String priceSmall, String priceLarge, VBox tableRows) {
+    private HBox createServiceRow(Service service, VBox tableRows) {
         HBox row = new HBox(0);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(0));
@@ -1050,44 +1071,70 @@ public class MainUI extends Application {
         ));
         
         // Name cell
-        Label lblName = new Label(name);
+        Label lblName = new Label(service.getName());
         lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 500;");
-        lblName.setPrefWidth(200);
-        lblName.setMinWidth(200);
-        lblName.setPadding(new Insets(12, 15, 12, 15));
+        lblName.setPrefWidth(180);
+        lblName.setMinWidth(150);
+        lblName.setPadding(new Insets(12, 10, 12, 15));
         lblName.setAlignment(Pos.CENTER_LEFT);
         
         // Description cell
-        Label lblDesc = new Label(description);
+        Label lblDesc = new Label(service.getDescription());
         lblDesc.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
-        lblDesc.setPrefWidth(450);
-        lblDesc.setMinWidth(100);
-        lblDesc.setPadding(new Insets(12, 15, 12, 15));
+        lblDesc.setPrefWidth(200);
+        lblDesc.setMinWidth(150);
+        lblDesc.setPadding(new Insets(12, 10, 12, 10));
         lblDesc.setAlignment(Pos.CENTER_LEFT);
         lblDesc.setWrapText(true);
         
-        // Price small cell
-        Label lblPriceSmall = new Label(priceSmall);
-        lblPriceSmall.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
-        lblPriceSmall.setPrefWidth(150);
-        lblPriceSmall.setMinWidth(150);
-        lblPriceSmall.setPadding(new Insets(12, 15, 12, 15));
-        lblPriceSmall.setAlignment(Pos.CENTER_RIGHT);
+        // Price cells for 5 vehicle types
+        Label lblPriceMini = new Label(String.format("%.0f đ", service.getPriceMini()));
+        lblPriceMini.setStyle("-fx-font-size: 13px; -fx-text-fill: #1976D2; -fx-font-weight: 600;");
+        lblPriceMini.setPrefWidth(100);
+        lblPriceMini.setMinWidth(100);
+        lblPriceMini.setMaxWidth(100);
+        lblPriceMini.setPadding(new Insets(12, 8, 12, 8));
+        lblPriceMini.setAlignment(Pos.CENTER_RIGHT);
         
-        // Price large cell
-        Label lblPriceLarge = new Label(priceLarge);
-        lblPriceLarge.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
-        lblPriceLarge.setPrefWidth(150);
-        lblPriceLarge.setMinWidth(150);
-        lblPriceLarge.setPadding(new Insets(12, 15, 12, 15));
-        lblPriceLarge.setAlignment(Pos.CENTER_RIGHT);
+        Label lblPriceSedan = new Label(String.format("%.0f đ", service.getPriceSedan()));
+        lblPriceSedan.setStyle("-fx-font-size: 13px; -fx-text-fill: #388E3C; -fx-font-weight: 600;");
+        lblPriceSedan.setPrefWidth(100);
+        lblPriceSedan.setMinWidth(100);
+        lblPriceSedan.setMaxWidth(100);
+        lblPriceSedan.setPadding(new Insets(12, 8, 12, 8));
+        lblPriceSedan.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label lblPriceCuv = new Label(String.format("%.0f đ", service.getPriceCuv()));
+        lblPriceCuv.setStyle("-fx-font-size: 13px; -fx-text-fill: #F57C00; -fx-font-weight: 600;");
+        lblPriceCuv.setPrefWidth(100);
+        lblPriceCuv.setMinWidth(100);
+        lblPriceCuv.setMaxWidth(100);
+        lblPriceCuv.setPadding(new Insets(12, 8, 12, 8));
+        lblPriceCuv.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label lblPriceSuv = new Label(String.format("%.0f đ", service.getPriceSuv()));
+        lblPriceSuv.setStyle("-fx-font-size: 13px; -fx-text-fill: #C2185B; -fx-font-weight: 600;");
+        lblPriceSuv.setPrefWidth(100);
+        lblPriceSuv.setMinWidth(100);
+        lblPriceSuv.setMaxWidth(100);
+        lblPriceSuv.setPadding(new Insets(12, 8, 12, 8));
+        lblPriceSuv.setAlignment(Pos.CENTER_RIGHT);
+        
+        Label lblPricePickup = new Label(String.format("%.0f đ", service.getPricePickup()));
+        lblPricePickup.setStyle("-fx-font-size: 13px; -fx-text-fill: #7B1FA2; -fx-font-weight: 600;");
+        lblPricePickup.setPrefWidth(100);
+        lblPricePickup.setMinWidth(100);
+        lblPricePickup.setMaxWidth(100);
+        lblPricePickup.setPadding(new Insets(12, 8, 12, 8));
+        lblPricePickup.setAlignment(Pos.CENTER_RIGHT);
         
         // Actions cell
         HBox actions = new HBox(6);
         actions.setAlignment(Pos.CENTER);
-        actions.setPrefWidth(150);
-        actions.setMinWidth(150);
-        actions.setPadding(new Insets(12, 15, 12, 15));
+        actions.setPrefWidth(100);
+        actions.setMinWidth(100);
+        actions.setMaxWidth(100);
+        actions.setPadding(new Insets(12, 15, 12, 10));
         
         Button btnEdit = new Button("✏");
         btnEdit.setStyle(
@@ -1101,7 +1148,7 @@ public class MainUI extends Application {
             "-fx-min-height: 32;"
         );
         btnEdit.setOnAction(e -> {
-            ServiceForm form = new ServiceForm(id, name, description, priceSmall, priceLarge, () -> refreshServiceTable(tableRows));
+            ServiceForm form = new ServiceForm(service.getId(), service, () -> refreshServiceTable(tableRows));
             form.show();
         });
         
@@ -1117,9 +1164,9 @@ public class MainUI extends Application {
             "-fx-min-height: 32;"
         );
         btnDelete.setOnAction(e -> {
-            showDeleteConfirmation("dịch vụ", name, () -> {
+            showDeleteConfirmation("dịch vụ", service.getName(), () -> {
                 ServiceService serviceService = new ServiceService();
-                if (serviceService.deleteService(id)) {
+                if (serviceService.deleteService(service.getId())) {
                     refreshServiceTable(tableRows);
                 } else {
                     showErrorAlert("Lỗi", "Không thể xóa dịch vụ!");
@@ -1129,7 +1176,7 @@ public class MainUI extends Application {
         
         actions.getChildren().addAll(btnEdit, btnDelete);
         
-        row.getChildren().addAll(lblName, lblDesc, lblPriceSmall, lblPriceLarge, actions);
+        row.getChildren().addAll(lblName, lblDesc, lblPriceMini, lblPriceSedan, lblPriceCuv, lblPriceSuv, lblPricePickup, actions);
         HBox.setHgrow(lblDesc, Priority.ALWAYS);
         return row;
     }
@@ -1225,48 +1272,48 @@ public class MainUI extends Application {
         );
         
         Label hName = new Label("Tên Gói");
-        hName.setPrefWidth(180);
-        hName.setMinWidth(180);
-        hName.setPadding(new Insets(0, 15, 0, 15));
+        hName.setPrefWidth(150);
+        hName.setMinWidth(150);
+        hName.setPadding(new Insets(0, 10, 0, 15));
         hName.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hName.setAlignment(Pos.CENTER_LEFT);
         
         Label hDesc = new Label("Mô Tả");
-        hDesc.setPrefWidth(420);
-        hDesc.setMinWidth(100);
-        hDesc.setPadding(new Insets(0, 15, 0, 15));
+        hDesc.setPrefWidth(300);
+        hDesc.setMinWidth(150);
+        hDesc.setPadding(new Insets(0, 10, 0, 10));
         hDesc.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hDesc.setAlignment(Pos.CENTER_LEFT);
         
-        Label hPrice = new Label("Giá Gói");
-        hPrice.setPrefWidth(120);
-        hPrice.setMinWidth(120);
-        hPrice.setPadding(new Insets(0, 15, 0, 15));
-        hPrice.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        hPrice.setAlignment(Pos.CENTER_RIGHT);
+        Label hPriceRange = new Label("Khoảng Giá");
+        hPriceRange.setPrefWidth(150);
+        hPriceRange.setMinWidth(150);
+        hPriceRange.setPadding(new Insets(0, 10, 0, 10));
+        hPriceRange.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hPriceRange.setAlignment(Pos.CENTER_RIGHT);
         
         Label hSavings = new Label("Tiết Kiệm");
-        hSavings.setPrefWidth(120);
-        hSavings.setMinWidth(120);
-        hSavings.setPadding(new Insets(0, 15, 0, 15));
-        hSavings.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hSavings.setPrefWidth(100);
+        hSavings.setMinWidth(100);
+        hSavings.setPadding(new Insets(0, 10, 0, 10));
+        hSavings.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #4CAF50;");
         hSavings.setAlignment(Pos.CENTER_RIGHT);
         
         Label hStatus = new Label("Trạng Thái");
         hStatus.setPrefWidth(100);
         hStatus.setMinWidth(100);
-        hStatus.setPadding(new Insets(0, 15, 0, 15));
+        hStatus.setPadding(new Insets(0, 10, 0, 10));
         hStatus.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hStatus.setAlignment(Pos.CENTER);
         
         Label hAction = new Label("Thao Tác");
-        hAction.setPrefWidth(150);
-        hAction.setMinWidth(150);
-        hAction.setPadding(new Insets(0, 15, 0, 15));
+        hAction.setPrefWidth(120);
+        hAction.setMinWidth(120);
+        hAction.setPadding(new Insets(0, 15, 0, 10));
         hAction.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hAction.setAlignment(Pos.CENTER);
         
-        tableHeader.getChildren().addAll(hName, hDesc, hPrice, hSavings, hStatus, hAction);
+        tableHeader.getChildren().addAll(hName, hDesc, hPriceRange, hSavings, hStatus, hAction);
         HBox.setHgrow(hDesc, Priority.ALWAYS);
         
         // Load data from database
@@ -1312,15 +1359,7 @@ public class MainUI extends Application {
             tableRows.getChildren().add(emptyState);
         } else {
             for (Package pkg : packages) {
-                tableRows.getChildren().add(createPackageRow(
-                    pkg.getId(),
-                    pkg.getName(),
-                    pkg.getDescription(),
-                    String.format("%.0f đ", pkg.getPrice()),
-                    String.format("%.0f đ", pkg.getSavings()),
-                    pkg.getStatus(),
-                    tableRows
-                ));
+                tableRows.getChildren().add(createPackageRow(pkg, tableRows));
             }
         }
     }
@@ -1626,19 +1665,10 @@ public class MainUI extends Application {
             "-fx-border-radius: 12;"
         );
         
-        Label lblFrom = new Label("Từ ngày:");
-        lblFrom.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
-        DatePicker dateFrom = new DatePicker();
-        
-        Label lblTo = new Label("Đến ngày:");
-        lblTo.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
-        DatePicker dateTo = new DatePicker();
-
-        // Stats overview - declare first for use in lambda
         GridPane statsGrid = new GridPane();
         statsGrid.setHgap(20);
         statsGrid.setVgap(20);
-        
+
         Button btnFilter = new Button("Lọc");
         btnFilter.setStyle(
             "-fx-background-color: #4CAF50;" +
@@ -1660,6 +1690,55 @@ public class MainUI extends Application {
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
+
+        Label lblFrom = new Label("Từ ngày:");
+        lblFrom.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
+        DatePicker dateFrom = new DatePicker();
+        
+        Label lblTo = new Label("Đến ngày:");
+        lblTo.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
+        DatePicker dateTo = new DatePicker();
+
+        Label lblQuickFilter = new Label("Lọc nhanh:");
+        lblQuickFilter.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
+
+        ComboBox<String> quickFilterCombo = new ComboBox<>();
+        quickFilterCombo.getItems().addAll("Tất cả", "Tháng này", "Tháng trước", "Quý này", "Năm nay");
+        quickFilterCombo.setValue("Tất cả");
+        quickFilterCombo.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
+
+        quickFilterCombo.setOnAction(evt -> {
+            String val = quickFilterCombo.getValue();
+            LocalDate today = LocalDate.now();
+            if ("Tất cả".equals(val)) {
+                dateFrom.setValue(null);
+                dateTo.setValue(null);
+            } else if ("Tháng này".equals(val)) {
+                dateFrom.setValue(LocalDate.of(today.getYear(), today.getMonthValue(), 1));
+                dateTo.setValue(LocalDate.of(today.getYear(), today.getMonthValue(), today.lengthOfMonth()));
+            } else if ("Tháng trước".equals(val)) {
+                LocalDate lm = today.minusMonths(1);
+                dateFrom.setValue(LocalDate.of(lm.getYear(), lm.getMonthValue(), 1));
+                dateTo.setValue(LocalDate.of(lm.getYear(), lm.getMonthValue(), lm.lengthOfMonth()));
+            } else if ("Quý này".equals(val)) {
+                int q = (today.getMonthValue() - 1) / 3 + 1;
+                int startMonth = (q - 1) * 3 + 1;
+                int endMonth = q * 3;
+                dateFrom.setValue(LocalDate.of(today.getYear(), startMonth, 1));
+                LocalDate endMonthDate = LocalDate.of(today.getYear(), endMonth, 1);
+                dateTo.setValue(LocalDate.of(today.getYear(), endMonth, endMonthDate.lengthOfMonth()));
+            } else if ("Năm nay".equals(val)) {
+                dateFrom.setValue(LocalDate.of(today.getYear(), 1, 1));
+                dateTo.setValue(LocalDate.of(today.getYear(), 12, 31));
+            }
+            btnFilter.fire();
+        });
         
         // Filter button action
         btnFilter.setOnAction(e -> {
@@ -1674,7 +1753,7 @@ public class MainUI extends Application {
         });
         
         dateRange.getChildren().clear();
-        dateRange.getChildren().addAll(lblFrom, dateFrom, lblTo, dateTo, btnFilter, btnExport);
+        dateRange.getChildren().addAll(lblQuickFilter, quickFilterCombo, lblFrom, dateFrom, lblTo, dateTo, btnFilter, btnExport);
 
         VBox stat1 = createReportStatCard("Tổng Doanh Thu", String.format("%,.0fđ", totalRevenue), "");
         VBox stat2 = createReportStatCard("Tổng Hóa Đơn", String.valueOf(totalInvoices), "");
@@ -2170,7 +2249,7 @@ public class MainUI extends Application {
         return row;
     }
 
-    private HBox createPackageRow(int id, String name, String description, String price, String savings, String status, VBox tableRows) {
+    private HBox createPackageRow(Package pkg, VBox tableRows) {
         HBox row = new HBox(0);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(0));
@@ -2191,69 +2270,92 @@ public class MainUI extends Application {
             "-fx-border-width: 0 0 1 0;"
         ));
         
-        Label lblName = new Label(name);
+        // Name
+        Label lblName = new Label(pkg.getName());
         lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 600;");
-        lblName.setPrefWidth(180);
-        lblName.setMinWidth(180);
-        lblName.setPadding(new Insets(12, 15, 12, 15));
+        lblName.setPrefWidth(150);
+        lblName.setMinWidth(150);
+        lblName.setPadding(new Insets(12, 10, 12, 15));
         lblName.setAlignment(Pos.CENTER_LEFT);
         
-        Label lblDesc = new Label(description);
+        // Description
+        Label lblDesc = new Label(pkg.getDescription());
         lblDesc.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
-        lblDesc.setPrefWidth(420);
-        lblDesc.setMinWidth(100);
-        lblDesc.setPadding(new Insets(12, 15, 12, 15));
+        lblDesc.setPrefWidth(300);
+        lblDesc.setMinWidth(150);
+        lblDesc.setPadding(new Insets(12, 10, 12, 10));
         lblDesc.setAlignment(Pos.CENTER_LEFT);
+        lblDesc.setWrapText(true);
         
-        Label lblPrice = new Label(price);
-        lblPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
-        lblPrice.setPrefWidth(150);
-        lblPrice.setMinWidth(150);
-        lblPrice.setMaxWidth(150);
-        lblPrice.setPadding(new Insets(12, 15, 12, 15));
-        lblPrice.setAlignment(Pos.CENTER_RIGHT);
+        // Price Range (Min - Max)
+        String priceRange = String.format("%.0fđ - %.0fđ", pkg.getPriceMini(), pkg.getPricePickup());
+        Label lblPriceRange = new Label(priceRange);
+        lblPriceRange.setStyle("-fx-font-size: 13px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        lblPriceRange.setPrefWidth(150);
+        lblPriceRange.setMinWidth(150);
+        lblPriceRange.setPadding(new Insets(12, 10, 12, 10));
+        lblPriceRange.setAlignment(Pos.CENTER_RIGHT);
         
-        Label lblSavings = new Label(savings);
+        // Savings
+        Label lblSavings = new Label(String.format("~%.0fđ", pkg.getSavings()));
         lblSavings.setStyle("-fx-font-size: 13px; -fx-text-fill: #4CAF50; -fx-font-weight: 600;");
-        lblSavings.setPrefWidth(120);
-        lblSavings.setMinWidth(120);
-        lblSavings.setMaxWidth(120);
-        lblSavings.setPadding(new Insets(12, 15, 12, 15));
+        lblSavings.setPrefWidth(100);
+        lblSavings.setMinWidth(100);
+        lblSavings.setPadding(new Insets(12, 10, 12, 10));
         lblSavings.setAlignment(Pos.CENTER_RIGHT);
         
-        Label lblStatus = new Label(status);
+        // Status
+        Label lblStatus = new Label(pkg.getStatus());
         lblStatus.setStyle(
-            "-fx-font-size: 12px;" +
-            "-fx-text-fill: #2196F3;" +
-            "-fx-background-color: #E3F2FD;" +
-            "-fx-padding: 4px 10px;" +
+            "-fx-font-size: 11px;" +
+            "-fx-text-fill: " + (pkg.getStatus().equals("Đang bán") ? "#2196F3" : "#757575") + ";" +
+            "-fx-background-color: " + (pkg.getStatus().equals("Đang bán") ? "#E3F2FD" : "#F5F5F5") + ";" +
+            "-fx-padding: 5px 10px;" +
             "-fx-background-radius: 6;"
         );
-        lblStatus.setPrefWidth(100);
-        lblStatus.setMinWidth(100);
-        lblStatus.setMaxWidth(100);
         lblStatus.setAlignment(Pos.CENTER);
         
+        HBox statusContainer = new HBox(lblStatus);
+        statusContainer.setAlignment(Pos.CENTER);
+        statusContainer.setPrefWidth(100);
+        statusContainer.setMinWidth(100);
+        statusContainer.setPadding(new Insets(12, 10, 12, 10));
+        
+        // Actions
         HBox actions = new HBox(6);
         actions.setAlignment(Pos.CENTER);
-        actions.setPrefWidth(150);
-        actions.setMinWidth(150);
-        actions.setMaxWidth(150);
-        actions.setPadding(new Insets(12, 15, 12, 15));
+        actions.setPrefWidth(120);
+        actions.setMinWidth(120);
+        actions.setPadding(new Insets(12, 15, 12, 10));
+        
+        Button btnView = new Button("👁");
+        btnView.setStyle(
+            "-fx-background-color: #F3E5F5;" +
+            "-fx-text-fill: #7B1FA2;" +
+            "-fx-font-size: 11px;" +
+            "-fx-padding: 6px 8px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 28;" +
+            "-fx-min-height: 28;"
+        );
+        btnView.setOnAction(e -> {
+            showPackageDetails(pkg);
+        });
         
         Button btnEdit = new Button("✏");
         btnEdit.setStyle(
             "-fx-background-color: #E3F2FD;" +
             "-fx-text-fill: #2196F3;" +
-            "-fx-font-size: 12px;" +
-            "-fx-padding: 8px 10px;" +
+            "-fx-font-size: 11px;" +
+            "-fx-padding: 6px 8px;" +
             "-fx-background-radius: 6;" +
             "-fx-cursor: hand;" +
-            "-fx-min-width: 32;" +
-            "-fx-min-height: 32;"
+            "-fx-min-width: 28;" +
+            "-fx-min-height: 28;"
         );
         btnEdit.setOnAction(e -> {
-            PackageForm form = new PackageForm(id, name, description, price, savings, () -> refreshPackageTable(tableRows));
+            PackageForm form = new PackageForm(pkg.getId(), pkg, () -> refreshPackageTable(tableRows));
             form.show();
         });
         
@@ -2261,17 +2363,17 @@ public class MainUI extends Application {
         btnDelete.setStyle(
             "-fx-background-color: #FFEBEE;" +
             "-fx-text-fill: #f44336;" +
-            "-fx-font-size: 12px;" +
-            "-fx-padding: 8px 10px;" +
+            "-fx-font-size: 11px;" +
+            "-fx-padding: 6px 8px;" +
             "-fx-background-radius: 6;" +
             "-fx-cursor: hand;" +
-            "-fx-min-width: 32;" +
-            "-fx-min-height: 32;"
+            "-fx-min-width: 28;" +
+            "-fx-min-height: 28;"
         );
         btnDelete.setOnAction(e -> {
-            showDeleteConfirmation("gói dịch vụ", name, () -> {
+            showDeleteConfirmation("gói dịch vụ", pkg.getName(), () -> {
                 PackageService packageService = new PackageService();
-                if (packageService.deletePackage(id)) {
+                if (packageService.deletePackage(pkg.getId())) {
                     refreshPackageTable(tableRows);
                 } else {
                     showErrorAlert("Lỗi", "Không thể xóa gói dịch vụ!");
@@ -2279,11 +2381,83 @@ public class MainUI extends Application {
             });
         });
         
-        actions.getChildren().addAll(btnEdit, btnDelete);
+        actions.getChildren().addAll(btnView, btnEdit, btnDelete);
         
-        row.getChildren().addAll(lblName, lblDesc, lblPrice, lblSavings, lblStatus, actions);
+        row.getChildren().addAll(lblName, lblDesc, lblPriceRange, lblSavings, statusContainer, actions);
         HBox.setHgrow(lblDesc, Priority.ALWAYS);
         return row;
+    }
+    
+    private void showPackageDetails(Package pkg) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Chi Tiết Gói Dịch Vụ");
+        
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.getButtonTypes().add(ButtonType.CLOSE);
+        
+        VBox content = new VBox(20);
+        content.setPadding(new Insets(20));
+        content.setStyle("-fx-background-color: white;");
+        
+        // Package name
+        Label lblName = new Label(pkg.getName());
+        lblName.setStyle("-fx-font-size: 20px; -fx-font-weight: 700; -fx-text-fill: #212121;");
+        
+        // Description
+        Label lblDesc = new Label(pkg.getDescription());
+        lblDesc.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
+        lblDesc.setWrapText(true);
+        lblDesc.setMaxWidth(500);
+        
+        // Price table
+        Label lblPriceTitle = new Label("💰 Bảng Giá Theo Loại Xe");
+        lblPriceTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: #1976D2; -fx-padding: 10 0 5 0;");
+        
+        GridPane priceGrid = new GridPane();
+        priceGrid.setHgap(20);
+        priceGrid.setVgap(12);
+        priceGrid.setStyle("-fx-background-color: #F9FAFB; -fx-padding: 15; -fx-background-radius: 8;");
+        
+        String[][] prices = {
+            {"Mini", String.format("%.0fđ", pkg.getPriceMini()), "#1976D2", "#E3F2FD"},
+            {"Sedan", String.format("%.0fđ", pkg.getPriceSedan()), "#388E3C", "#E8F5E9"},
+            {"CUV", String.format("%.0fđ", pkg.getPriceCuv()), "#F57C00", "#FFF3E0"},
+            {"SUV", String.format("%.0fđ", pkg.getPriceSuv()), "#C2185B", "#FCE4EC"},
+            {"Pickup", String.format("%.0fđ", pkg.getPricePickup()), "#7B1FA2", "#F3E5F5"}
+        };
+        
+        for (int i = 0; i < prices.length; i++) {
+            Label lblType = new Label(prices[i][0]);
+            lblType.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: " + prices[i][2] + ";");
+            lblType.setPrefWidth(80);
+            
+            Label lblPrice = new Label(prices[i][1]);
+            lblPrice.setStyle(
+                "-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: " + prices[i][2] + ";" +
+                "-fx-background-color: " + prices[i][3] + ";" +
+                "-fx-padding: 8 15; -fx-background-radius: 6;"
+            );
+            lblPrice.setPrefWidth(150);
+            lblPrice.setAlignment(Pos.CENTER_RIGHT);
+            
+            priceGrid.add(lblType, 0, i);
+            priceGrid.add(lblPrice, 1, i);
+        }
+        
+        // Savings
+        Label lblSavings = new Label(String.format("💵 Tiết kiệm trung bình: %.0fđ", pkg.getSavings()));
+        lblSavings.setStyle("-fx-font-size: 14px; -fx-font-weight: 600; -fx-text-fill: #4CAF50;");
+        
+        // Status
+        Label lblStatus = new Label("Trạng thái: " + pkg.getStatus());
+        lblStatus.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+        
+        content.getChildren().addAll(lblName, lblDesc, lblPriceTitle, priceGrid, lblSavings, lblStatus);
+        
+        dialogPane.setContent(content);
+        dialogPane.setPrefWidth(600);
+        
+        dialog.showAndWait();
     }
 
     private void handleLogout() {
@@ -2389,6 +2563,14 @@ public class MainUI extends Application {
         
         dialog.showAndWait().ifPresent(response -> {
             if (response == btnYes) {
+                // Tắt trạng thái tự động đăng nhập khi người dùng chủ động đăng xuất
+                try {
+                    java.util.prefs.Preferences prefs = java.util.prefs.Preferences.userNodeForPackage(LoginUI.class);
+                    prefs.putBoolean("remember_me", false);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
                 // Close current window and open login directly
                 Stage currentStage = (Stage) mainLayout.getScene().getWindow();
                 currentStage.close();
@@ -2420,14 +2602,14 @@ public class MainUI extends Application {
         
         Stage dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
-        dialogStage.setTitle("Chi Tiết Hóa Đơn #" + invoiceId);
+        dialogStage.setTitle("Chi Tiết Hóa Đơn #" + String.format("%05d", invoiceId));
         
         VBox content = new VBox(20);
         content.setPadding(new Insets(30));
         content.setStyle("-fx-background-color: white;");
         
         // Header
-        Label title = new Label("📋 Chi Tiết Hóa Đơn #" + invoiceId);
+        Label title = new Label("📋 Chi Tiết Hóa Đơn #" + String.format("%05d", invoiceId));
         title.setStyle(
             "-fx-font-size: 24px;" +
             "-fx-text-fill: #212121;" +
@@ -2664,8 +2846,8 @@ public class MainUI extends Application {
             
             // Create file chooser
             javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
-            fileChooser.setTitle("Lưu Hóa Đơn PDF");
-            fileChooser.setInitialFileName("HoaDon_" + invoice.getId() + ".pdf");
+            fileChooser.setTitle("Lưu Phiếu Thi Công PDF");
+            fileChooser.setInitialFileName("PhieuThiCong_" + String.format("%05d", invoice.getId()) + ".pdf");
             fileChooser.getExtensionFilters().add(
                 new javafx.stage.FileChooser.ExtensionFilter("PDF Files", "*.pdf")
             );
@@ -2678,13 +2860,14 @@ public class MainUI extends Application {
             // Create PDF using iText
             com.itextpdf.kernel.pdf.PdfWriter writer = new com.itextpdf.kernel.pdf.PdfWriter(file);
             com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
-            com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf);
+            com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf,
+                com.itextpdf.kernel.geom.PageSize.A4);
+            document.setMargins(30, 40, 30, 40);
             
-            // Sử dụng font hỗ trợ tiếng Việt từ PDFFontHelper
+            // Fonts
             com.itextpdf.kernel.font.PdfFont font = util.PDFFontHelper.createVietnameseFont();
             com.itextpdf.kernel.font.PdfFont boldFont = util.PDFFontHelper.createVietnameseFont(true);
             
-            // In thông tin font để debug (có thể xóa sau)
             System.out.println("=== XUẤT HÓA ĐƠN PDF ===");
             if (util.PDFFontHelper.testVietnameseSupport(font)) {
                 System.out.println("✓ Font hỗ trợ tiếng Việt");
@@ -2692,211 +2875,296 @@ public class MainUI extends Application {
                 System.out.println("⚠ Font có thể không hỗ trợ đầy đủ tiếng Việt");
             }
             
-            // Title với font đậm
-            com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph("HÓA ĐƠN DỊCH VỤ")
+            // Colors for document
+            com.itextpdf.kernel.colors.Color blackColor = new com.itextpdf.kernel.colors.DeviceRgb(0, 0, 0);
+            com.itextpdf.kernel.colors.Color redColor = new com.itextpdf.kernel.colors.DeviceRgb(218, 37, 29);
+            
+            // ===== HEADER: Company Name =====
+            com.itextpdf.layout.element.Paragraph companyName = new com.itextpdf.layout.element.Paragraph(
+                "CÔNG TY TNHH TM DV PHỤ TÙNG Ô TÔ MINH TÂM")
                 .setFont(boldFont)
-                .setFontSize(24)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
+                .setFontSize(14)
+                .setFontColor(redColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                .setMarginBottom(2);
+            document.add(companyName);
+            
+            // Address
+            com.itextpdf.layout.element.Paragraph address = new com.itextpdf.layout.element.Paragraph(
+                "Ngã tư Trương Định và An Dương Vương, P. Nghĩa Lộ, tỉnh Quảng Ngãi")
+                .setFont(font)
+                .setFontSize(10)
+                .setFontColor(redColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                .setMarginBottom(8);
+            document.add(address);
+            
+            // Title: PHIẾU THI CÔNG
+            com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph(
+                "PHIẾU THI CÔNG")
+                .setFont(boldFont)
+                .setFontSize(18)
+                .setFontColor(redColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                .setMarginBottom(15);
             document.add(title);
             
-            // Company info với font đậm
-            com.itextpdf.layout.element.Paragraph companyInfo = new com.itextpdf.layout.element.Paragraph("MTProAuto - Hệ Thống Quản Lý")
-                .setFont(boldFont)
-                .setFontSize(12)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
-            document.add(companyInfo);
+            // ===== CUSTOMER INFO =====
+            // Row 1: Tên khách hàng + SĐT (side by side)
+            com.itextpdf.layout.element.Table customerRow1 = new com.itextpdf.layout.element.Table(
+                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{50, 50}));
+            customerRow1.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             
-            document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+            com.itextpdf.layout.element.Cell nameCell = new com.itextpdf.layout.element.Cell().setBorder(null);
+            nameCell.add(new com.itextpdf.layout.element.Paragraph()
+                .add(new com.itextpdf.layout.element.Text("Tên khách hàng: ").setFont(boldFont).setFontSize(11).setFontColor(redColor))
+                .add(new com.itextpdf.layout.element.Text(invoice.getCustomerName() != null ? invoice.getCustomerName() : "").setFont(font).setFontSize(11).setFontColor(blackColor)));
+            customerRow1.addCell(nameCell);
             
-            // Invoice number and date
-            document.add(new com.itextpdf.layout.element.Paragraph("Mã hóa đơn: #" + invoice.getId())
-                .setFont(font)
-                .setFontSize(12));
-            document.add(new com.itextpdf.layout.element.Paragraph("Ngày tạo: " + 
-                (invoice.getCreatedAt() != null ? invoice.getCreatedAt() : "N/A"))
-                .setFont(font)
-                .setFontSize(12));
+            com.itextpdf.layout.element.Cell phoneCell = new com.itextpdf.layout.element.Cell().setBorder(null);
+            phoneCell.add(new com.itextpdf.layout.element.Paragraph()
+                .add(new com.itextpdf.layout.element.Text("SĐT khách hàng: ").setFont(boldFont).setFontSize(11).setFontColor(redColor))
+                .add(new com.itextpdf.layout.element.Text(invoice.getPhone() != null ? invoice.getPhone() : "").setFont(font).setFontSize(11).setFontColor(blackColor)));
+            customerRow1.addCell(phoneCell);
+            document.add(customerRow1);
             
-            document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+            // Biển số xe
+            com.itextpdf.layout.element.Paragraph plateInfo = new com.itextpdf.layout.element.Paragraph()
+                .add(new com.itextpdf.layout.element.Text("Biển số xe: ").setFont(boldFont).setFontSize(11).setFontColor(redColor))
+                .add(new com.itextpdf.layout.element.Text(invoice.getLicensePlate() != null ? invoice.getLicensePlate() : "").setFont(boldFont).setFontSize(12).setFontColor(blackColor))
+                .setMarginBottom(2);
+            document.add(plateInfo);
             
-            // Customer information với font đậm cho tiêu đề
-            document.add(new com.itextpdf.layout.element.Paragraph("THÔNG TIN KHÁCH HÀNG")
-                .setFont(boldFont)
-                .setFontSize(14));
-            document.add(new com.itextpdf.layout.element.Paragraph("Tên khách hàng: " + invoice.getCustomerName())
-                .setFont(font)
-                .setFontSize(12));
-            document.add(new com.itextpdf.layout.element.Paragraph("Số điện thoại: " + 
-                (invoice.getPhone() != null ? invoice.getPhone() : "N/A"))
-                .setFont(font)
-                .setFontSize(12));
-            document.add(new com.itextpdf.layout.element.Paragraph("Biển số xe: " + 
-                (invoice.getLicensePlate() != null ? invoice.getLicensePlate() : "N/A"))
-                .setFont(font)
-                .setFontSize(12));
-            document.add(new com.itextpdf.layout.element.Paragraph("Loại xe: " + 
-                (invoice.getVehicleType() != null ? invoice.getVehicleType() : "N/A"))
-                .setFont(font)
-                .setFontSize(12));
+            // Địa chỉ
+            com.itextpdf.layout.element.Paragraph addressInfo = new com.itextpdf.layout.element.Paragraph()
+                .add(new com.itextpdf.layout.element.Text("Địa chỉ: ").setFont(boldFont).setFontSize(11).setFontColor(redColor))
+                .add(new com.itextpdf.layout.element.Text(invoice.getAddress() != null ? invoice.getAddress() : "").setFont(font).setFontSize(11).setFontColor(blackColor))
+                .setMarginBottom(2);
+            document.add(addressInfo);
             
-            document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+            // Thời gian nhận xe
+            String createdAt = invoice.getCreatedAt() != null ? invoice.getCreatedAt() : "";
+            com.itextpdf.layout.element.Paragraph timeInfo = new com.itextpdf.layout.element.Paragraph()
+                .add(new com.itextpdf.layout.element.Text("Thời gian nhận xe: ").setFont(boldFont).setFontSize(11).setFontColor(redColor))
+                .add(new com.itextpdf.layout.element.Text(createdAt).setFont(font).setFontSize(11).setFontColor(blackColor))
+                .setMarginBottom(10);
+            document.add(timeInfo);
             
-            // Invoice items với font đậm cho tiêu đề
-            if (!items.isEmpty()) {
-                document.add(new com.itextpdf.layout.element.Paragraph("CHI TIẾT DỊCH VỤ & SẢN PHẨM")
-                    .setFont(boldFont)
-                    .setFontSize(14));
+            // ===== SERVICE TABLE =====
+            // 6 columns: STT | TÊN DỊCH VỤ | ĐƠN GIÁ | GIẢM GIÁ | VAT(8%) | THÀNH TIỀN
+            float[] columnWidths = {8f, 32f, 15f, 13f, 12f, 20f};
+            com.itextpdf.layout.element.Table serviceTable = new com.itextpdf.layout.element.Table(
+                com.itextpdf.layout.properties.UnitValue.createPercentArray(columnWidths));
+            serviceTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            
+            // Header row
+            String[] headers = {"STT", "TÊN DỊCH VỤ", "ĐƠN GIÁ", "GIẢM GIÁ", "VAT(8%)", "THÀNH TIỀN"};
+            for (String header : headers) {
+                com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph(header)
+                        .setFont(boldFont).setFontSize(10).setFontColor(redColor)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+                    .setBorderBottom(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setBorderTop(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setBorderLeft(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setBorderRight(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setPadding(5);
+                serviceTable.addHeaderCell(headerCell);
+            }
+            
+            // Data rows (always 9 rows)
+            int totalRows = 9;
+            double grandTotal = 0;
+            
+            for (int i = 0; i < totalRows; i++) {
+                String stt = String.valueOf(i + 1);
+                String serviceName = "";
+                String unitPrice = "";
+                String discount = "";
+                String vat = "";
+                String totalPrice = "";
                 
-                // Create items table
-                com.itextpdf.layout.element.Table itemsTable = new com.itextpdf.layout.element.Table(4);
-                itemsTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
-                
-                // Header row với font đậm
-                itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                    new com.itextpdf.layout.element.Paragraph("Tên").setFont(boldFont)));
-                itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                    new com.itextpdf.layout.element.Paragraph("Loại").setFont(boldFont)));
-                itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                    new com.itextpdf.layout.element.Paragraph("SL").setFont(boldFont)));
-                itemsTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(
-                    new com.itextpdf.layout.element.Paragraph("Thành tiền").setFont(boldFont)));
-                
-                // Data rows
-                for (model.InvoiceItem item : items) {
-                    String itemTypeText = "";
-                    if (item.getItemType().equals("service")) {
-                        itemTypeText = "Dịch vụ";
-                    } else if (item.getItemType().equals("package")) {
-                        itemTypeText = "Gói";
-                    } else if (item.getItemType().equals("product")) {
-                        itemTypeText = "Sản phẩm";
+                if (i < items.size()) {
+                    model.InvoiceItem item = items.get(i);
+                    serviceName = item.getItemName();
+                    unitPrice = String.format("%,.0f", item.getUnitPrice());
+                    
+                    // Discount percentage = ((unitPrice - totalPrice) / unitPrice) * 100
+                    double itemDiscount = item.getUnitPrice() - item.getTotalPrice();
+                    if (itemDiscount > 0 && item.getUnitPrice() > 0) {
+                        double pct = Math.round((itemDiscount / item.getUnitPrice()) * 100.0);
+                        discount = String.format("%.0f%%", pct);
+                    } else {
+                        discount = "";
                     }
                     
-                    itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                        new com.itextpdf.layout.element.Paragraph(item.getItemName()).setFont(font)));
-                    itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                        new com.itextpdf.layout.element.Paragraph(itemTypeText).setFont(font)));
-                    itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                        new com.itextpdf.layout.element.Paragraph(String.valueOf(item.getQuantity())).setFont(font)));
-                    itemsTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                        new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VNĐ", item.getTotalPrice())).setFont(font)));
+                    // VAT 8% on price after discount
+                    double vatAmount = item.getTotalPrice() * 0.08;
+                    vat = String.format("%,.0f", vatAmount);
+                    
+                    // Thành tiền = price after discount + VAT
+                    double itemTotal = item.getTotalPrice() + vatAmount;
+                    totalPrice = String.format("%,.0f", itemTotal);
+                    grandTotal += itemTotal;
                 }
                 
-                document.add(itemsTable);
-                document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+                // STT cell
+                com.itextpdf.layout.element.Cell sttCell = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph(stt).setFont(font).setFontSize(10).setFontColor(blackColor)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setPadding(4).setMinHeight(22);
+                serviceTable.addCell(sttCell);
+                
+                // Service name cell
+                com.itextpdf.layout.element.Cell nameServiceCell = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph(serviceName).setFont(font).setFontSize(10).setFontColor(blackColor))
+                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setPadding(4).setMinHeight(22);
+                serviceTable.addCell(nameServiceCell);
+                
+                // Unit price cell
+                com.itextpdf.layout.element.Cell priceCell = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph(unitPrice).setFont(font).setFontSize(10).setFontColor(blackColor)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setPadding(4).setMinHeight(22);
+                serviceTable.addCell(priceCell);
+                
+                // Discount cell
+                com.itextpdf.layout.element.Cell discountCell = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph(discount).setFont(font).setFontSize(10).setFontColor(blackColor)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setPadding(4).setMinHeight(22);
+                serviceTable.addCell(discountCell);
+                
+                // VAT cell
+                com.itextpdf.layout.element.Cell vatCell = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph(vat).setFont(font).setFontSize(10).setFontColor(blackColor)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setPadding(4).setMinHeight(22);
+                serviceTable.addCell(vatCell);
+                
+                // Total price cell
+                com.itextpdf.layout.element.Cell totalPriceCell = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph(totalPrice).setFont(font).setFontSize(10).setFontColor(blackColor)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setPadding(4).setMinHeight(22);
+                serviceTable.addCell(totalPriceCell);
             }
             
-            // Payment details với font đậm cho tiêu đề
-            document.add(new com.itextpdf.layout.element.Paragraph("TỔNG KẾT THANH TOÁN")
-                .setFont(boldFont)
-                .setFontSize(14));
+            // ===== TOTAL ROW =====
+            // TỔNG TIỀN spanning first 2 columns
+            com.itextpdf.layout.element.Cell totalLabelCell = new com.itextpdf.layout.element.Cell(1, 2)
+                .add(new com.itextpdf.layout.element.Paragraph("TỔNG TIỀN")
+                    .setFont(boldFont).setFontSize(11).setFontColor(redColor)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+                .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                .setPadding(5);
+            serviceTable.addCell(totalLabelCell);
             
-            // Create table
-            com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(2);
-            table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            // Total value spanning last 4 columns
+            double finalTotal = invoice.getTotalAmount();
+            String totalText = String.format("%,.0f đ", finalTotal);
             
-            // Add rows
-            table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Tổng tiền:").setFont(font)));
-            table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VNĐ", invoice.getTotalAmount())).setFont(font)));
+            com.itextpdf.layout.element.Cell totalValueCell = new com.itextpdf.layout.element.Cell(1, 4)
+                .add(new com.itextpdf.layout.element.Paragraph()
+                    .add(new com.itextpdf.layout.element.Text(totalText).setFont(boldFont).setFontSize(11).setFontColor(blackColor)))
+                .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                .setPadding(5);
+            serviceTable.addCell(totalValueCell);
             
-            table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Giảm giá:").setFont(font)));
-            table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VNĐ", invoice.getDiscount())).setFont(font)));
+            document.add(serviceTable);
             
-            table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph("Thành tiền:").setFont(boldFont)));
-            table.addCell(new com.itextpdf.layout.element.Cell().add(
-                new com.itextpdf.layout.element.Paragraph(String.format("%,.0f VNĐ", 
-                    invoice.getTotalAmount() - invoice.getDiscount())).setFont(boldFont)));
-            
-            document.add(table);
-            
+            // ===== SIGNATURE SECTION =====
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
             
-            // Status với font đậm
-            String statusText = invoice.getStatus().equals("paid") ? "Đã thanh toán" : "Chưa thanh toán";
-            document.add(new com.itextpdf.layout.element.Paragraph("Trạng thái: " + statusText)
-                .setFont(boldFont)
-                .setFontSize(12));
+            com.itextpdf.layout.element.Table signatureTable = new com.itextpdf.layout.element.Table(
+                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{33, 34, 33}));
+            signatureTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             
-            // Notes
-            if (invoice.getNotes() != null && !invoice.getNotes().trim().isEmpty()) {
-                document.add(new com.itextpdf.layout.element.Paragraph("\n"));
-                document.add(new com.itextpdf.layout.element.Paragraph("Ghi chú: " + invoice.getNotes())
-                    .setFont(font)
-                    .setFontSize(12));
-            }
+            // Column 1: Xác nhận của khách hàng
+            com.itextpdf.layout.element.Cell sig1Cell = new com.itextpdf.layout.element.Cell().setBorder(null);
+            sig1Cell.add(new com.itextpdf.layout.element.Paragraph("Xác nhận của khách hàng")
+                .setFont(font).setFontSize(10).setFontColor(redColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            sig1Cell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n\n"));
+            signatureTable.addCell(sig1Cell);
             
-            // Footer with QR code and signature
-            document.add(new com.itextpdf.layout.element.Paragraph("\n\n"));
-            
-            // Create table for footer (2 columns)
-            com.itextpdf.layout.element.Table footerTable = new com.itextpdf.layout.element.Table(2);
-            footerTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
-            
-            // Left column - QR Code and bank info
-            com.itextpdf.layout.element.Cell leftCell = new com.itextpdf.layout.element.Cell();
-            leftCell.setBorder(null);
+            // Column 2: QR Thanh Toán
+            com.itextpdf.layout.element.Cell sig2Cell = new com.itextpdf.layout.element.Cell().setBorder(null);
+            sig2Cell.add(new com.itextpdf.layout.element.Paragraph("QR Thanh Toán")
+                .setFont(font).setFontSize(10).setFontColor(redColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
             
             try {
-                // Generate QR code for VietQR
-                String qrContent = "TRAN THANH DAO\n0362625218\nMB Bank";
+                // Generate QR code for payment
+                String bankAccount = "19035455876019";
+                String bankName = "Techcombank";
+                String accountHolder = "NGUYEN THI HANH";
+                String qrContent = accountHolder + "\n" + bankAccount + "\n" + bankName;
+                
                 com.google.zxing.BarcodeFormat format = com.google.zxing.BarcodeFormat.QR_CODE;
                 com.google.zxing.qrcode.QRCodeWriter qrWriter = new com.google.zxing.qrcode.QRCodeWriter();
-                com.google.zxing.common.BitMatrix bitMatrix = qrWriter.encode(qrContent, format, 150, 150);
+                com.google.zxing.common.BitMatrix bitMatrix = qrWriter.encode(qrContent, format, 120, 120);
                 
-                // Convert BitMatrix to BufferedImage
-                java.awt.image.BufferedImage qrImage = new java.awt.image.BufferedImage(150, 150, java.awt.image.BufferedImage.TYPE_INT_RGB);
-                for (int x = 0; x < 150; x++) {
-                    for (int y = 0; y < 150; y++) {
+                java.awt.image.BufferedImage qrImage = new java.awt.image.BufferedImage(120, 120, java.awt.image.BufferedImage.TYPE_INT_RGB);
+                for (int x = 0; x < 120; x++) {
+                    for (int y = 0; y < 120; y++) {
                         qrImage.setRGB(x, y, bitMatrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF);
                     }
                 }
                 
-                // Convert to iText Image
                 java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
                 javax.imageio.ImageIO.write(qrImage, "png", baos);
                 com.itextpdf.io.image.ImageData imageData = com.itextpdf.io.image.ImageDataFactory.create(baos.toByteArray());
                 com.itextpdf.layout.element.Image qrImg = new com.itextpdf.layout.element.Image(imageData);
-                qrImg.setWidth(100);
-                qrImg.setHeight(100);
-                
-                leftCell.add(qrImg);
-                leftCell.add(new com.itextpdf.layout.element.Paragraph("\nThông tin chuyển khoản:")
-                    .setFont(boldFont).setFontSize(10));
-                leftCell.add(new com.itextpdf.layout.element.Paragraph("Tên: TRẦN THÀNH ĐẠO")
-                    .setFont(font).setFontSize(9));
-                leftCell.add(new com.itextpdf.layout.element.Paragraph("STK: 0362625218")
-                    .setFont(font).setFontSize(9));
-                leftCell.add(new com.itextpdf.layout.element.Paragraph("Ngân hàng: MB Bank")
-                    .setFont(font).setFontSize(9));
+                qrImg.setWidth(80);
+                qrImg.setHeight(80);
+                qrImg.setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER);
+                sig2Cell.add(qrImg);
             } catch (Exception e) {
-                leftCell.add(new com.itextpdf.layout.element.Paragraph("Thông tin thanh toán:\nTRẦN THÀNH ĐẠO\n0362625218\nMB Bank")
-                    .setFont(font).setFontSize(10));
+                sig2Cell.add(new com.itextpdf.layout.element.Paragraph("[QR CODE]")
+                    .setFont(font).setFontSize(10).setFontColor(blackColor)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
             }
+            signatureTable.addCell(sig2Cell);
             
-            // Right column - Date and creator
-            com.itextpdf.layout.element.Cell rightCell = new com.itextpdf.layout.element.Cell();
-            rightCell.setBorder(null);
-            rightCell.setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT);
+            // Column 3: Chữ ký đại diện công ty
+            com.itextpdf.layout.element.Cell sig3Cell = new com.itextpdf.layout.element.Cell().setBorder(null);
+            sig3Cell.add(new com.itextpdf.layout.element.Paragraph("Chữ ký đại diện công ty")
+                .setFont(font).setFontSize(10).setFontColor(redColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            sig3Cell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n"));
+            sig3Cell.add(new com.itextpdf.layout.element.Paragraph("Phạm Minh Tâm")
+                .setFont(boldFont).setFontSize(11).setFontColor(redColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            signatureTable.addCell(sig3Cell);
             
-            java.time.LocalDate today = java.time.LocalDate.now();
-            rightCell.add(new com.itextpdf.layout.element.Paragraph(
-                String.format("Ngày %d tháng %d năm %d", today.getDayOfMonth(), today.getMonthValue(), today.getYear()))
-                .setFont(font).setFontSize(11));
-            rightCell.add(new com.itextpdf.layout.element.Paragraph("\n\n"));
-            rightCell.add(new com.itextpdf.layout.element.Paragraph("Người tạo hóa đơn")
-                .setFont(boldFont).setFontSize(10));
-            rightCell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n"));
-            rightCell.add(new com.itextpdf.layout.element.Paragraph("(Ký và ghi rõ họ tên)")
-                .setFont(font).setFontSize(9));
+            document.add(signatureTable);
             
-            footerTable.addCell(leftCell);
-            footerTable.addCell(rightCell);
-            document.add(footerTable);
+            // ===== BANK INFO FOOTER =====
+            document.add(new com.itextpdf.layout.element.Paragraph("\n"));
+            
+            com.itextpdf.layout.element.Paragraph hotline = new com.itextpdf.layout.element.Paragraph(
+                "Hotline: 038 442 4567 (Zalo)")
+                .setFont(font).setFontSize(10).setFontColor(redColor)
+                .setMarginBottom(1);
+            document.add(hotline);
+            
+            com.itextpdf.layout.element.Paragraph stk = new com.itextpdf.layout.element.Paragraph(
+                "STK: 19035455876019 (Techcombank)")
+                .setFont(font).setFontSize(10).setFontColor(redColor)
+                .setMarginBottom(1);
+            document.add(stk);
+            
+            com.itextpdf.layout.element.Paragraph stkOwner = new com.itextpdf.layout.element.Paragraph(
+                "Tên chủ STK: NGUYỄN THỊ HẠNH")
+                .setFont(boldFont).setFontSize(10).setFontColor(redColor);
+            document.add(stkOwner);
             
             document.close();
             

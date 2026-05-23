@@ -77,14 +77,19 @@ public class ReportHelper {
             }
             
             // Title với font đậm
-            document.add(new com.itextpdf.layout.element.Paragraph("BÁO CÁO DOANH THU")
+            document.add(new com.itextpdf.layout.element.Paragraph("CÔNG TY TNHH TM DV PHỤ TÙNG Ô TÔ MINH TÂM")
                 .setFont(boldFont)
-                .setFontSize(24)
+                .setFontSize(20)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
             
-            document.add(new com.itextpdf.layout.element.Paragraph("MTProAuto - Hệ Thống Quản Lý Gara")
+            document.add(new com.itextpdf.layout.element.Paragraph("Ngã tư Trương Định và An Dương Vương, P. Nghĩa Lộ, tỉnh Quảng Ngãi")
                 .setFont(boldFont)
                 .setFontSize(12)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            
+            document.add(new com.itextpdf.layout.element.Paragraph("BÁO CÁO DANH THU")
+                .setFont(boldFont)
+                .setFontSize(18)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
             
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
@@ -159,13 +164,13 @@ public class ReportHelper {
             // Data rows
             for (Invoice inv : filteredInvoices) {
                 invoiceTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                    new com.itextpdf.layout.element.Paragraph("#" + inv.getId()).setFont(font)));
+                    new com.itextpdf.layout.element.Paragraph("#" + String.format("%05d", inv.getId())).setFont(font)));
                 invoiceTable.addCell(new com.itextpdf.layout.element.Cell().add(
                     new com.itextpdf.layout.element.Paragraph(inv.getCustomerName()).setFont(font)));
                 invoiceTable.addCell(new com.itextpdf.layout.element.Cell().add(
                     new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", inv.getTotalAmount())).setFont(font)));
                 invoiceTable.addCell(new com.itextpdf.layout.element.Cell().add(
-                    new com.itextpdf.layout.element.Paragraph(inv.getStatus().equals("paid") ? "Đã TT" : "Chưa TT").setFont(font)));
+                    new com.itextpdf.layout.element.Paragraph(inv.getStatus().equals("paid") ? "Đã thanh toán" : "Chưa thanh toán").setFont(font)));
             }
             
             document.add(invoiceTable);

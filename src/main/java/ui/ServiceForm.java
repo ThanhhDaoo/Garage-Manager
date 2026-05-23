@@ -7,6 +7,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import model.Service;
 import service.ServiceService;
 
 public class ServiceForm {
@@ -14,28 +15,20 @@ public class ServiceForm {
     private Stage stage;
     private boolean isEdit;
     private int serviceId;
-    private String serviceName;
-    private String description;
-    private String priceSedan;
-    private String priceSUV;
+    private Service existingService;
     private Runnable onSave;
     
     // Form fields
     private TextField txtName;
     private TextArea txtDesc;
+    private TextField txtPriceMini;
     private TextField txtPriceSedan;
-    private TextField txtPriceSUV;
+    private TextField txtPriceCuv;
+    private TextField txtPriceSuv;
+    private TextField txtPricePickup;
     
     public ServiceForm() {
         this.isEdit = false;
-    }
-    
-    public ServiceForm(String serviceName, String description, String priceSedan, String priceSUV) {
-        this.isEdit = true;
-        this.serviceName = serviceName;
-        this.description = description;
-        this.priceSedan = priceSedan;
-        this.priceSUV = priceSUV;
     }
     
     public ServiceForm(Runnable onSave) {
@@ -43,13 +36,10 @@ public class ServiceForm {
         this.onSave = onSave;
     }
     
-    public ServiceForm(int serviceId, String serviceName, String description, String priceSedan, String priceSUV, Runnable onSave) {
+    public ServiceForm(int serviceId, Service service, Runnable onSave) {
         this.isEdit = true;
         this.serviceId = serviceId;
-        this.serviceName = serviceName;
-        this.description = description;
-        this.priceSedan = priceSedan;
-        this.priceSUV = priceSUV;
+        this.existingService = service;
         this.onSave = onSave;
     }
     
@@ -79,7 +69,7 @@ public class ServiceForm {
         mainContent.getChildren().addAll(title, formSection, actionButtons);
         scrollPane.setContent(mainContent);
         
-        Scene scene = new Scene(scrollPane, 700, 650);
+        Scene scene = new Scene(scrollPane, 750, 800);
         try {
             String css = getClass().getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);
@@ -101,7 +91,7 @@ public class ServiceForm {
         
         GridPane grid = new GridPane();
         grid.setHgap(20);
-        grid.setVgap(20);
+        grid.setVgap(15);
         
         // Service name
         Label lblName = new Label("Tên dịch vụ *");
@@ -116,8 +106,8 @@ public class ServiceForm {
             "-fx-font-size: 14px;"
         );
         txtName.setPrefWidth(400);
-        if (isEdit && serviceName != null) {
-            txtName.setText(serviceName);
+        if (isEdit && existingService != null) {
+            txtName.setText(existingService.getName());
         }
         
         // Description
@@ -133,8 +123,29 @@ public class ServiceForm {
         );
         txtDesc.setPrefRowCount(3);
         txtDesc.setPrefWidth(400);
-        if (isEdit && description != null) {
-            txtDesc.setText(description);
+        if (isEdit && existingService != null) {
+            txtDesc.setText(existingService.getDescription());
+        }
+        
+        // Price section header
+        Label lblPriceHeader = new Label("💰 Bảng Giá Theo Loại Xe");
+        lblPriceHeader.setStyle("-fx-font-size: 16px; -fx-text-fill: #1976D2; -fx-font-weight: 700; -fx-padding: 10 0 5 0;");
+        
+        // Price for Mini
+        Label lblPriceMini = new Label("Giá cho xe Mini *");
+        lblPriceMini.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
+        txtPriceMini = new TextField();
+        txtPriceMini.setPromptText("Nhập giá (VD: 40000)");
+        txtPriceMini.setStyle(
+            "-fx-background-color: #E3F2FD;" +
+            "-fx-padding: 12px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        txtPriceMini.setPrefWidth(400);
+        if (isEdit && existingService != null) {
+            txtPriceMini.setText(String.format("%.0f", existingService.getPriceMini()));
         }
         
         // Price for Sedan
@@ -143,32 +154,66 @@ public class ServiceForm {
         txtPriceSedan = new TextField();
         txtPriceSedan.setPromptText("Nhập giá (VD: 50000)");
         txtPriceSedan.setStyle(
-            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-color: #E8F5E9;" +
             "-fx-padding: 12px 15px;" +
             "-fx-background-radius: 8;" +
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
         txtPriceSedan.setPrefWidth(400);
-        if (isEdit && priceSedan != null) {
-            txtPriceSedan.setText(priceSedan.replace("đ", "").trim());
+        if (isEdit && existingService != null) {
+            txtPriceSedan.setText(String.format("%.0f", existingService.getPriceSedan()));
         }
         
-        // Price for SUV
-        Label lblPriceSUV = new Label("Giá cho xe SUV *");
-        lblPriceSUV.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
-        txtPriceSUV = new TextField();
-        txtPriceSUV.setPromptText("Nhập giá (VD: 100000)");
-        txtPriceSUV.setStyle(
-            "-fx-background-color: #f5f5f5;" +
+        // Price for CUV
+        Label lblPriceCuv = new Label("Giá cho xe CUV *");
+        lblPriceCuv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
+        txtPriceCuv = new TextField();
+        txtPriceCuv.setPromptText("Nhập giá (VD: 75000)");
+        txtPriceCuv.setStyle(
+            "-fx-background-color: #FFF3E0;" +
             "-fx-padding: 12px 15px;" +
             "-fx-background-radius: 8;" +
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
-        txtPriceSUV.setPrefWidth(400);
-        if (isEdit && priceSUV != null) {
-            txtPriceSUV.setText(priceSUV.replace("đ", "").trim());
+        txtPriceCuv.setPrefWidth(400);
+        if (isEdit && existingService != null) {
+            txtPriceCuv.setText(String.format("%.0f", existingService.getPriceCuv()));
+        }
+        
+        // Price for SUV
+        Label lblPriceSuv = new Label("Giá cho xe SUV *");
+        lblPriceSuv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
+        txtPriceSuv = new TextField();
+        txtPriceSuv.setPromptText("Nhập giá (VD: 100000)");
+        txtPriceSuv.setStyle(
+            "-fx-background-color: #FCE4EC;" +
+            "-fx-padding: 12px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        txtPriceSuv.setPrefWidth(400);
+        if (isEdit && existingService != null) {
+            txtPriceSuv.setText(String.format("%.0f", existingService.getPriceSuv()));
+        }
+        
+        // Price for Pickup
+        Label lblPricePickup = new Label("Giá cho xe Pickup *");
+        lblPricePickup.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
+        txtPricePickup = new TextField();
+        txtPricePickup.setPromptText("Nhập giá (VD: 110000)");
+        txtPricePickup.setStyle(
+            "-fx-background-color: #F3E5F5;" +
+            "-fx-padding: 12px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        txtPricePickup.setPrefWidth(400);
+        if (isEdit && existingService != null) {
+            txtPricePickup.setText(String.format("%.0f", existingService.getPricePickup()));
         }
         
         // Status
@@ -189,16 +234,24 @@ public class ServiceForm {
         
         statusBox.getChildren().addAll(rbActive, rbInactive);
         
-        grid.add(lblName, 0, 0);
-        grid.add(txtName, 0, 1);
-        grid.add(lblDesc, 0, 2);
-        grid.add(txtDesc, 0, 3);
-        grid.add(lblPriceSedan, 0, 4);
-        grid.add(txtPriceSedan, 0, 5);
-        grid.add(lblPriceSUV, 0, 6);
-        grid.add(txtPriceSUV, 0, 7);
-        grid.add(lblStatus, 0, 8);
-        grid.add(statusBox, 0, 9);
+        int row = 0;
+        grid.add(lblName, 0, row++);
+        grid.add(txtName, 0, row++);
+        grid.add(lblDesc, 0, row++);
+        grid.add(txtDesc, 0, row++);
+        grid.add(lblPriceHeader, 0, row++);
+        grid.add(lblPriceMini, 0, row++);
+        grid.add(txtPriceMini, 0, row++);
+        grid.add(lblPriceSedan, 0, row++);
+        grid.add(txtPriceSedan, 0, row++);
+        grid.add(lblPriceCuv, 0, row++);
+        grid.add(txtPriceCuv, 0, row++);
+        grid.add(lblPriceSuv, 0, row++);
+        grid.add(txtPriceSuv, 0, row++);
+        grid.add(lblPricePickup, 0, row++);
+        grid.add(txtPricePickup, 0, row++);
+        grid.add(lblStatus, 0, row++);
+        grid.add(statusBox, 0, row++);
         
         section.getChildren().add(grid);
         return section;
@@ -233,80 +286,78 @@ public class ServiceForm {
         btnSave.setOnAction(e -> {
             // Validate input
             if (txtName.getText().trim().isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Cảnh báo");
-                alert.setHeaderText(null);
-                alert.setContentText("Vui lòng nhập tên dịch vụ!");
-                alert.showAndWait();
+                showAlert("Cảnh báo", "Vui lòng nhập tên dịch vụ!", Alert.AlertType.WARNING);
+                return;
+            }
+            
+            if (txtPriceMini.getText().trim().isEmpty()) {
+                showAlert("Cảnh báo", "Vui lòng nhập giá cho xe Mini!", Alert.AlertType.WARNING);
                 return;
             }
             
             if (txtPriceSedan.getText().trim().isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Cảnh báo");
-                alert.setHeaderText(null);
-                alert.setContentText("Vui lòng nhập giá cho xe Sedan!");
-                alert.showAndWait();
+                showAlert("Cảnh báo", "Vui lòng nhập giá cho xe Sedan!", Alert.AlertType.WARNING);
                 return;
             }
             
-            if (txtPriceSUV.getText().trim().isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Cảnh báo");
-                alert.setHeaderText(null);
-                alert.setContentText("Vui lòng nhập giá cho xe SUV!");
-                alert.showAndWait();
+            if (txtPriceCuv.getText().trim().isEmpty()) {
+                showAlert("Cảnh báo", "Vui lòng nhập giá cho xe CUV!", Alert.AlertType.WARNING);
+                return;
+            }
+            
+            if (txtPriceSuv.getText().trim().isEmpty()) {
+                showAlert("Cảnh báo", "Vui lòng nhập giá cho xe SUV!", Alert.AlertType.WARNING);
+                return;
+            }
+            
+            if (txtPricePickup.getText().trim().isEmpty()) {
+                showAlert("Cảnh báo", "Vui lòng nhập giá cho xe Pickup!", Alert.AlertType.WARNING);
                 return;
             }
             
             try {
                 String name = txtName.getText().trim();
                 String desc = txtDesc.getText().trim();
-                double priceSmall = Double.parseDouble(txtPriceSedan.getText().trim());
-                double priceLarge = Double.parseDouble(txtPriceSUV.getText().trim());
+                double priceMini = Double.parseDouble(txtPriceMini.getText().trim());
+                double priceSedan = Double.parseDouble(txtPriceSedan.getText().trim());
+                double priceCuv = Double.parseDouble(txtPriceCuv.getText().trim());
+                double priceSuv = Double.parseDouble(txtPriceSuv.getText().trim());
+                double pricePickup = Double.parseDouble(txtPricePickup.getText().trim());
                 
                 ServiceService serviceService = new ServiceService();
                 boolean success;
                 
                 if (isEdit) {
-                    // Update existing service
-                    success = serviceService.updateService(serviceId, name, desc, priceSmall, priceLarge);
+                    success = serviceService.updateService(serviceId, name, desc, priceMini, priceSedan, priceCuv, priceSuv, pricePickup);
                 } else {
-                    // Add new service
-                    success = serviceService.addService(name, desc, priceSmall, priceLarge);
+                    success = serviceService.addService(name, desc, priceMini, priceSedan, priceCuv, priceSuv, pricePickup);
                 }
                 
                 if (success) {
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("Thành công");
-                    alert.setHeaderText(null);
-                    alert.setContentText(isEdit ? "Cập nhật dịch vụ thành công!" : "Thêm dịch vụ mới thành công!");
-                    alert.showAndWait();
-                    
+                    showAlert("Thành công", 
+                             isEdit ? "Cập nhật dịch vụ thành công!" : "Thêm dịch vụ mới thành công!", 
+                             Alert.AlertType.INFORMATION);
                     stage.close();
-                    
-                    // Gọi callback sau khi đóng form để refresh UI
                     if (onSave != null) {
                         onSave.run();
                     }
                 } else {
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Lỗi");
-                    alert.setHeaderText(null);
-                    alert.setContentText("Không thể lưu dịch vụ! Kiểm tra console để xem chi tiết.");
-                    alert.showAndWait();
-                    System.err.println("DEBUG: addService/updateService trả về false");
+                    showAlert("Lỗi", "Không thể lưu dịch vụ! Kiểm tra console để xem chi tiết.", Alert.AlertType.ERROR);
                 }
             } catch (NumberFormatException ex) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Lỗi");
-                alert.setHeaderText(null);
-                alert.setContentText("Giá phải là số!");
-                alert.showAndWait();
+                showAlert("Lỗi", "Giá phải là số hợp lệ!", Alert.AlertType.ERROR);
             }
         });
         
         buttons.getChildren().addAll(btnCancel, btnSave);
         return buttons;
+    }
+    
+    private void showAlert(String title, String content, Alert.AlertType type) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 }

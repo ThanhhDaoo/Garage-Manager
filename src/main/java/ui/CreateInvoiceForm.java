@@ -27,6 +27,9 @@ public class CreateInvoiceForm {
     private VBox selectedPackagesBox;
     private VBox selectedProductsBox;
     private Label totalLabel;
+    private Label subtotalLabel;
+    private Label vatLabel;
+    private Label discountTotalLabel;
     private double totalAmount = 0;
     private ToggleGroup carTypeGroup;
     private VBox servicesContainer;
@@ -35,6 +38,7 @@ public class CreateInvoiceForm {
     private TextField txtName;
     private TextField txtPhone;
     private TextField txtPlate;
+    private TextField txtAddress;
     private Runnable onInvoiceCreated;
     
     // Track selected items for saving to database
@@ -159,6 +163,20 @@ public class CreateInvoiceForm {
             "-fx-font-size: 14px;"
         );
         txtPlate.setPrefWidth(300);
+
+        // Address field - Create completely independent TextField
+        Label lblAddress = new Label("Địa chỉ");
+        lblAddress.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
+        txtAddress = new TextField("");
+        txtAddress.setPromptText("Nhập địa chỉ khách hàng");
+        txtAddress.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 12px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        txtAddress.setPrefWidth(300);
         
         // Car type selection
         Label lblCarType = new Label("Loại xe *");
@@ -167,20 +185,26 @@ public class CreateInvoiceForm {
         HBox carTypeBox = new HBox(12);
         carTypeGroup = new ToggleGroup();
         
+        RadioButton rbMini = new RadioButton("Mini");
+        rbMini.setToggleGroup(carTypeGroup);
+        rbMini.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        
         RadioButton rbSedan = new RadioButton("Sedan");
         rbSedan.setToggleGroup(carTypeGroup);
         rbSedan.setSelected(true);
-        rbSedan.setStyle(
-            "-fx-font-size: 14px;" +
-            "-fx-text-fill: #424242;"
-        );
+        rbSedan.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        
+        RadioButton rbCUV = new RadioButton("CUV");
+        rbCUV.setToggleGroup(carTypeGroup);
+        rbCUV.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
         
         RadioButton rbSUV = new RadioButton("SUV");
         rbSUV.setToggleGroup(carTypeGroup);
-        rbSUV.setStyle(
-            "-fx-font-size: 14px;" +
-            "-fx-text-fill: #424242;"
-        );
+        rbSUV.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        
+        RadioButton rbPickup = new RadioButton("Pickup");
+        rbPickup.setToggleGroup(carTypeGroup);
+        rbPickup.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
         
         // Add listener to update service prices when car type changes
         carTypeGroup.selectedToggleProperty().addListener((obs, oldToggle, newToggle) -> {
@@ -189,7 +213,7 @@ public class CreateInvoiceForm {
             }
         });
         
-        carTypeBox.getChildren().addAll(rbSedan, rbSUV);
+        carTypeBox.getChildren().addAll(rbMini, rbSedan, rbCUV, rbSUV, rbPickup);
         
         grid.add(lblName, 0, 0);
         grid.add(txtName, 1, 0);
@@ -197,8 +221,10 @@ public class CreateInvoiceForm {
         grid.add(txtPhone, 1, 1);
         grid.add(lblPlate, 0, 2);
         grid.add(txtPlate, 1, 2);
-        grid.add(lblCarType, 0, 3);
-        grid.add(carTypeBox, 1, 3);
+        grid.add(lblAddress, 0, 3);
+        grid.add(txtAddress, 1, 3);
+        grid.add(lblCarType, 0, 4);
+        grid.add(carTypeBox, 1, 4);
         
         section.getChildren().addAll(sectionTitle, grid);
         return section;
@@ -223,6 +249,21 @@ public class CreateInvoiceForm {
         Button btnServices = createTabButton("Dịch Vụ Lẻ", true);
         Button btnPackages = createTabButton("Gói Dịch Vụ", false);
         tabButtons.getChildren().addAll(btnServices, btnPackages);
+        
+        // Search bar
+        TextField txtSearchService = new TextField();
+        txtSearchService.setPromptText("🔍 Tìm kiếm dịch vụ lẻ hoặc gói dịch vụ...");
+        txtSearchService.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 10px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
+        txtSearchService.textProperty().addListener((obs, oldVal, newVal) -> {
+            filterServicesAndPackages(newVal);
+        });
         
         // Content container
         currentServiceContent = new VBox(15);
@@ -294,7 +335,7 @@ public class CreateInvoiceForm {
             packagesSelectedTitle, selectedPackagesBox
         );
         
-        section.getChildren().addAll(sectionTitle, tabButtons, currentServiceContent, selectedTitle, selectedContainer);
+        section.getChildren().addAll(sectionTitle, tabButtons, txtSearchService, currentServiceContent, selectedTitle, selectedContainer);
         return section;
     }
     
@@ -369,9 +410,25 @@ public class CreateInvoiceForm {
         Label sectionTitle = new Label("Chọn Sản Phẩm");
         sectionTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
         
+        // Search bar
+        TextField txtSearchProduct = new TextField();
+        txtSearchProduct.setPromptText("🔍 Tìm kiếm sản phẩm...");
+        txtSearchProduct.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 10px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
+        
         // Available products - Load from database
         VBox productsBox = new VBox(10);
         loadProductsFromDatabase(productsBox);
+        
+        txtSearchProduct.textProperty().addListener((obs, oldVal, newVal) -> {
+            filterProducts(productsBox, newVal);
+        });
         
         // Selected products display
         Label selectedTitle = new Label("Sản phẩm đã chọn:");
@@ -389,11 +446,11 @@ public class CreateInvoiceForm {
         emptyLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #9e9e9e;");
         selectedProductsBox.getChildren().add(emptyLabel);
         
-        section.getChildren().addAll(sectionTitle, productsBox, selectedTitle, selectedProductsBox);
+        section.getChildren().addAll(sectionTitle, txtSearchProduct, productsBox, selectedTitle, selectedProductsBox);
         return section;
     }
     
-    private HBox createServiceItem(String name, String priceSedan, String priceSUV) {
+    private HBox createServiceItem(String name, String priceMini, String priceSedan, String priceCuv, String priceSuv, String pricePickup) {
         HBox item = new HBox(15);
         item.setAlignment(Pos.CENTER_LEFT);
         item.setPadding(new Insets(12));
@@ -402,8 +459,8 @@ public class CreateInvoiceForm {
             "-fx-background-radius: 8;"
         );
         
-        // Store prices as user data
-        item.setUserData(new String[]{name, priceSedan, priceSUV});
+        // Store all prices as user data
+        item.setUserData(new String[]{name, priceMini, priceSedan, priceCuv, priceSuv, pricePickup});
         
         VBox info = new VBox(4);
         Label lblName = new Label(name);
@@ -429,7 +486,7 @@ public class CreateInvoiceForm {
         );
         
         btnAdd.setOnAction(e -> {
-            String currentPrice = getCurrentPrice(priceSedan, priceSUV);
+            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, pricePickup);
             addSelectedService(name, currentPrice);
         });
         
@@ -438,35 +495,81 @@ public class CreateInvoiceForm {
     }
     
     private void updateServicePrices() {
+        // Update services
         for (var node : servicesContainer.getChildren()) {
-            if (node instanceof HBox) {
-                HBox item = (HBox) node;
-                String[] data = (String[]) item.getUserData();
-                if (data != null) {
-                    String name = data[0];
-                    String priceSedan = data[1];
-                    String priceSUV = data[2];
-                    
-                    // Find the price label and update it
-                    VBox info = (VBox) item.getChildren().get(0);
-                    Label priceLabel = (Label) info.getChildren().get(1);
-                    
-                    String currentPrice = getCurrentPrice(priceSedan, priceSUV);
-                    priceLabel.setText(currentPrice);
+            if (node instanceof ScrollPane) {
+                ScrollPane sp = (ScrollPane) node;
+                VBox servicesList = (VBox) sp.getContent();
+                for (var serviceNode : servicesList.getChildren()) {
+                    if (serviceNode instanceof HBox) {
+                        updateItemPrice((HBox) serviceNode);
+                    }
+                }
+            }
+        }
+        
+        // Update packages
+        for (var node : packagesContainer.getChildren()) {
+            if (node instanceof ScrollPane) {
+                ScrollPane sp = (ScrollPane) node;
+                VBox packagesList = (VBox) sp.getContent();
+                for (var packageNode : packagesList.getChildren()) {
+                    if (packageNode instanceof HBox) {
+                        updateItemPrice((HBox) packageNode);
+                    }
                 }
             }
         }
     }
     
-    private String getCurrentPrice(String priceSedan, String priceSUV) {
-        RadioButton selectedRadio = (RadioButton) carTypeGroup.getSelectedToggle();
-        if (selectedRadio != null && selectedRadio.getText().equals("SUV")) {
-            return priceSUV;
+    private void updateItemPrice(HBox item) {
+        String[] data = (String[]) item.getUserData();
+        if (data != null && data.length >= 6) {
+            // For services: data[0]=name, data[1-5]=prices
+            // For packages: data[0]=name, data[1]=description, data[2-6]=prices
+            String priceMini, priceSedan, priceCuv, priceSuv, pricePickup;
+            
+            if (data.length == 6) {
+                // Service format
+                priceMini = data[1];
+                priceSedan = data[2];
+                priceCuv = data[3];
+                priceSuv = data[4];
+                pricePickup = data[5];
+            } else {
+                // Package format (has description)
+                priceMini = data[2];
+                priceSedan = data[3];
+                priceCuv = data[4];
+                priceSuv = data[5];
+                pricePickup = data[6];
+            }
+            
+            // Find the price label and update it
+            VBox info = (VBox) item.getChildren().get(0);
+            Label priceLabel = (Label) info.getChildren().get(info.getChildren().size() - 1);
+            
+            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, pricePickup);
+            priceLabel.setText(currentPrice);
         }
-        return priceSedan;
     }
     
-    private HBox createPackageItem(String name, String description, String price) {
+    private String getCurrentPrice(String priceMini, String priceSedan, String priceCuv, String priceSuv, String pricePickup) {
+        RadioButton selectedRadio = (RadioButton) carTypeGroup.getSelectedToggle();
+        if (selectedRadio != null) {
+            String vehicleType = selectedRadio.getText();
+            switch (vehicleType) {
+                case "Mini": return priceMini;
+                case "Sedan": return priceSedan;
+                case "CUV": return priceCuv;
+                case "SUV": return priceSuv;
+                case "Pickup": return pricePickup;
+            }
+        }
+        return priceSedan; // Default
+    }
+    
+    private HBox createPackageItem(String name, String description, String priceMini, String priceSedan, String priceCuv, String priceSuv, String pricePickup) {
         HBox item = new HBox(15);
         item.setAlignment(Pos.CENTER_LEFT);
         item.setPadding(new Insets(12));
@@ -475,6 +578,9 @@ public class CreateInvoiceForm {
             "-fx-background-radius: 8;"
         );
         
+        // Store all prices as user data
+        item.setUserData(new String[]{name, description, priceMini, priceSedan, priceCuv, priceSuv, pricePickup});
+        
         VBox info = new VBox(4);
         Label lblName = new Label(name);
         lblName.setStyle("-fx-font-size: 14px; -fx-font-weight: 600; -fx-text-fill: #212121;");
@@ -482,7 +588,7 @@ public class CreateInvoiceForm {
         Label lblDesc = new Label(description);
         lblDesc.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
         
-        Label lblPrice = new Label(price);
+        Label lblPrice = new Label(priceSedan); // Default to sedan price
         lblPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
         
         info.getChildren().addAll(lblName, lblDesc, lblPrice);
@@ -502,7 +608,8 @@ public class CreateInvoiceForm {
         );
         
         btnAdd.setOnAction(e -> {
-            addSelectedPackage(name, price);
+            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, pricePickup);
+            addSelectedPackage(name, currentPrice);
         });
         
         item.getChildren().addAll(info, spacer, btnAdd);
@@ -517,6 +624,9 @@ public class CreateInvoiceForm {
             "-fx-background-color: #f5f5f5;" +
             "-fx-background-radius: 8;"
         );
+        
+        // Store product name as user data for filtering
+        item.setUserData(name);
         
         VBox info = new VBox(4);
         Label lblName = new Label(name);
@@ -559,11 +669,9 @@ public class CreateInvoiceForm {
             selectedServicesBox.getChildren().clear();
         }
         
-        HBox selectedItem = createSelectedItem(name, price);
-        selectedServicesBox.getChildren().add(selectedItem);
-        
         double unitPrice = parsePrice(price);
-        updateTotal(unitPrice);
+        VBox selectedItem = createSelectedItem(name, price, unitPrice);
+        selectedServicesBox.getChildren().add(selectedItem);
         
         // Track for database
         Map<String, Object> item = new HashMap<>();
@@ -571,6 +679,8 @@ public class CreateInvoiceForm {
         item.put("price", unitPrice);
         item.put("hbox", selectedItem);
         selectedServices.add(item);
+        
+        recalculateTotal();
     }
     
     private void addSelectedPackage(String name, String price) {
@@ -578,11 +688,9 @@ public class CreateInvoiceForm {
             selectedPackagesBox.getChildren().clear();
         }
         
-        HBox selectedItem = createSelectedItem(name, price);
-        selectedPackagesBox.getChildren().add(selectedItem);
-        
         double unitPrice = parsePrice(price);
-        updateTotal(unitPrice);
+        VBox selectedItem = createSelectedItem(name, price, unitPrice);
+        selectedPackagesBox.getChildren().add(selectedItem);
         
         // Track for database
         Map<String, Object> item = new HashMap<>();
@@ -590,6 +698,8 @@ public class CreateInvoiceForm {
         item.put("price", unitPrice);
         item.put("hbox", selectedItem);
         selectedPackages.add(item);
+        
+        recalculateTotal();
     }
     
     private void addSelectedProduct(String name, String price, int quantity) {
@@ -602,10 +712,8 @@ public class CreateInvoiceForm {
         double itemTotal = unitPrice * quantity;
         String displayPrice = formatPrice(itemTotal);
         
-        HBox selectedItem = createSelectedItem(displayText, displayPrice);
+        VBox selectedItem = createSelectedItem(displayText, displayPrice, itemTotal);
         selectedProductsBox.getChildren().add(selectedItem);
-        
-        updateTotal(itemTotal);
         
         // Track for database
         Map<String, Object> item = new HashMap<>();
@@ -615,13 +723,14 @@ public class CreateInvoiceForm {
         item.put("totalPrice", itemTotal);
         item.put("hbox", selectedItem);
         selectedProducts.add(item);
+        
+        recalculateTotal();
     }
     
-    private HBox createSelectedItem(String name, String price) {
-        HBox item = new HBox(10);
-        item.setAlignment(Pos.CENTER_LEFT);
-        item.setPadding(new Insets(8));
-        item.setStyle(
+    private VBox createSelectedItem(String name, String price, double basePrice) {
+        VBox container = new VBox(4);
+        container.setPadding(new Insets(8));
+        container.setStyle(
             "-fx-background-color: white;" +
             "-fx-background-radius: 6;" +
             "-fx-border-color: #e0e0e0;" +
@@ -629,14 +738,35 @@ public class CreateInvoiceForm {
             "-fx-border-radius: 6;"
         );
         
+        // Store base price for calculations
+        container.getProperties().put("basePrice", basePrice);
+        
+        // === Top row: Name + Discount Combo + Remove ===
+        HBox topRow = new HBox(8);
+        topRow.setAlignment(Pos.CENTER_LEFT);
+        
         Label lblName = new Label(name);
-        lblName.setStyle("-fx-font-size: 13px; -fx-text-fill: #212121;");
+        lblName.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #212121;");
         
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         
-        Label lblPrice = new Label(price);
-        lblPrice.setStyle("-fx-font-size: 13px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        Label discLabel = new Label("Giảm:");
+        discLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
+        
+        ComboBox<String> itemDiscountCombo = new ComboBox<>();
+        itemDiscountCombo.getItems().addAll("0%", "5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%");
+        itemDiscountCombo.setValue("0%");
+        itemDiscountCombo.setPrefWidth(75);
+        itemDiscountCombo.setStyle(
+            "-fx-font-size: 12px;" +
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-border-color: #bdbdbd;" +
+            "-fx-border-radius: 4;" +
+            "-fx-background-radius: 4;"
+        );
+        itemDiscountCombo.setOnAction(e -> recalculateTotal());
+        container.getProperties().put("discountCombo", itemDiscountCombo);
         
         Button btnRemove = new Button("✕");
         btnRemove.setStyle(
@@ -649,17 +779,16 @@ public class CreateInvoiceForm {
         );
         
         btnRemove.setOnAction(e -> {
-            VBox parent = (VBox) item.getParent();
-            parent.getChildren().remove(item);
-            updateTotal(-parsePrice(price));
+            VBox parent = (VBox) container.getParent();
+            parent.getChildren().remove(container);
             
             // Remove from tracking lists
             if (parent == selectedServicesBox) {
-                selectedServices.removeIf(s -> s.get("hbox") == item);
+                selectedServices.removeIf(s -> s.get("hbox") == container);
             } else if (parent == selectedPackagesBox) {
-                selectedPackages.removeIf(p -> p.get("hbox") == item);
+                selectedPackages.removeIf(p -> p.get("hbox") == container);
             } else if (parent == selectedProductsBox) {
-                selectedProducts.removeIf(p -> p.get("hbox") == item);
+                selectedProducts.removeIf(p -> p.get("hbox") == container);
             }
             
             if (parent.getChildren().isEmpty()) {
@@ -667,14 +796,41 @@ public class CreateInvoiceForm {
                 emptyLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #9e9e9e;");
                 parent.getChildren().add(emptyLabel);
             }
+            
+            recalculateTotal();
         });
         
-        item.getChildren().addAll(lblName, spacer, lblPrice, btnRemove);
-        return item;
+        topRow.getChildren().addAll(lblName, spacer, discLabel, itemDiscountCombo, btnRemove);
+        
+        // === Bottom row: Price breakdown ===
+        HBox bottomRow = new HBox(12);
+        bottomRow.setAlignment(Pos.CENTER_LEFT);
+        bottomRow.setPadding(new Insets(2, 0, 0, 0));
+        
+        Label lblPrice = new Label("Giá: " + price);
+        lblPrice.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
+        
+        Label lblDiscAmount = new Label("");
+        lblDiscAmount.setStyle("-fx-font-size: 12px; -fx-text-fill: #f44336;");
+        container.getProperties().put("discountAmountLabel", lblDiscAmount);
+        
+        double vatAmount = basePrice * 0.08;
+        Label lblVat = new Label("VAT 8%: " + formatPrice(vatAmount));
+        lblVat.setStyle("-fx-font-size: 12px; -fx-text-fill: #757575;");
+        container.getProperties().put("vatLabel", lblVat);
+        
+        Label lblTotal = new Label("= " + formatPrice(basePrice + vatAmount));
+        lblTotal.setStyle("-fx-font-size: 12px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        container.getProperties().put("totalLabel", lblTotal);
+        
+        bottomRow.getChildren().addAll(lblPrice, lblDiscAmount, lblVat, lblTotal);
+        
+        container.getChildren().addAll(topRow, bottomRow);
+        return container;
     }
     
     private VBox createSummarySection() {
-        VBox section = new VBox(15);
+        VBox section = new VBox(12);
         section.setStyle(
             "-fx-background-color: #E3F2FD;" +
             "-fx-background-radius: 12;" +
@@ -687,10 +843,55 @@ public class CreateInvoiceForm {
         Label sectionTitle = new Label("Tổng Cộng");
         sectionTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: 600; -fx-text-fill: #212121;");
         
-        totalLabel = new Label("0đ");
-        totalLabel.setStyle("-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #2196F3;");
+        // Subtotal row
+        HBox subtotalRow = new HBox(10);
+        subtotalRow.setAlignment(Pos.CENTER_LEFT);
+        Label subtotalText = new Label("Tạm tính:");
+        subtotalText.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        Region spacer1 = new Region();
+        HBox.setHgrow(spacer1, Priority.ALWAYS);
+        subtotalLabel = new Label("0đ");
+        subtotalLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #424242; -fx-font-weight: 600;");
+        subtotalRow.getChildren().addAll(subtotalText, spacer1, subtotalLabel);
         
-        section.getChildren().addAll(sectionTitle, totalLabel);
+        // Discount total row
+        HBox discountRow = new HBox(10);
+        discountRow.setAlignment(Pos.CENTER_LEFT);
+        Label discountText = new Label("Tổng giảm giá:");
+        discountText.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        Region spacer2 = new Region();
+        HBox.setHgrow(spacer2, Priority.ALWAYS);
+        discountTotalLabel = new Label("0đ");
+        discountTotalLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #f44336; -fx-font-weight: 600;");
+        discountRow.getChildren().addAll(discountText, spacer2, discountTotalLabel);
+        
+        // VAT total row
+        HBox vatRow = new HBox(10);
+        vatRow.setAlignment(Pos.CENTER_LEFT);
+        Label vatText = new Label("Tổng VAT (8%):");
+        vatText.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        Region spacer3 = new Region();
+        HBox.setHgrow(spacer3, Priority.ALWAYS);
+        vatLabel = new Label("0đ");
+        vatLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #424242; -fx-font-weight: 600;");
+        vatRow.getChildren().addAll(vatText, spacer3, vatLabel);
+        
+        // Separator
+        Separator separator = new Separator();
+        separator.setStyle("-fx-background-color: #2196F3;");
+        
+        // Total row
+        HBox totalRow = new HBox(10);
+        totalRow.setAlignment(Pos.CENTER_LEFT);
+        Label totalText = new Label("Thành tiền:");
+        totalText.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        Region spacer4 = new Region();
+        HBox.setHgrow(spacer4, Priority.ALWAYS);
+        totalLabel = new Label("0đ");
+        totalLabel.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #2196F3;");
+        totalRow.getChildren().addAll(totalText, spacer4, totalLabel);
+        
+        section.getChildren().addAll(sectionTitle, subtotalRow, discountRow, vatRow, separator, totalRow);
         return section;
     }
     
@@ -750,6 +951,42 @@ public class CreateInvoiceForm {
             RadioButton selectedRadio = (RadioButton) carTypeGroup.getSelectedToggle();
             String vehicleType = selectedRadio != null ? selectedRadio.getText() : "sedan";
             
+            // Calculate per-item totals for invoice
+            double totalSubtotal = 0;
+            double totalDiscountAmount = 0;
+            double totalFinalAmount = 0;
+            
+            for (Map<String, Object> svc : selectedServices) {
+                double bp = (Double) svc.get("price");
+                int dp = getItemDiscountPercent(svc);
+                double da = bp * dp / 100.0;
+                double ad = bp - da;
+                double vt = ad * 0.08;
+                totalSubtotal += bp;
+                totalDiscountAmount += da;
+                totalFinalAmount += ad + vt;
+            }
+            for (Map<String, Object> pk : selectedPackages) {
+                double bp = (Double) pk.get("price");
+                int dp = getItemDiscountPercent(pk);
+                double da = bp * dp / 100.0;
+                double ad = bp - da;
+                double vt = ad * 0.08;
+                totalSubtotal += bp;
+                totalDiscountAmount += da;
+                totalFinalAmount += ad + vt;
+            }
+            for (Map<String, Object> pr : selectedProducts) {
+                double bp = (Double) pr.get("totalPrice");
+                int dp = getItemDiscountPercent(pr);
+                double da = bp * dp / 100.0;
+                double ad = bp - da;
+                double vt = ad * 0.08;
+                totalSubtotal += bp;
+                totalDiscountAmount += da;
+                totalFinalAmount += ad + vt;
+            }
+            
             // Save invoice to database
             InvoiceService invoiceService = new InvoiceService();
             int invoiceId = invoiceService.addInvoice(
@@ -757,9 +994,10 @@ public class CreateInvoiceForm {
                 txtPhone.getText().trim(),
                 txtPlate.getText().trim(),
                 vehicleType.toLowerCase(),
-                totalAmount,
-                0,
-                totalAmount,
+                txtAddress.getText().trim(),
+                totalSubtotal,
+                totalDiscountAmount,
+                totalFinalAmount,
                 ""
             );
             
@@ -767,39 +1005,48 @@ public class CreateInvoiceForm {
                 // Save invoice items
                 InvoiceItemService itemService = new InvoiceItemService();
                 
-                // Save services
+                // Save services (totalPrice = price after discount, before VAT)
                 for (Map<String, Object> service : selectedServices) {
+                    double bp = (Double) service.get("price");
+                    int dp = getItemDiscountPercent(service);
+                    double afterDisc = bp - (bp * dp / 100.0);
                     itemService.addInvoiceItem(
                         invoiceId,
                         "service",
                         (String) service.get("name"),
                         1,
-                        (Double) service.get("price"),
-                        (Double) service.get("price")
+                        bp,
+                        afterDisc
                     );
                 }
                 
                 // Save packages
                 for (Map<String, Object> pkg : selectedPackages) {
+                    double bp = (Double) pkg.get("price");
+                    int dp = getItemDiscountPercent(pkg);
+                    double afterDisc = bp - (bp * dp / 100.0);
                     itemService.addInvoiceItem(
                         invoiceId,
                         "package",
                         (String) pkg.get("name"),
                         1,
-                        (Double) pkg.get("price"),
-                        (Double) pkg.get("price")
+                        bp,
+                        afterDisc
                     );
                 }
                 
                 // Save products
                 for (Map<String, Object> product : selectedProducts) {
+                    double bp = (Double) product.get("totalPrice");
+                    int dp = getItemDiscountPercent(product);
+                    double afterDisc = bp - (bp * dp / 100.0);
                     itemService.addInvoiceItem(
                         invoiceId,
                         "product",
                         (String) product.get("name"),
                         (Integer) product.get("quantity"),
                         (Double) product.get("unitPrice"),
-                        (Double) product.get("totalPrice")
+                        afterDisc
                     );
                 }
                 
@@ -834,10 +1081,13 @@ public class CreateInvoiceForm {
             // Wrap in ScrollPane for many services
             VBox servicesList = new VBox(10);
             for (Service service : services) {
-                String priceSedan = String.format("%,.0fđ", service.getPriceSmall());
-                String priceSUV = String.format("%,.0fđ", service.getPriceLarge());
+                String priceMini = String.format("%,.0fđ", service.getPriceMini());
+                String priceSedan = String.format("%,.0fđ", service.getPriceSedan());
+                String priceCuv = String.format("%,.0fđ", service.getPriceCuv());
+                String priceSuv = String.format("%,.0fđ", service.getPriceSuv());
+                String pricePickup = String.format("%,.0fđ", service.getPricePickup());
                 servicesList.getChildren().add(
-                    createServiceItem(service.getName(), priceSedan, priceSUV)
+                    createServiceItem(service.getName(), priceMini, priceSedan, priceCuv, priceSuv, pricePickup)
                 );
             }
             
@@ -861,9 +1111,13 @@ public class CreateInvoiceForm {
             // Wrap in ScrollPane for many packages
             VBox packagesList = new VBox(10);
             for (Package pkg : packages) {
-                String price = String.format("%,.0fđ", pkg.getPrice());
+                String priceMini = String.format("%,.0fđ", pkg.getPriceMini());
+                String priceSedan = String.format("%,.0fđ", pkg.getPriceSedan());
+                String priceCuv = String.format("%,.0fđ", pkg.getPriceCuv());
+                String priceSuv = String.format("%,.0fđ", pkg.getPriceSuv());
+                String pricePickup = String.format("%,.0fđ", pkg.getPricePickup());
                 packagesList.getChildren().add(
-                    createPackageItem(pkg.getName(), pkg.getDescription(), price)
+                    createPackageItem(pkg.getName(), pkg.getDescription(), priceMini, priceSedan, priceCuv, priceSuv, pricePickup)
                 );
             }
             
@@ -901,13 +1155,166 @@ public class CreateInvoiceForm {
         }
     }
     
-    private void updateTotal(double amount) {
-        totalAmount += amount;
-        totalLabel.setText(formatPrice(totalAmount));
+    @SuppressWarnings("unchecked")
+    private int getItemDiscountPercent(Map<String, Object> item) {
+        javafx.scene.Node node = (javafx.scene.Node) item.get("hbox");
+        if (node != null) {
+            ComboBox<String> combo = (ComboBox<String>) node.getProperties().get("discountCombo");
+            if (combo != null && combo.getValue() != null) {
+                return Integer.parseInt(combo.getValue().replace("%", ""));
+            }
+        }
+        return 0;
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void recalculateTotal() {
+        double grandSubtotal = 0;
+        double grandDiscount = 0;
+        double grandVat = 0;
+        double grandTotal = 0;
+        
+        // Process services
+        for (Map<String, Object> service : selectedServices) {
+            double basePrice = (Double) service.get("price");
+            int discPct = getItemDiscountPercent(service);
+            double[] result = calcItemTotals(service, basePrice, discPct);
+            grandSubtotal += result[0];
+            grandDiscount += result[1];
+            grandVat += result[2];
+            grandTotal += result[3];
+        }
+        
+        // Process packages
+        for (Map<String, Object> pkg : selectedPackages) {
+            double basePrice = (Double) pkg.get("price");
+            int discPct = getItemDiscountPercent(pkg);
+            double[] result = calcItemTotals(pkg, basePrice, discPct);
+            grandSubtotal += result[0];
+            grandDiscount += result[1];
+            grandVat += result[2];
+            grandTotal += result[3];
+        }
+        
+        // Process products
+        for (Map<String, Object> product : selectedProducts) {
+            double basePrice = (Double) product.get("totalPrice");
+            int discPct = getItemDiscountPercent(product);
+            double[] result = calcItemTotals(product, basePrice, discPct);
+            grandSubtotal += result[0];
+            grandDiscount += result[1];
+            grandVat += result[2];
+            grandTotal += result[3];
+        }
+        
+        totalAmount = grandTotal; // for validation
+        
+        if (subtotalLabel != null) subtotalLabel.setText(formatPrice(grandSubtotal));
+        if (discountTotalLabel != null) {
+            discountTotalLabel.setText(grandDiscount > 0 ? "-" + formatPrice(grandDiscount) : "0đ");
+        }
+        if (vatLabel != null) vatLabel.setText(formatPrice(grandVat));
+        if (totalLabel != null) totalLabel.setText(formatPrice(grandTotal));
+    }
+    
+    @SuppressWarnings("unchecked")
+    private double[] calcItemTotals(Map<String, Object> item, double basePrice, int discPct) {
+        double discAmount = basePrice * discPct / 100.0;
+        double afterDisc = basePrice - discAmount;
+        double vat = afterDisc * 0.08;
+        double itemTotal = afterDisc + vat;
+        
+        // Update per-item labels
+        javafx.scene.Node node = (javafx.scene.Node) item.get("hbox");
+        if (node != null) {
+            Label discLabel = (Label) node.getProperties().get("discountAmountLabel");
+            Label vatLbl = (Label) node.getProperties().get("vatLabel");
+            Label totalLbl = (Label) node.getProperties().get("totalLabel");
+            
+            if (discLabel != null) discLabel.setText(discPct > 0 ? "Giảm: -" + formatPrice(discAmount) : "");
+            if (vatLbl != null) vatLbl.setText("VAT 8%: " + formatPrice(vat));
+            if (totalLbl != null) totalLbl.setText("= " + formatPrice(itemTotal));
+        }
+        
+        return new double[]{basePrice, discAmount, vat, itemTotal};
+    }
+    
+    private void filterServicesAndPackages(String query) {
+        String lowerQuery = query.toLowerCase().trim();
+        
+        // Filter services
+        for (var node : servicesContainer.getChildren()) {
+            if (node instanceof ScrollPane) {
+                ScrollPane sp = (ScrollPane) node;
+                VBox servicesList = (VBox) sp.getContent();
+                for (var serviceNode : servicesList.getChildren()) {
+                    if (serviceNode instanceof HBox) {
+                        HBox item = (HBox) serviceNode;
+                        String[] data = (String[]) item.getUserData();
+                        if (data != null && data.length > 0) {
+                            String name = data[0];
+                            boolean matches = name.toLowerCase().contains(lowerQuery);
+                            item.setVisible(matches);
+                            item.setManaged(matches);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Filter packages
+        for (var node : packagesContainer.getChildren()) {
+            if (node instanceof ScrollPane) {
+                ScrollPane sp = (ScrollPane) node;
+                VBox packagesList = (VBox) sp.getContent();
+                for (var packageNode : packagesList.getChildren()) {
+                    if (packageNode instanceof HBox) {
+                        HBox item = (HBox) packageNode;
+                        String[] data = (String[]) item.getUserData();
+                        if (data != null && data.length > 0) {
+                            String name = data[0];
+                            String desc = data.length > 1 ? data[1] : "";
+                            boolean matches = name.toLowerCase().contains(lowerQuery) || desc.toLowerCase().contains(lowerQuery);
+                            item.setVisible(matches);
+                            item.setManaged(matches);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private void filterProducts(VBox productsBox, String query) {
+        String lowerQuery = query.toLowerCase().trim();
+        for (var node : productsBox.getChildren()) {
+            if (node instanceof ScrollPane) {
+                ScrollPane sp = (ScrollPane) node;
+                VBox productsList = (VBox) sp.getContent();
+                for (var productNode : productsList.getChildren()) {
+                    if (productNode instanceof HBox) {
+                        HBox item = (HBox) productNode;
+                        String name = (String) item.getUserData();
+                        if (name != null) {
+                            boolean matches = name.toLowerCase().contains(lowerQuery);
+                            item.setVisible(matches);
+                            item.setManaged(matches);
+                        }
+                    }
+                }
+            }
+        }
     }
     
     private double parsePrice(String price) {
-        return Double.parseDouble(price.replace("đ", "").replace(",", "").trim());
+        // Remove currency symbol and all thousand separators (comma, period, space, non-breaking space)
+        // This handles different locale formats: "90,000đ", "90.000đ", "90 000đ"
+        String cleaned = price.replace("đ", "")
+                              .replace(",", "")
+                              .replace(".", "")
+                              .replace(" ", "")
+                              .replace("\u00A0", "") // non-breaking space
+                              .trim();
+        return Double.parseDouble(cleaned);
     }
     
     private String formatPrice(double price) {

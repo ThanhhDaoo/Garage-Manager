@@ -23,6 +23,7 @@ public class InvoiceDAO {
                     rs.getString("phone"),
                     rs.getString("license_plate"),
                     rs.getString("vehicle_type"),
+                    rs.getString("address"),
                     rs.getDouble("total_before_discount"),
                     rs.getDouble("discount"),
                     rs.getDouble("total_amount"),
@@ -54,6 +55,7 @@ public class InvoiceDAO {
                     rs.getString("phone"),
                     rs.getString("license_plate"),
                     rs.getString("vehicle_type"),
+                    rs.getString("address"),
                     rs.getDouble("total_before_discount"),
                     rs.getDouble("discount"),
                     rs.getDouble("total_amount"),
@@ -69,8 +71,8 @@ public class InvoiceDAO {
     }
     
     public int addInvoice(Invoice invoice) {
-        String sql = "INSERT INTO invoices (customer_name, phone, license_plate, vehicle_type, total_before_discount, discount, total_amount, notes, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO invoices (customer_name, phone, license_plate, vehicle_type, address, total_before_discount, discount, total_amount, notes, status) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -79,11 +81,12 @@ public class InvoiceDAO {
             pstmt.setString(2, invoice.getPhone());
             pstmt.setString(3, invoice.getLicensePlate());
             pstmt.setString(4, invoice.getVehicleType());
-            pstmt.setDouble(5, invoice.getTotalBeforeDiscount());
-            pstmt.setDouble(6, invoice.getDiscount());
-            pstmt.setDouble(7, invoice.getTotalAmount());
-            pstmt.setString(8, invoice.getNotes());
-            pstmt.setString(9, "nhap");
+            pstmt.setString(5, invoice.getAddress());
+            pstmt.setDouble(6, invoice.getTotalBeforeDiscount());
+            pstmt.setDouble(7, invoice.getDiscount());
+            pstmt.setDouble(8, invoice.getTotalAmount());
+            pstmt.setString(9, invoice.getNotes());
+            pstmt.setString(10, "nhap");
             
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
@@ -99,7 +102,7 @@ public class InvoiceDAO {
     }
     
     public boolean updateInvoice(Invoice invoice) {
-        String sql = "UPDATE invoices SET customer_name = ?, phone = ?, license_plate = ?, vehicle_type = ?, " +
+        String sql = "UPDATE invoices SET customer_name = ?, phone = ?, license_plate = ?, vehicle_type = ?, address = ?, " +
                      "total_before_discount = ?, discount = ?, total_amount = ?, notes = ?, status = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
@@ -109,12 +112,13 @@ public class InvoiceDAO {
             pstmt.setString(2, invoice.getPhone());
             pstmt.setString(3, invoice.getLicensePlate());
             pstmt.setString(4, invoice.getVehicleType());
-            pstmt.setDouble(5, invoice.getTotalBeforeDiscount());
-            pstmt.setDouble(6, invoice.getDiscount());
-            pstmt.setDouble(7, invoice.getTotalAmount());
-            pstmt.setString(8, invoice.getNotes());
-            pstmt.setString(9, invoice.getStatus());
-            pstmt.setInt(10, invoice.getId());
+            pstmt.setString(5, invoice.getAddress());
+            pstmt.setDouble(6, invoice.getTotalBeforeDiscount());
+            pstmt.setDouble(7, invoice.getDiscount());
+            pstmt.setDouble(8, invoice.getTotalAmount());
+            pstmt.setString(9, invoice.getNotes());
+            pstmt.setString(10, invoice.getStatus());
+            pstmt.setInt(11, invoice.getId());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

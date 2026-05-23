@@ -14,6 +14,27 @@ public class LoginUI extends Application {
 
     @Override
     public void start(Stage stage) {
+        // Khởi tạo cơ sở dữ liệu khi bắt đầu ứng dụng
+        util.DatabaseManager.initializeDatabase();
+
+        // Kiểm tra cơ chế tự động đăng nhập (Auto-login)
+        java.util.prefs.Preferences prefs = java.util.prefs.Preferences.userNodeForPackage(LoginUI.class);
+        boolean remember = prefs.getBoolean("remember_me", false);
+        String savedUser = prefs.get("username", "");
+        String savedPass = prefs.get("password", "");
+
+        if (remember && "admin".equals(savedUser) && "admin".equals(savedPass)) {
+            MainUI mainUI = new MainUI();
+            Stage mainStage = new Stage();
+            try {
+                mainUI.start(mainStage);
+                stage.close();
+                return;
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);");
 
@@ -120,6 +141,18 @@ public class LoginUI extends Application {
         CheckBox chkRemember = new CheckBox("Ghi nhớ đăng nhập");
         chkRemember.setStyle("-fx-font-size: 13px; -fx-text-fill: #616161;");
 
+        // Load saved remember me preferences
+        java.util.prefs.Preferences prefs = java.util.prefs.Preferences.userNodeForPackage(LoginUI.class);
+        boolean remember = prefs.getBoolean("remember_me", false);
+        txtUsername.setText(prefs.get("username", ""));
+        if (remember) {
+            txtPassword.setText(prefs.get("password", ""));
+            chkRemember.setSelected(true);
+        } else {
+            txtPassword.setText("");
+            chkRemember.setSelected(false);
+        }
+
         // Login button
         Button btnLogin = new Button("Đăng Nhập");
         btnLogin.setMaxWidth(Double.MAX_VALUE);
@@ -151,6 +184,18 @@ public class LoginUI extends Application {
             
             // Simple validation (you can add database check here)
             if (username.equals("admin") && password.equals("admin")) {
+                // Save remember me preferences
+                java.util.prefs.Preferences userPrefs = java.util.prefs.Preferences.userNodeForPackage(LoginUI.class);
+                if (chkRemember.isSelected()) {
+                    userPrefs.putBoolean("remember_me", true);
+                    userPrefs.put("username", username);
+                    userPrefs.put("password", password);
+                } else {
+                    userPrefs.putBoolean("remember_me", false);
+                    userPrefs.remove("username");
+                    userPrefs.remove("password");
+                }
+
                 // Open main UI directly
                 MainUI mainUI = new MainUI();
                 Stage mainStage = new Stage();

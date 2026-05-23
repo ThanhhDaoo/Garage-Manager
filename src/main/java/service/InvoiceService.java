@@ -15,22 +15,22 @@ public class InvoiceService {
         return invoiceDAO.getInvoiceById(id);
     }
     
-    public int addInvoice(String customerName, String phone, String licensePlate, String vehicleType,
+    public int addInvoice(String customerName, String phone, String licensePlate, String vehicleType, String address,
                               double totalBeforeDiscount, double discount, double totalAmount, String notes) {
         if (customerName == null || customerName.trim().isEmpty()) {
             return -1;
         }
-        Invoice invoice = new Invoice(0, customerName, phone, licensePlate, vehicleType,
+        Invoice invoice = new Invoice(0, customerName, phone, licensePlate, vehicleType, address,
                                      totalBeforeDiscount, discount, totalAmount, notes, "nhap", null);
         return invoiceDAO.addInvoice(invoice);
     }
     
-    public boolean updateInvoice(int id, String customerName, String phone, String licensePlate, String vehicleType,
+    public boolean updateInvoice(int id, String customerName, String phone, String licensePlate, String vehicleType, String address,
                                  double totalBeforeDiscount, double discount, double totalAmount, String notes, String status) {
         if (customerName == null || customerName.trim().isEmpty()) {
             return false;
         }
-        Invoice invoice = new Invoice(id, customerName, phone, licensePlate, vehicleType,
+        Invoice invoice = new Invoice(id, customerName, phone, licensePlate, vehicleType, address,
                                      totalBeforeDiscount, discount, totalAmount, notes, status, null);
         return invoiceDAO.updateInvoice(invoice);
     }

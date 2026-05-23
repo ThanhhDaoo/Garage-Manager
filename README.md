@@ -7,14 +7,14 @@ Hệ thống quản lý gara ô tô chuyên nghiệp với giao diện hiện đ
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 Mục Lục
-- [Giới Thiệu]
-- [Tính Năng Chính]
-- [Công Nghệ Sử Dụng]
-- [Kiến Trúc Hệ Thống]
-- [Cài Đặt & Chạy]
-- [Screenshots]
-- [Điểm Nổi Bật Kỹ Thuật]
-- [Roadmap]
+- Giới Thiệu
+- Tính Năng Chính
+- Công Nghệ Sử Dụng
+- Kiến Trúc Hệ Thống
+- Cài Đặt & Chạy
+- Screenshots
+- Điểm Nổi Bật Kỹ Thuật
+- Roadmap
 
 Giới Thiệu
 
@@ -132,10 +132,10 @@ mvn clean install
 mvn javafx:run
 
 Build File .exe (Windows)
-# Build JAR file
+Build JAR file
 mvn clean package
 
-# Sử dụng Launch4j hoặc jpackage để tạo .exe
+Sử dụng Launch4j hoặc jpackage để tạo .exe
 jpackage --input target \
   --main-jar GarageManager-1.0-SNAPSHOT-shaded.jar \
   --main-class ui.MainUI \
@@ -146,15 +146,15 @@ Screenshots
 
 Dashboard
 ![Dashboard](docs/screenshots/dashboard.png)
-*Dashboard với thống kê real-time và quick actions*
+Dashboard với thống kê real-time và quick actions
 
 Quản Lý Hóa Đơn
 ![Invoice Management](docs/screenshots/invoice.png)
-*Giao diện quản lý hóa đơn với tìm kiếm và lọc*
+Giao diện quản lý hóa đơn với tìm kiếm và lọc*
 
 Xuất PDF
 ![PDF Export](docs/screenshots/pdf-export.png)
-*Hóa đơn PDF với font tiếng Việt hoàn hảo*
+Hóa đơn PDF với font tiếng Việt hoàn hảo
 
 Điểm Nổi Bật Kỹ Thuật
 
@@ -230,7 +230,7 @@ Dự án này được phân phối dưới giấy phép MIT. Xem file `LICENSE`
 
 Tác Giả
 
-Trần Thành Đạo
+Trần Thanh Đạo
 - GitHub: [@ThanhhDaoo](https://github.com/ThanhhDaoo)
 - Email: tranthanhdao82@gmail.com
 - Zalo: 0362625218

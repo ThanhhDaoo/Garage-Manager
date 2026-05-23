@@ -21,7 +21,11 @@ public class PackageDAO {
                     rs.getInt("id"),
                     rs.getString("name"),
                     rs.getString("description"),
-                    rs.getDouble("price"),
+                    rs.getDouble("price_mini"),
+                    rs.getDouble("price_sedan"),
+                    rs.getDouble("price_cuv"),
+                    rs.getDouble("price_suv"),
+                    rs.getDouble("price_pickup"),
                     rs.getDouble("savings"),
                     rs.getString("status")
                 );
@@ -47,7 +51,11 @@ public class PackageDAO {
                     rs.getInt("id"),
                     rs.getString("name"),
                     rs.getString("description"),
-                    rs.getDouble("price"),
+                    rs.getDouble("price_mini"),
+                    rs.getDouble("price_sedan"),
+                    rs.getDouble("price_cuv"),
+                    rs.getDouble("price_suv"),
+                    rs.getDouble("price_pickup"),
                     rs.getDouble("savings"),
                     rs.getString("status")
                 );
@@ -59,36 +67,49 @@ public class PackageDAO {
     }
     
     public boolean addPackage(Package pkg) {
-        String sql = "INSERT INTO packages (name, description, price, savings, status) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO packages (name, description, price, price_mini, price_sedan, price_cuv, price_suv, price_pickup, savings, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, pkg.getName());
             pstmt.setString(2, pkg.getDescription());
-            pstmt.setDouble(3, pkg.getPrice());
-            pstmt.setDouble(4, pkg.getSavings());
-            pstmt.setString(5, pkg.getStatus());
+            pstmt.setDouble(3, pkg.getPriceSedan()); // Use sedan price as the legacy price value
+            pstmt.setDouble(4, pkg.getPriceMini());
+            pstmt.setDouble(5, pkg.getPriceSedan());
+            pstmt.setDouble(6, pkg.getPriceCuv());
+            pstmt.setDouble(7, pkg.getPriceSuv());
+            pstmt.setDouble(8, pkg.getPricePickup());
+            pstmt.setDouble(9, pkg.getSavings());
+            pstmt.setString(10, pkg.getStatus());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
+            System.err.println("Error adding package: " + e.getMessage());
+            System.err.println("SQL State: " + e.getSQLState());
+            System.err.println("Error Code: " + e.getErrorCode());
             e.printStackTrace();
         }
         return false;
     }
     
     public boolean updatePackage(Package pkg) {
-        String sql = "UPDATE packages SET name = ?, description = ?, price = ?, savings = ?, status = ? WHERE id = ?";
+        String sql = "UPDATE packages SET name = ?, description = ?, price = ?, price_mini = ?, price_sedan = ?, price_cuv = ?, price_suv = ?, price_pickup = ?, savings = ?, status = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, pkg.getName());
             pstmt.setString(2, pkg.getDescription());
-            pstmt.setDouble(3, pkg.getPrice());
-            pstmt.setDouble(4, pkg.getSavings());
-            pstmt.setString(5, pkg.getStatus());
-            pstmt.setInt(6, pkg.getId());
+            pstmt.setDouble(3, pkg.getPriceSedan()); // Use sedan price as the legacy price value
+            pstmt.setDouble(4, pkg.getPriceMini());
+            pstmt.setDouble(5, pkg.getPriceSedan());
+            pstmt.setDouble(6, pkg.getPriceCuv());
+            pstmt.setDouble(7, pkg.getPriceSuv());
+            pstmt.setDouble(8, pkg.getPricePickup());
+            pstmt.setDouble(9, pkg.getSavings());
+            pstmt.setString(10, pkg.getStatus());
+            pstmt.setInt(11, pkg.getId());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
