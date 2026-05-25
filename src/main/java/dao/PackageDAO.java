@@ -25,6 +25,7 @@ public class PackageDAO {
                     rs.getDouble("price_sedan"),
                     rs.getDouble("price_cuv"),
                     rs.getDouble("price_suv"),
+                    rs.getDouble("price_mpv"),
                     rs.getDouble("price_pickup"),
                     rs.getDouble("savings"),
                     rs.getString("status")
@@ -55,6 +56,7 @@ public class PackageDAO {
                     rs.getDouble("price_sedan"),
                     rs.getDouble("price_cuv"),
                     rs.getDouble("price_suv"),
+                    rs.getDouble("price_mpv"),
                     rs.getDouble("price_pickup"),
                     rs.getDouble("savings"),
                     rs.getString("status")
@@ -67,7 +69,7 @@ public class PackageDAO {
     }
     
     public boolean addPackage(Package pkg) {
-        String sql = "INSERT INTO packages (name, description, price, price_mini, price_sedan, price_cuv, price_suv, price_pickup, savings, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO packages (name, description, price, price_mini, price_sedan, price_cuv, price_suv, price_mpv, price_pickup, savings, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -79,9 +81,10 @@ public class PackageDAO {
             pstmt.setDouble(5, pkg.getPriceSedan());
             pstmt.setDouble(6, pkg.getPriceCuv());
             pstmt.setDouble(7, pkg.getPriceSuv());
-            pstmt.setDouble(8, pkg.getPricePickup());
-            pstmt.setDouble(9, pkg.getSavings());
-            pstmt.setString(10, pkg.getStatus());
+            pstmt.setDouble(8, pkg.getPriceMpv());
+            pstmt.setDouble(9, pkg.getPricePickup());
+            pstmt.setDouble(10, pkg.getSavings());
+            pstmt.setString(11, pkg.getStatus());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -94,7 +97,7 @@ public class PackageDAO {
     }
     
     public boolean updatePackage(Package pkg) {
-        String sql = "UPDATE packages SET name = ?, description = ?, price = ?, price_mini = ?, price_sedan = ?, price_cuv = ?, price_suv = ?, price_pickup = ?, savings = ?, status = ? WHERE id = ?";
+        String sql = "UPDATE packages SET name = ?, description = ?, price = ?, price_mini = ?, price_sedan = ?, price_cuv = ?, price_suv = ?, price_mpv = ?, price_pickup = ?, savings = ?, status = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -106,10 +109,11 @@ public class PackageDAO {
             pstmt.setDouble(5, pkg.getPriceSedan());
             pstmt.setDouble(6, pkg.getPriceCuv());
             pstmt.setDouble(7, pkg.getPriceSuv());
-            pstmt.setDouble(8, pkg.getPricePickup());
-            pstmt.setDouble(9, pkg.getSavings());
-            pstmt.setString(10, pkg.getStatus());
-            pstmt.setInt(11, pkg.getId());
+            pstmt.setDouble(8, pkg.getPriceMpv());
+            pstmt.setDouble(9, pkg.getPricePickup());
+            pstmt.setDouble(10, pkg.getSavings());
+            pstmt.setString(11, pkg.getStatus());
+            pstmt.setInt(12, pkg.getId());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

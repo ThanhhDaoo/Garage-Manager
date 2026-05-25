@@ -990,6 +990,14 @@ public class MainUI extends Application {
         hPricePickup.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7B1FA2;");
         hPricePickup.setAlignment(Pos.CENTER_RIGHT);
         
+        Label hPriceMpv = new Label("MPV");
+        hPriceMpv.setPrefWidth(100);
+        hPriceMpv.setMinWidth(100);
+        hPriceMpv.setMaxWidth(100);
+        hPriceMpv.setPadding(new Insets(0, 8, 0, 8));
+        hPriceMpv.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #00838F;");
+        hPriceMpv.setAlignment(Pos.CENTER_RIGHT);
+        
         Label hAction = new Label("Thao Tác");
         hAction.setPrefWidth(100);
         hAction.setMinWidth(100);
@@ -998,7 +1006,7 @@ public class MainUI extends Application {
         hAction.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hAction.setAlignment(Pos.CENTER);
         
-        tableHeader.getChildren().addAll(hName, hDesc, hPriceMini, hPriceSedan, hPriceCuv, hPriceSuv, hPricePickup, hAction);
+        tableHeader.getChildren().addAll(hName, hDesc, hPriceMini, hPriceSedan, hPriceCuv, hPriceSuv, hPriceMpv, hPricePickup, hAction);
         HBox.setHgrow(hDesc, Priority.ALWAYS);
         
         // Load data from database
@@ -1128,6 +1136,14 @@ public class MainUI extends Application {
         lblPricePickup.setPadding(new Insets(12, 8, 12, 8));
         lblPricePickup.setAlignment(Pos.CENTER_RIGHT);
         
+        Label lblPriceMpv = new Label(String.format("%.0f đ", service.getPriceMpv()));
+        lblPriceMpv.setStyle("-fx-font-size: 13px; -fx-text-fill: #00838F; -fx-font-weight: 600;");
+        lblPriceMpv.setPrefWidth(100);
+        lblPriceMpv.setMinWidth(100);
+        lblPriceMpv.setMaxWidth(100);
+        lblPriceMpv.setPadding(new Insets(12, 8, 12, 8));
+        lblPriceMpv.setAlignment(Pos.CENTER_RIGHT);
+        
         // Actions cell
         HBox actions = new HBox(6);
         actions.setAlignment(Pos.CENTER);
@@ -1176,7 +1192,7 @@ public class MainUI extends Application {
         
         actions.getChildren().addAll(btnEdit, btnDelete);
         
-        row.getChildren().addAll(lblName, lblDesc, lblPriceMini, lblPriceSedan, lblPriceCuv, lblPriceSuv, lblPricePickup, actions);
+        row.getChildren().addAll(lblName, lblDesc, lblPriceMini, lblPriceSedan, lblPriceCuv, lblPriceSuv, lblPriceMpv, lblPricePickup, actions);
         HBox.setHgrow(lblDesc, Priority.ALWAYS);
         return row;
     }
@@ -2423,6 +2439,7 @@ public class MainUI extends Application {
             {"Sedan", String.format("%.0fđ", pkg.getPriceSedan()), "#388E3C", "#E8F5E9"},
             {"CUV", String.format("%.0fđ", pkg.getPriceCuv()), "#F57C00", "#FFF3E0"},
             {"SUV", String.format("%.0fđ", pkg.getPriceSuv()), "#C2185B", "#FCE4EC"},
+            {"MPV", String.format("%.0fđ", pkg.getPriceMpv()), "#00838F", "#E0F7FA"},
             {"Pickup", String.format("%.0fđ", pkg.getPricePickup()), "#7B1FA2", "#F3E5F5"}
         };
         
@@ -2657,8 +2674,10 @@ public class MainUI extends Application {
             noItems.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
             itemsSection.getChildren().addAll(itemsTitle, noItems);
         } else {
-            VBox itemsList = new VBox(8);
+            VBox itemsList = new VBox(12); // Slightly increased spacing
             for (model.InvoiceItem item : items) {
+                VBox rowContainer = new VBox(4);
+                
                 HBox itemRow = new HBox(10);
                 itemRow.setAlignment(Pos.CENTER_LEFT);
                 
@@ -2675,8 +2694,8 @@ public class MainUI extends Application {
                 lblIcon.setStyle("-fx-font-size: 14px;");
                 
                 Label lblName = new Label(item.getItemName());
-                lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
-                lblName.setPrefWidth(250);
+                lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
+                lblName.setPrefWidth(280); // Slightly increased width
                 
                 Label lblQty = new Label("x" + item.getQuantity());
                 lblQty.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
@@ -2689,7 +2708,26 @@ public class MainUI extends Application {
                 lblPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
                 
                 itemRow.getChildren().addAll(lblIcon, lblName, lblQty, spacer, lblPrice);
-                itemsList.getChildren().add(itemRow);
+                rowContainer.getChildren().add(itemRow);
+                
+                // Add detail sub-row showing unit price, quantity, and discount
+                double originalTotal = item.getUnitPrice() * item.getQuantity();
+                double itemDiscount = originalTotal - item.getTotalPrice();
+                int discountPercent = 0;
+                if (itemDiscount > 0 && originalTotal > 0) {
+                    discountPercent = (int) Math.round((itemDiscount / originalTotal) * 100.0);
+                }
+                
+                String detailStr = String.format("Đơn giá: %,.0f đ | Số lượng: %d", item.getUnitPrice(), item.getQuantity());
+                if (discountPercent > 0) {
+                    detailStr += String.format(" | Giảm giá: %d%%", discountPercent);
+                }
+                
+                Label lblDetails = new Label(detailStr);
+                lblDetails.setStyle("-fx-font-size: 12px; -fx-text-fill: #888888; -fx-padding: 0 0 0 25;");
+                rowContainer.getChildren().add(lblDetails);
+                
+                itemsList.getChildren().add(rowContainer);
             }
             itemsSection.getChildren().addAll(itemsTitle, itemsList);
         }
@@ -2705,16 +2743,21 @@ public class MainUI extends Application {
         Label paymentTitle = new Label("Thông Tin Thanh Toán");
         paymentTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #212121;");
         
-        Label lblTotal = new Label(String.format("Tổng tiền: %,.0f đ", invoice.getTotalAmount()));
-        lblTotal.setStyle("-fx-font-size: 18px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        Label lblTotal = new Label(String.format("Tổng tiền trước giảm: %,.0f đ", invoice.getTotalBeforeDiscount()));
+        lblTotal.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
         
         Label lblDiscount = new Label(String.format("Giảm giá: %,.0f đ", invoice.getDiscount()));
-        lblDiscount.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        lblDiscount.setStyle("-fx-font-size: 14px; -fx-text-fill: #e53935;");
         
-        Label lblFinal = new Label(String.format("Thành tiền: %,.0f đ", invoice.getTotalAmount() - invoice.getDiscount()));
+        double subtotalAfterDiscount = invoice.getTotalBeforeDiscount() - invoice.getDiscount();
+        double vatAmount = subtotalAfterDiscount * 0.08;
+        Label lblVat = new Label(String.format("Thuế VAT (8%): %,.0f đ", vatAmount));
+        lblVat.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
+        
+        Label lblFinal = new Label(String.format("Tổng cộng thanh toán: %,.0f đ", invoice.getTotalAmount()));
         lblFinal.setStyle("-fx-font-size: 20px; -fx-text-fill: #4CAF50; -fx-font-weight: bold;");
         
-        paymentSection.getChildren().addAll(paymentTitle, lblTotal, lblDiscount, lblFinal);
+        paymentSection.getChildren().addAll(paymentTitle, lblTotal, lblDiscount, lblVat, lblFinal);
         
         // Status section
         VBox statusSection = new VBox(15);
@@ -2987,12 +3030,16 @@ public class MainUI extends Application {
                 if (i < items.size()) {
                     model.InvoiceItem item = items.get(i);
                     serviceName = item.getItemName();
+                    if (item.getQuantity() > 1) {
+                        serviceName += " (x" + item.getQuantity() + ")";
+                    }
                     unitPrice = String.format("%,.0f", item.getUnitPrice());
                     
-                    // Discount percentage = ((unitPrice - totalPrice) / unitPrice) * 100
-                    double itemDiscount = item.getUnitPrice() - item.getTotalPrice();
-                    if (itemDiscount > 0 && item.getUnitPrice() > 0) {
-                        double pct = Math.round((itemDiscount / item.getUnitPrice()) * 100.0);
+                    // Discount percentage = ((originalTotal - totalPrice) / originalTotal) * 100
+                    double originalTotal = item.getUnitPrice() * item.getQuantity();
+                    double itemDiscount = originalTotal - item.getTotalPrice();
+                    if (itemDiscount > 0 && originalTotal > 0) {
+                        double pct = Math.round((itemDiscount / originalTotal) * 100.0);
                         discount = String.format("%.0f%%", pct);
                     } else {
                         discount = "";

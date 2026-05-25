@@ -25,6 +25,7 @@ public class ServiceDAO {
                     rs.getDouble("price_sedan"),
                     rs.getDouble("price_cuv"),
                     rs.getDouble("price_suv"),
+                    rs.getDouble("price_mpv"),
                     rs.getDouble("price_pickup")
                 );
                 services.add(service);
@@ -53,6 +54,7 @@ public class ServiceDAO {
                     rs.getDouble("price_sedan"),
                     rs.getDouble("price_cuv"),
                     rs.getDouble("price_suv"),
+                    rs.getDouble("price_mpv"),
                     rs.getDouble("price_pickup")
                 );
             }
@@ -63,7 +65,7 @@ public class ServiceDAO {
     }
     
     public boolean addService(Service service) {
-        String sql = "INSERT INTO services (name, description, price_mini, price_sedan, price_cuv, price_suv, price_pickup) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO services (name, description, price_mini, price_sedan, price_cuv, price_suv, price_mpv, price_pickup) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -74,7 +76,8 @@ public class ServiceDAO {
             pstmt.setDouble(4, service.getPriceSedan());
             pstmt.setDouble(5, service.getPriceCuv());
             pstmt.setDouble(6, service.getPriceSuv());
-            pstmt.setDouble(7, service.getPricePickup());
+            pstmt.setDouble(7, service.getPriceMpv());
+            pstmt.setDouble(8, service.getPricePickup());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -84,7 +87,7 @@ public class ServiceDAO {
     }
     
     public boolean updateService(Service service) {
-        String sql = "UPDATE services SET name = ?, description = ?, price_mini = ?, price_sedan = ?, price_cuv = ?, price_suv = ?, price_pickup = ? WHERE id = ?";
+        String sql = "UPDATE services SET name = ?, description = ?, price_mini = ?, price_sedan = ?, price_cuv = ?, price_suv = ?, price_mpv = ?, price_pickup = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -95,8 +98,9 @@ public class ServiceDAO {
             pstmt.setDouble(4, service.getPriceSedan());
             pstmt.setDouble(5, service.getPriceCuv());
             pstmt.setDouble(6, service.getPriceSuv());
-            pstmt.setDouble(7, service.getPricePickup());
-            pstmt.setInt(8, service.getId());
+            pstmt.setDouble(7, service.getPriceMpv());
+            pstmt.setDouble(8, service.getPricePickup());
+            pstmt.setInt(9, service.getId());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

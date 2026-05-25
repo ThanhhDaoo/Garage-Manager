@@ -31,6 +31,14 @@ public class ProductService {
         return productDAO.updateProduct(product);
     }
     
+    public boolean reduceStock(int productId, int quantity) {
+        return productDAO.reduceStock(productId, quantity);
+    }
+    
+    public Product getProductByName(String name) {
+        return productDAO.getProductByName(name);
+    }
+    
     public boolean deleteProduct(int id) {
         return productDAO.deleteProduct(id);
     }

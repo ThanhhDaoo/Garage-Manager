@@ -25,6 +25,7 @@ public class PackageForm {
     private TextField txtPriceSedan;
     private TextField txtPriceCuv;
     private TextField txtPriceSuv;
+    private TextField txtPriceMpv;
     private TextField txtPricePickup;
     private Runnable onSave;
     
@@ -140,7 +141,7 @@ public class PackageForm {
         priceGrid.setVgap(12);
         
         // Mini
-        Label lblMini = new Label("Mini *");
+        Label lblMini = new Label("Mini*");
         lblMini.setStyle("-fx-font-size: 13px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-font-family: 'Times New Roman';");
         txtPriceMini = new TextField();
         txtPriceMini.setPromptText("96000");
@@ -158,7 +159,7 @@ public class PackageForm {
         }
         
         // Sedan
-        Label lblSedan = new Label("Sedan *");
+        Label lblSedan = new Label("Sedan*");
         lblSedan.setStyle("-fx-font-size: 13px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-font-family: 'Times New Roman';");
         txtPriceSedan = new TextField();
         txtPriceSedan.setPromptText("120000");
@@ -176,7 +177,7 @@ public class PackageForm {
         }
         
         // CUV
-        Label lblCuv = new Label("CUV *");
+        Label lblCuv = new Label("CUV*");
         lblCuv.setStyle("-fx-font-size: 13px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-font-family: 'Times New Roman';");
         txtPriceCuv = new TextField();
         txtPriceCuv.setPromptText("180000");
@@ -211,8 +212,26 @@ public class PackageForm {
             txtPriceSuv.setText(String.format("%.0f", existingPackage.getPriceSuv()));
         }
         
+        // MPV
+        Label lblMpv = new Label("MPV *");
+        lblMpv.setStyle("-fx-font-size: 13px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-font-family: 'Times New Roman';");
+        txtPriceMpv = new TextField();
+        txtPriceMpv.setPromptText("252000");
+        txtPriceMpv.setPrefWidth(140);
+        txtPriceMpv.setStyle(
+            "-fx-background-color: #E0F7FA;" +
+            "-fx-padding: 10px 12px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-family: 'Times New Roman';"
+        );
+        if (isEdit && existingPackage != null) {
+            txtPriceMpv.setText(String.format("%.0f", existingPackage.getPriceMpv()));
+        }
+        
         // Pickup
-        Label lblPickup = new Label("Pickup *");
+        Label lblPickup = new Label("PICKUP *");
         lblPickup.setStyle("-fx-font-size: 13px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-font-family: 'Times New Roman';");
         txtPricePickup = new TextField();
         txtPricePickup.setPromptText("264000");
@@ -238,8 +257,10 @@ public class PackageForm {
         priceGrid.add(txtPriceCuv, 2, 1);
         priceGrid.add(lblSuv, 0, 2);
         priceGrid.add(txtPriceSuv, 0, 3);
-        priceGrid.add(lblPickup, 1, 2);
-        priceGrid.add(txtPricePickup, 1, 3);
+        priceGrid.add(lblMpv, 1, 2);
+        priceGrid.add(txtPriceMpv, 1, 3);
+        priceGrid.add(lblPickup, 2, 2);
+        priceGrid.add(txtPricePickup, 2, 3);
         
         // Status
         Label lblStatus = new Label("Trạng thái");
@@ -248,7 +269,7 @@ public class PackageForm {
         HBox statusBox = new HBox(15);
         ToggleGroup statusGroup = new ToggleGroup();
         
-        rbActive = new RadioButton("Đang bán");
+        rbActive = new RadioButton("Hoạt động");
         rbActive.setToggleGroup(statusGroup);
         rbActive.setSelected(true);
         rbActive.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-family: 'Times New Roman';");
@@ -317,7 +338,7 @@ public class PackageForm {
             
             if (txtPriceMini.getText().trim().isEmpty() || txtPriceSedan.getText().trim().isEmpty() ||
                 txtPriceCuv.getText().trim().isEmpty() || txtPriceSuv.getText().trim().isEmpty() ||
-                txtPricePickup.getText().trim().isEmpty()) {
+                txtPriceMpv.getText().trim().isEmpty() || txtPricePickup.getText().trim().isEmpty()) {
                 showAlert("Cảnh báo", "Vui lòng nhập giá cho tất cả loại xe!", Alert.AlertType.WARNING);
                 return;
             }
@@ -329,6 +350,7 @@ public class PackageForm {
                 double priceSedan = Double.parseDouble(txtPriceSedan.getText().trim());
                 double priceCuv = Double.parseDouble(txtPriceCuv.getText().trim());
                 double priceSuv = Double.parseDouble(txtPriceSuv.getText().trim());
+                double priceMpv = Double.parseDouble(txtPriceMpv.getText().trim());
                 double pricePickup = Double.parseDouble(txtPricePickup.getText().trim());
                 
                 // Set avgSavings to 0 since we're not tracking individual services
@@ -340,9 +362,9 @@ public class PackageForm {
                 boolean success;
                 
                 if (isEdit) {
-                    success = packageService.updatePackage(packageId, name, description, priceMini, priceSedan, priceCuv, priceSuv, pricePickup, avgSavings, status);
+                    success = packageService.updatePackage(packageId, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, avgSavings, status);
                 } else {
-                    success = packageService.addPackage(name, description, priceMini, priceSedan, priceCuv, priceSuv, pricePickup, avgSavings, status);
+                    success = packageService.addPackage(name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, avgSavings, status);
                 }
                 
                 if (success) {

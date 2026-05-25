@@ -8,6 +8,7 @@ public class Service {
     private double priceSedan;
     private double priceCuv;
     private double priceSuv;
+    private double priceMpv;
     private double pricePickup;
     
     // Keep old fields for backward compatibility
@@ -18,9 +19,9 @@ public class Service {
 
     public Service() {}
 
-    // New constructor with 5 vehicle types
+    // New constructor with 6 vehicle types
     public Service(int id, String name, String description, double priceMini, double priceSedan, 
-                   double priceCuv, double priceSuv, double pricePickup) {
+                   double priceCuv, double priceSuv, double priceMpv, double pricePickup) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -28,6 +29,7 @@ public class Service {
         this.priceSedan = priceSedan;
         this.priceCuv = priceCuv;
         this.priceSuv = priceSuv;
+        this.priceMpv = priceMpv;
         this.pricePickup = pricePickup;
     }
 
@@ -44,6 +46,7 @@ public class Service {
         this.priceSedan = priceSmall;
         this.priceCuv = (priceSmall + priceLarge) / 2;
         this.priceSuv = priceLarge;
+        this.priceMpv = priceLarge * 1.05;
         this.pricePickup = priceLarge * 1.1;
     }
 
@@ -68,6 +71,9 @@ public class Service {
     public double getPriceSuv() { return priceSuv; }
     public void setPriceSuv(double priceSuv) { this.priceSuv = priceSuv; }
 
+    public double getPriceMpv() { return priceMpv; }
+    public void setPriceMpv(double priceMpv) { this.priceMpv = priceMpv; }
+
     public double getPricePickup() { return pricePickup; }
     public void setPricePickup(double pricePickup) { this.pricePickup = pricePickup; }
 
@@ -90,6 +96,7 @@ public class Service {
             case "SEDAN": return priceSedan;
             case "CUV": return priceCuv;
             case "SUV": return priceSuv;
+            case "MPV": return priceMpv;
             case "PICKUP": return pricePickup;
             default: return priceSedan;
         }

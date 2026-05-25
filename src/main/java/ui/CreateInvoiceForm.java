@@ -202,6 +202,10 @@ public class CreateInvoiceForm {
         rbSUV.setToggleGroup(carTypeGroup);
         rbSUV.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
         
+        RadioButton rbMPV = new RadioButton("MPV");
+        rbMPV.setToggleGroup(carTypeGroup);
+        rbMPV.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+        
         RadioButton rbPickup = new RadioButton("Pickup");
         rbPickup.setToggleGroup(carTypeGroup);
         rbPickup.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
@@ -213,7 +217,7 @@ public class CreateInvoiceForm {
             }
         });
         
-        carTypeBox.getChildren().addAll(rbMini, rbSedan, rbCUV, rbSUV, rbPickup);
+        carTypeBox.getChildren().addAll(rbMini, rbSedan, rbCUV, rbSUV, rbMPV, rbPickup);
         
         grid.add(lblName, 0, 0);
         grid.add(txtName, 1, 0);
@@ -450,7 +454,7 @@ public class CreateInvoiceForm {
         return section;
     }
     
-    private HBox createServiceItem(String name, String priceMini, String priceSedan, String priceCuv, String priceSuv, String pricePickup) {
+    private HBox createServiceItem(String name, String priceMini, String priceSedan, String priceCuv, String priceSuv, String priceMpv, String pricePickup) {
         HBox item = new HBox(15);
         item.setAlignment(Pos.CENTER_LEFT);
         item.setPadding(new Insets(12));
@@ -460,7 +464,7 @@ public class CreateInvoiceForm {
         );
         
         // Store all prices as user data
-        item.setUserData(new String[]{name, priceMini, priceSedan, priceCuv, priceSuv, pricePickup});
+        item.setUserData(new String[]{name, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup});
         
         VBox info = new VBox(4);
         Label lblName = new Label(name);
@@ -486,7 +490,7 @@ public class CreateInvoiceForm {
         );
         
         btnAdd.setOnAction(e -> {
-            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, pricePickup);
+            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
             addSelectedService(name, currentPrice);
         });
         
@@ -524,37 +528,39 @@ public class CreateInvoiceForm {
     
     private void updateItemPrice(HBox item) {
         String[] data = (String[]) item.getUserData();
-        if (data != null && data.length >= 6) {
-            // For services: data[0]=name, data[1-5]=prices
-            // For packages: data[0]=name, data[1]=description, data[2-6]=prices
-            String priceMini, priceSedan, priceCuv, priceSuv, pricePickup;
+        if (data != null && data.length >= 7) {
+            // For services: data[0]=name, data[1-6]=prices (7 elements)
+            // For packages: data[0]=name, data[1]=description, data[2-7]=prices (8 elements)
+            String priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup;
             
-            if (data.length == 6) {
+            if (data.length == 7) {
                 // Service format
                 priceMini = data[1];
                 priceSedan = data[2];
                 priceCuv = data[3];
                 priceSuv = data[4];
-                pricePickup = data[5];
+                priceMpv = data[5];
+                pricePickup = data[6];
             } else {
                 // Package format (has description)
                 priceMini = data[2];
                 priceSedan = data[3];
                 priceCuv = data[4];
                 priceSuv = data[5];
-                pricePickup = data[6];
+                priceMpv = data[6];
+                pricePickup = data[7];
             }
             
             // Find the price label and update it
             VBox info = (VBox) item.getChildren().get(0);
             Label priceLabel = (Label) info.getChildren().get(info.getChildren().size() - 1);
             
-            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, pricePickup);
+            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
             priceLabel.setText(currentPrice);
         }
     }
     
-    private String getCurrentPrice(String priceMini, String priceSedan, String priceCuv, String priceSuv, String pricePickup) {
+    private String getCurrentPrice(String priceMini, String priceSedan, String priceCuv, String priceSuv, String priceMpv, String pricePickup) {
         RadioButton selectedRadio = (RadioButton) carTypeGroup.getSelectedToggle();
         if (selectedRadio != null) {
             String vehicleType = selectedRadio.getText();
@@ -563,13 +569,14 @@ public class CreateInvoiceForm {
                 case "Sedan": return priceSedan;
                 case "CUV": return priceCuv;
                 case "SUV": return priceSuv;
+                case "MPV": return priceMpv;
                 case "Pickup": return pricePickup;
             }
         }
         return priceSedan; // Default
     }
     
-    private HBox createPackageItem(String name, String description, String priceMini, String priceSedan, String priceCuv, String priceSuv, String pricePickup) {
+    private HBox createPackageItem(String name, String description, String priceMini, String priceSedan, String priceCuv, String priceSuv, String priceMpv, String pricePickup) {
         HBox item = new HBox(15);
         item.setAlignment(Pos.CENTER_LEFT);
         item.setPadding(new Insets(12));
@@ -579,7 +586,7 @@ public class CreateInvoiceForm {
         );
         
         // Store all prices as user data
-        item.setUserData(new String[]{name, description, priceMini, priceSedan, priceCuv, priceSuv, pricePickup});
+        item.setUserData(new String[]{name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup});
         
         VBox info = new VBox(4);
         Label lblName = new Label(name);
@@ -608,7 +615,7 @@ public class CreateInvoiceForm {
         );
         
         btnAdd.setOnAction(e -> {
-            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, pricePickup);
+            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
             addSelectedPackage(name, currentPrice);
         });
         
@@ -616,7 +623,8 @@ public class CreateInvoiceForm {
         return item;
     }
     
-    private HBox createProductItem(String name, String price) {
+    private HBox createProductItem(Product product, String price) {
+        String name = product.getName();
         HBox item = new HBox(15);
         item.setAlignment(Pos.CENTER_LEFT);
         item.setPadding(new Insets(12));
@@ -635,12 +643,16 @@ public class CreateInvoiceForm {
         Label lblPrice = new Label(price);
         lblPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
         
-        info.getChildren().addAll(lblName, lblPrice);
+        Label lblStock = new Label("Tồn kho: " + product.getStock());
+        lblStock.setStyle("-fx-font-size: 12px; -fx-text-fill: #757575;");
+        
+        info.getChildren().addAll(lblName, lblPrice, lblStock);
         
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         
-        Spinner<Integer> spinner = new Spinner<>(1, 99, 1);
+        int maxStock = product.getStock();
+        Spinner<Integer> spinner = new Spinner<>(1, Math.max(1, maxStock), 1);
         spinner.setPrefWidth(80);
         spinner.setStyle("-fx-font-size: 13px;");
         
@@ -655,9 +667,23 @@ public class CreateInvoiceForm {
             "-fx-cursor: hand;"
         );
         
+        if (maxStock <= 0) {
+            btnAdd.setDisable(true);
+            btnAdd.setText("Hết hàng");
+            btnAdd.setStyle(
+                "-fx-background-color: #e0e0e0;" +
+                "-fx-text-fill: #9e9e9e;" +
+                "-fx-font-size: 13px;" +
+                "-fx-font-weight: 600;" +
+                "-fx-padding: 8px 16px;" +
+                "-fx-background-radius: 6;"
+            );
+            spinner.setDisable(true);
+        }
+        
         btnAdd.setOnAction(e -> {
             int quantity = spinner.getValue();
-            addSelectedProduct(name, price, quantity);
+            addSelectedProduct(product.getId(), name, price, quantity);
         });
         
         item.getChildren().addAll(info, spacer, spinner, btnAdd);
@@ -702,7 +728,7 @@ public class CreateInvoiceForm {
         recalculateTotal();
     }
     
-    private void addSelectedProduct(String name, String price, int quantity) {
+    private void addSelectedProduct(int productId, String name, String price, int quantity) {
         if (selectedProductsBox.getChildren().get(0) instanceof Label) {
             selectedProductsBox.getChildren().clear();
         }
@@ -717,6 +743,7 @@ public class CreateInvoiceForm {
         
         // Track for database
         Map<String, Object> item = new HashMap<>();
+        item.put("id", productId);
         item.put("name", name);
         item.put("unitPrice", unitPrice);
         item.put("quantity", quantity);
@@ -1048,6 +1075,13 @@ public class CreateInvoiceForm {
                         (Double) product.get("unitPrice"),
                         afterDisc
                     );
+                    
+                    // Reduce stock for this product
+                    ProductService productService = new ProductService();
+                    if (product.containsKey("id")) {
+                        int productId = (Integer) product.get("id");
+                        productService.reduceStock(productId, (Integer) product.get("quantity"));
+                    }
                 }
                 
                 Alert alert = util.AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công", "Tạo hóa đơn thành công!");
@@ -1085,9 +1119,10 @@ public class CreateInvoiceForm {
                 String priceSedan = String.format("%,.0fđ", service.getPriceSedan());
                 String priceCuv = String.format("%,.0fđ", service.getPriceCuv());
                 String priceSuv = String.format("%,.0fđ", service.getPriceSuv());
+                String priceMpv = String.format("%,.0fđ", service.getPriceMpv());
                 String pricePickup = String.format("%,.0fđ", service.getPricePickup());
                 servicesList.getChildren().add(
-                    createServiceItem(service.getName(), priceMini, priceSedan, priceCuv, priceSuv, pricePickup)
+                    createServiceItem(service.getName(), priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup)
                 );
             }
             
@@ -1115,9 +1150,10 @@ public class CreateInvoiceForm {
                 String priceSedan = String.format("%,.0fđ", pkg.getPriceSedan());
                 String priceCuv = String.format("%,.0fđ", pkg.getPriceCuv());
                 String priceSuv = String.format("%,.0fđ", pkg.getPriceSuv());
+                String priceMpv = String.format("%,.0fđ", pkg.getPriceMpv());
                 String pricePickup = String.format("%,.0fđ", pkg.getPricePickup());
                 packagesList.getChildren().add(
-                    createPackageItem(pkg.getName(), pkg.getDescription(), priceMini, priceSedan, priceCuv, priceSuv, pricePickup)
+                    createPackageItem(pkg.getName(), pkg.getDescription(), priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup)
                 );
             }
             
@@ -1143,7 +1179,7 @@ public class CreateInvoiceForm {
             for (Product product : products) {
                 String price = String.format("%,.0fđ", product.getPrice());
                 productsList.getChildren().add(
-                    createProductItem(product.getName(), price)
+                    createProductItem(product, price)
                 );
             }
             

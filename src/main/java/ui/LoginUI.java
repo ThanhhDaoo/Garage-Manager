@@ -36,7 +36,7 @@ public class LoginUI extends Application {
         }
 
         BorderPane root = new BorderPane();
-        root.setStyle("-fx-background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);");
+        root.setStyle("-fx-background-color: linear-gradient(to bottom-right, #667eea, #764ba2);");
 
         VBox loginBox = createLoginBox(stage);
         root.setCenter(loginBox);

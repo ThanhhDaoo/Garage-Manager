@@ -8,6 +8,7 @@ public class Package {
     private double priceSedan;
     private double priceCuv;
     private double priceSuv;
+    private double priceMpv;
     private double pricePickup;
     private double savings;
     private String status;
@@ -18,9 +19,9 @@ public class Package {
 
     public Package() {}
 
-    // New constructor with 5 vehicle types
+    // New constructor with 6 vehicle types
     public Package(int id, String name, String description, double priceMini, double priceSedan,
-                   double priceCuv, double priceSuv, double pricePickup, double savings, String status) {
+                   double priceCuv, double priceSuv, double priceMpv, double pricePickup, double savings, String status) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -28,6 +29,7 @@ public class Package {
         this.priceSedan = priceSedan;
         this.priceCuv = priceCuv;
         this.priceSuv = priceSuv;
+        this.priceMpv = priceMpv;
         this.pricePickup = pricePickup;
         this.savings = savings;
         this.status = status;
@@ -47,6 +49,7 @@ public class Package {
         this.priceSedan = price;
         this.priceCuv = price * 1.5;
         this.priceSuv = price * 2;
+        this.priceMpv = price * 2.1;
         this.pricePickup = price * 2.2;
     }
 
@@ -71,6 +74,9 @@ public class Package {
     public double getPriceSuv() { return priceSuv; }
     public void setPriceSuv(double priceSuv) { this.priceSuv = priceSuv; }
 
+    public double getPriceMpv() { return priceMpv; }
+    public void setPriceMpv(double priceMpv) { this.priceMpv = priceMpv; }
+
     public double getPricePickup() { return pricePickup; }
     public void setPricePickup(double pricePickup) { this.pricePickup = pricePickup; }
 
@@ -94,6 +100,7 @@ public class Package {
             case "SEDAN": return priceSedan;
             case "CUV": return priceCuv;
             case "SUV": return priceSuv;
+            case "MPV": return priceMpv;
             case "PICKUP": return pricePickup;
             default: return priceSedan;
         }

@@ -25,6 +25,7 @@ public class ServiceForm {
     private TextField txtPriceSedan;
     private TextField txtPriceCuv;
     private TextField txtPriceSuv;
+    private TextField txtPriceMpv;
     private TextField txtPricePickup;
     
     public ServiceForm() {
@@ -199,6 +200,23 @@ public class ServiceForm {
             txtPriceSuv.setText(String.format("%.0f", existingService.getPriceSuv()));
         }
         
+        // Price for MPV
+        Label lblPriceMpv = new Label("Giá cho xe MPV *");
+        lblPriceMpv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
+        txtPriceMpv = new TextField();
+        txtPriceMpv.setPromptText("Nhập giá (VD: 105000)");
+        txtPriceMpv.setStyle(
+            "-fx-background-color: #E0F7FA;" +
+            "-fx-padding: 12px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        txtPriceMpv.setPrefWidth(400);
+        if (isEdit && existingService != null) {
+            txtPriceMpv.setText(String.format("%.0f", existingService.getPriceMpv()));
+        }
+        
         // Price for Pickup
         Label lblPricePickup = new Label("Giá cho xe Pickup *");
         lblPricePickup.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
@@ -248,6 +266,8 @@ public class ServiceForm {
         grid.add(txtPriceCuv, 0, row++);
         grid.add(lblPriceSuv, 0, row++);
         grid.add(txtPriceSuv, 0, row++);
+        grid.add(lblPriceMpv, 0, row++);
+        grid.add(txtPriceMpv, 0, row++);
         grid.add(lblPricePickup, 0, row++);
         grid.add(txtPricePickup, 0, row++);
         grid.add(lblStatus, 0, row++);
@@ -310,6 +330,11 @@ public class ServiceForm {
                 return;
             }
             
+            if (txtPriceMpv.getText().trim().isEmpty()) {
+                showAlert("Cảnh báo", "Vui lòng nhập giá cho xe MPV!", Alert.AlertType.WARNING);
+                return;
+            }
+            
             if (txtPricePickup.getText().trim().isEmpty()) {
                 showAlert("Cảnh báo", "Vui lòng nhập giá cho xe Pickup!", Alert.AlertType.WARNING);
                 return;
@@ -322,15 +347,16 @@ public class ServiceForm {
                 double priceSedan = Double.parseDouble(txtPriceSedan.getText().trim());
                 double priceCuv = Double.parseDouble(txtPriceCuv.getText().trim());
                 double priceSuv = Double.parseDouble(txtPriceSuv.getText().trim());
+                double priceMpv = Double.parseDouble(txtPriceMpv.getText().trim());
                 double pricePickup = Double.parseDouble(txtPricePickup.getText().trim());
                 
                 ServiceService serviceService = new ServiceService();
                 boolean success;
                 
                 if (isEdit) {
-                    success = serviceService.updateService(serviceId, name, desc, priceMini, priceSedan, priceCuv, priceSuv, pricePickup);
+                    success = serviceService.updateService(serviceId, name, desc, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
                 } else {
-                    success = serviceService.addService(name, desc, priceMini, priceSedan, priceCuv, priceSuv, pricePickup);
+                    success = serviceService.addService(name, desc, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
                 }
                 
                 if (success) {
