@@ -616,7 +616,7 @@ public class MainUI extends Application {
         Label hDichVu = new Label("Dịch Vụ");
         hDichVu.setPrefWidth(200);
         hDichVu.setMinWidth(200);
-        hDichVu.setMaxWidth(200);
+        hDichVu.setMaxWidth(Double.MAX_VALUE);
         hDichVu.setPadding(new Insets(0, 15, 0, 15));
         hDichVu.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hDichVu.setAlignment(Pos.CENTER_LEFT);
@@ -646,6 +646,7 @@ public class MainUI extends Application {
         hThaoTac.setAlignment(Pos.CENTER);
         
         tableHeader.getChildren().addAll(hMaHD, hKhachHang, hDichVu, hTongTien, hTrangThai, hThaoTac);
+        HBox.setHgrow(hDichVu, Priority.ALWAYS);
         
         // Load data from database
         refreshInvoiceTable(invoiceTableRows);
@@ -752,7 +753,7 @@ public class MainUI extends Application {
         lblService.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
         lblService.setPrefWidth(200);
         lblService.setMinWidth(200);
-        lblService.setMaxWidth(200);
+        lblService.setMaxWidth(Double.MAX_VALUE);
         lblService.setPadding(new Insets(12, 15, 12, 15));
         lblService.setAlignment(Pos.CENTER_LEFT);
         
@@ -843,6 +844,7 @@ public class MainUI extends Application {
         actions.getChildren().addAll(btnPDF, btnView, btnDelete);
         
         row.getChildren().addAll(lblId, lblCustomer, lblService, lblTotal, lblStatus, actions);
+        HBox.setHgrow(lblService, Priority.ALWAYS);
         return row;
     }
 
@@ -937,72 +939,73 @@ public class MainUI extends Application {
         );
         
         Label hName = new Label("Tên Dịch Vụ");
-        hName.setPrefWidth(180);
-        hName.setMinWidth(150);
+        hName.setPrefWidth(150);
+        hName.setMinWidth(120);
         hName.setPadding(new Insets(0, 10, 0, 15));
         hName.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hName.setAlignment(Pos.CENTER_LEFT);
         
         Label hDesc = new Label("Mô Tả");
-        hDesc.setPrefWidth(200);
-        hDesc.setMinWidth(150);
+        hDesc.setPrefWidth(150);
+        hDesc.setMinWidth(120);
+        hDesc.setMaxWidth(Double.MAX_VALUE);
         hDesc.setPadding(new Insets(0, 10, 0, 10));
         hDesc.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hDesc.setAlignment(Pos.CENTER_LEFT);
         
         Label hPriceMini = new Label("Mini");
-        hPriceMini.setPrefWidth(100);
-        hPriceMini.setMinWidth(100);
-        hPriceMini.setMaxWidth(100);
-        hPriceMini.setPadding(new Insets(0, 8, 0, 8));
+        hPriceMini.setPrefWidth(75);
+        hPriceMini.setMinWidth(70);
+        hPriceMini.setMaxWidth(80);
+        hPriceMini.setPadding(new Insets(0, 4, 0, 4));
         hPriceMini.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #1976D2;");
         hPriceMini.setAlignment(Pos.CENTER_RIGHT);
         
         Label hPriceSedan = new Label("Sedan");
-        hPriceSedan.setPrefWidth(100);
-        hPriceSedan.setMinWidth(100);
-        hPriceSedan.setMaxWidth(100);
-        hPriceSedan.setPadding(new Insets(0, 8, 0, 8));
+        hPriceSedan.setPrefWidth(75);
+        hPriceSedan.setMinWidth(70);
+        hPriceSedan.setMaxWidth(80);
+        hPriceSedan.setPadding(new Insets(0, 4, 0, 4));
         hPriceSedan.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #388E3C;");
         hPriceSedan.setAlignment(Pos.CENTER_RIGHT);
         
         Label hPriceCuv = new Label("CUV");
-        hPriceCuv.setPrefWidth(100);
-        hPriceCuv.setMinWidth(100);
-        hPriceCuv.setMaxWidth(100);
-        hPriceCuv.setPadding(new Insets(0, 8, 0, 8));
+        hPriceCuv.setPrefWidth(75);
+        hPriceCuv.setMinWidth(70);
+        hPriceCuv.setMaxWidth(80);
+        hPriceCuv.setPadding(new Insets(0, 4, 0, 4));
         hPriceCuv.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #F57C00;");
         hPriceCuv.setAlignment(Pos.CENTER_RIGHT);
         
         Label hPriceSuv = new Label("SUV");
-        hPriceSuv.setPrefWidth(100);
-        hPriceSuv.setMinWidth(100);
-        hPriceSuv.setMaxWidth(100);
-        hPriceSuv.setPadding(new Insets(0, 8, 0, 8));
+        hPriceSuv.setPrefWidth(75);
+        hPriceSuv.setMinWidth(70);
+        hPriceSuv.setMaxWidth(80);
+        hPriceSuv.setPadding(new Insets(0, 4, 0, 4));
         hPriceSuv.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #C2185B;");
         hPriceSuv.setAlignment(Pos.CENTER_RIGHT);
         
         Label hPricePickup = new Label("Pickup");
-        hPricePickup.setPrefWidth(100);
-        hPricePickup.setMinWidth(100);
-        hPricePickup.setMaxWidth(100);
-        hPricePickup.setPadding(new Insets(0, 8, 0, 8));
+        hPricePickup.setPrefWidth(75);
+        hPricePickup.setMinWidth(70);
+        hPricePickup.setMaxWidth(80);
+        hPricePickup.setPadding(new Insets(0, 4, 0, 4));
         hPricePickup.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #7B1FA2;");
         hPricePickup.setAlignment(Pos.CENTER_RIGHT);
         
         Label hPriceMpv = new Label("MPV");
-        hPriceMpv.setPrefWidth(100);
-        hPriceMpv.setMinWidth(100);
-        hPriceMpv.setMaxWidth(100);
-        hPriceMpv.setPadding(new Insets(0, 8, 0, 8));
+        hPriceMpv.setPrefWidth(75);
+        hPriceMpv.setMinWidth(70);
+        hPriceMpv.setMaxWidth(80);
+        hPriceMpv.setPadding(new Insets(0, 4, 0, 4));
         hPriceMpv.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #00838F;");
         hPriceMpv.setAlignment(Pos.CENTER_RIGHT);
         
         Label hAction = new Label("Thao Tác");
-        hAction.setPrefWidth(100);
-        hAction.setMinWidth(100);
-        hAction.setMaxWidth(100);
-        hAction.setPadding(new Insets(0, 15, 0, 10));
+        hAction.setPrefWidth(85);
+        hAction.setMinWidth(80);
+        hAction.setMaxWidth(90);
+        hAction.setPadding(new Insets(0, 5, 0, 5));
         hAction.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hAction.setAlignment(Pos.CENTER);
         
@@ -1081,16 +1084,17 @@ public class MainUI extends Application {
         // Name cell
         Label lblName = new Label(service.getName());
         lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 500;");
-        lblName.setPrefWidth(180);
-        lblName.setMinWidth(150);
+        lblName.setPrefWidth(150);
+        lblName.setMinWidth(120);
         lblName.setPadding(new Insets(12, 10, 12, 15));
         lblName.setAlignment(Pos.CENTER_LEFT);
         
         // Description cell
         Label lblDesc = new Label(service.getDescription());
         lblDesc.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
-        lblDesc.setPrefWidth(200);
-        lblDesc.setMinWidth(150);
+        lblDesc.setPrefWidth(150);
+        lblDesc.setMinWidth(120);
+        lblDesc.setMaxWidth(Double.MAX_VALUE);
         lblDesc.setPadding(new Insets(12, 10, 12, 10));
         lblDesc.setAlignment(Pos.CENTER_LEFT);
         lblDesc.setWrapText(true);
@@ -1098,59 +1102,59 @@ public class MainUI extends Application {
         // Price cells for 5 vehicle types
         Label lblPriceMini = new Label(String.format("%.0f đ", service.getPriceMini()));
         lblPriceMini.setStyle("-fx-font-size: 13px; -fx-text-fill: #1976D2; -fx-font-weight: 600;");
-        lblPriceMini.setPrefWidth(100);
-        lblPriceMini.setMinWidth(100);
-        lblPriceMini.setMaxWidth(100);
-        lblPriceMini.setPadding(new Insets(12, 8, 12, 8));
+        lblPriceMini.setPrefWidth(75);
+        lblPriceMini.setMinWidth(70);
+        lblPriceMini.setMaxWidth(80);
+        lblPriceMini.setPadding(new Insets(12, 4, 12, 4));
         lblPriceMini.setAlignment(Pos.CENTER_RIGHT);
         
         Label lblPriceSedan = new Label(String.format("%.0f đ", service.getPriceSedan()));
         lblPriceSedan.setStyle("-fx-font-size: 13px; -fx-text-fill: #388E3C; -fx-font-weight: 600;");
-        lblPriceSedan.setPrefWidth(100);
-        lblPriceSedan.setMinWidth(100);
-        lblPriceSedan.setMaxWidth(100);
-        lblPriceSedan.setPadding(new Insets(12, 8, 12, 8));
+        lblPriceSedan.setPrefWidth(75);
+        lblPriceSedan.setMinWidth(70);
+        lblPriceSedan.setMaxWidth(80);
+        lblPriceSedan.setPadding(new Insets(12, 4, 12, 4));
         lblPriceSedan.setAlignment(Pos.CENTER_RIGHT);
         
         Label lblPriceCuv = new Label(String.format("%.0f đ", service.getPriceCuv()));
         lblPriceCuv.setStyle("-fx-font-size: 13px; -fx-text-fill: #F57C00; -fx-font-weight: 600;");
-        lblPriceCuv.setPrefWidth(100);
-        lblPriceCuv.setMinWidth(100);
-        lblPriceCuv.setMaxWidth(100);
-        lblPriceCuv.setPadding(new Insets(12, 8, 12, 8));
+        lblPriceCuv.setPrefWidth(75);
+        lblPriceCuv.setMinWidth(70);
+        lblPriceCuv.setMaxWidth(80);
+        lblPriceCuv.setPadding(new Insets(12, 4, 12, 4));
         lblPriceCuv.setAlignment(Pos.CENTER_RIGHT);
         
         Label lblPriceSuv = new Label(String.format("%.0f đ", service.getPriceSuv()));
         lblPriceSuv.setStyle("-fx-font-size: 13px; -fx-text-fill: #C2185B; -fx-font-weight: 600;");
-        lblPriceSuv.setPrefWidth(100);
-        lblPriceSuv.setMinWidth(100);
-        lblPriceSuv.setMaxWidth(100);
-        lblPriceSuv.setPadding(new Insets(12, 8, 12, 8));
+        lblPriceSuv.setPrefWidth(75);
+        lblPriceSuv.setMinWidth(70);
+        lblPriceSuv.setMaxWidth(80);
+        lblPriceSuv.setPadding(new Insets(12, 4, 12, 4));
         lblPriceSuv.setAlignment(Pos.CENTER_RIGHT);
         
         Label lblPricePickup = new Label(String.format("%.0f đ", service.getPricePickup()));
         lblPricePickup.setStyle("-fx-font-size: 13px; -fx-text-fill: #7B1FA2; -fx-font-weight: 600;");
-        lblPricePickup.setPrefWidth(100);
-        lblPricePickup.setMinWidth(100);
-        lblPricePickup.setMaxWidth(100);
-        lblPricePickup.setPadding(new Insets(12, 8, 12, 8));
+        lblPricePickup.setPrefWidth(75);
+        lblPricePickup.setMinWidth(70);
+        lblPricePickup.setMaxWidth(80);
+        lblPricePickup.setPadding(new Insets(12, 4, 12, 4));
         lblPricePickup.setAlignment(Pos.CENTER_RIGHT);
         
         Label lblPriceMpv = new Label(String.format("%.0f đ", service.getPriceMpv()));
         lblPriceMpv.setStyle("-fx-font-size: 13px; -fx-text-fill: #00838F; -fx-font-weight: 600;");
-        lblPriceMpv.setPrefWidth(100);
-        lblPriceMpv.setMinWidth(100);
-        lblPriceMpv.setMaxWidth(100);
-        lblPriceMpv.setPadding(new Insets(12, 8, 12, 8));
+        lblPriceMpv.setPrefWidth(75);
+        lblPriceMpv.setMinWidth(70);
+        lblPriceMpv.setMaxWidth(80);
+        lblPriceMpv.setPadding(new Insets(12, 4, 12, 4));
         lblPriceMpv.setAlignment(Pos.CENTER_RIGHT);
         
         // Actions cell
         HBox actions = new HBox(6);
         actions.setAlignment(Pos.CENTER);
-        actions.setPrefWidth(100);
-        actions.setMinWidth(100);
-        actions.setMaxWidth(100);
-        actions.setPadding(new Insets(12, 15, 12, 10));
+        actions.setPrefWidth(85);
+        actions.setMinWidth(80);
+        actions.setMaxWidth(90);
+        actions.setPadding(new Insets(12, 5, 12, 5));
         
         Button btnEdit = new Button("✏");
         btnEdit.setStyle(
@@ -1297,6 +1301,7 @@ public class MainUI extends Application {
         Label hDesc = new Label("Mô Tả");
         hDesc.setPrefWidth(300);
         hDesc.setMinWidth(150);
+        hDesc.setMaxWidth(Double.MAX_VALUE);
         hDesc.setPadding(new Insets(0, 10, 0, 10));
         hDesc.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hDesc.setAlignment(Pos.CENTER_LEFT);
@@ -1510,6 +1515,7 @@ public class MainUI extends Application {
         Label hName = new Label("Tên Sản Phẩm");
         hName.setPrefWidth(350);
         hName.setMinWidth(100);
+        hName.setMaxWidth(Double.MAX_VALUE);
         hName.setPadding(new Insets(0, 15, 0, 15));
         hName.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hName.setAlignment(Pos.CENTER_LEFT);
@@ -2173,6 +2179,7 @@ public class MainUI extends Application {
         lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 500;");
         lblName.setPrefWidth(350);
         lblName.setMinWidth(100);
+        lblName.setMaxWidth(Double.MAX_VALUE);
         lblName.setPadding(new Insets(12, 15, 12, 15));
         lblName.setAlignment(Pos.CENTER_LEFT);
         
@@ -2299,6 +2306,7 @@ public class MainUI extends Application {
         lblDesc.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
         lblDesc.setPrefWidth(300);
         lblDesc.setMinWidth(150);
+        lblDesc.setMaxWidth(Double.MAX_VALUE);
         lblDesc.setPadding(new Insets(12, 10, 12, 10));
         lblDesc.setAlignment(Pos.CENTER_LEFT);
         lblDesc.setWrapText(true);
@@ -2751,7 +2759,7 @@ public class MainUI extends Application {
         
         double subtotalAfterDiscount = invoice.getTotalBeforeDiscount() - invoice.getDiscount();
         double vatAmount = subtotalAfterDiscount * 0.08;
-        Label lblVat = new Label(String.format("Thuế VAT (8%): %,.0f đ", vatAmount));
+        Label lblVat = new Label(String.format("Thuế VAT (8%%): %,.0f đ", vatAmount));
         lblVat.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
         
         Label lblFinal = new Label(String.format("Tổng cộng thanh toán: %,.0f đ", invoice.getTotalAmount()));
