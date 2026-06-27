@@ -14,6 +14,7 @@ public class LoginUI extends Application {
 
     @Override
     public void start(Stage stage) {
+        setMacDockIcon();
         // Khởi tạo cơ sở dữ liệu khi bắt đầu ứng dụng
         util.DatabaseManager.initializeDatabase();
 
@@ -46,6 +47,11 @@ public class LoginUI extends Application {
             String css = getClass().getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
+        try {
+            stage.getIcons().add(new javafx.scene.image.Image(getClass().getResourceAsStream("/logo.png")));
+        } catch (Exception e) {
+            System.err.println("Could not load application icon: " + e.getMessage());
+        }
         stage.setScene(scene);
         stage.setTitle("🚗 MTProAuto - Đăng Nhập");
         stage.show();
@@ -63,13 +69,16 @@ public class LoginUI extends Application {
         );
 
         // Logo
-        Circle logoCircle = new Circle(40);
-        logoCircle.setFill(Color.web("#2196F3"));
-        
-        StackPane logoContainer = new StackPane();
-        Label logoText = new Label("■");
-        logoText.setStyle("-fx-font-size: 50px; -fx-text-fill: white;");
-        logoContainer.getChildren().addAll(logoCircle, logoText);
+        javafx.scene.image.ImageView logoView = new javafx.scene.image.ImageView();
+        try {
+            javafx.scene.image.Image logoImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/logo.png"));
+            logoView.setImage(logoImage);
+            logoView.setFitWidth(100);
+            logoView.setFitHeight(100);
+            logoView.setPreserveRatio(true);
+        } catch (Exception e) {
+            System.err.println("Could not load logo image: " + e.getMessage());
+        }
 
         // Title
         VBox titleBox = new VBox(5);
@@ -216,7 +225,7 @@ public class LoginUI extends Application {
         linkForgot.setAlignment(Pos.CENTER);
 
         loginBox.getChildren().addAll(
-            logoContainer, 
+            logoView, 
             titleBox, 
             usernameBox, 
             passwordBox, 
@@ -244,7 +253,26 @@ public class LoginUI extends Application {
         alert.showAndWait();
     }
 
+    private void setMacDockIcon() {
+        try {
+            // Set Dock icon on macOS
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Taskbar taskbar = java.awt.Taskbar.getTaskbar();
+                if (taskbar.isSupported(java.awt.Taskbar.Feature.ICON_IMAGE)) {
+                    java.net.URL iconURL = getClass().getResource("/logo.png");
+                    if (iconURL != null) {
+                        java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(iconURL);
+                        taskbar.setIconImage(image);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Could not set macOS dock icon: " + e.getMessage());
+        }
+    }
+
     public static void main(String[] args) {
+        System.setProperty("apple.awt.application.name", "MTProAuto");
         launch(args);
     }
 }

@@ -59,6 +59,13 @@ public class MainUI extends Application {
             System.out.println("Could not load global-styles.css");
         }
         
+        // Add application icon
+        try {
+            stage.getIcons().add(new javafx.scene.image.Image(getClass().getResourceAsStream("/logo.png")));
+        } catch (Exception e) {
+            System.err.println("Could not load application icon: " + e.getMessage());
+        }
+        
         stage.setScene(scene);
         stage.setTitle("🚗 MTProAuto - Quản Lý Chuyên Nghiệp");
         stage.show();
@@ -75,13 +82,17 @@ public class MainUI extends Application {
         );
         header.setSpacing(20);
 
-        Circle logoCircle = new Circle(22);
-        logoCircle.setFill(Color.web("#2196F3"));
-        
-        StackPane logoContainer = new StackPane();
-        Label logoText = new Label("■");
-        logoText.setStyle("-fx-font-size: 28px; -fx-text-fill: white;");
-        logoContainer.getChildren().addAll(logoCircle, logoText);
+        // Logo
+        javafx.scene.image.ImageView logoView = new javafx.scene.image.ImageView();
+        try {
+            javafx.scene.image.Image logoImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/logo.png"));
+            logoView.setImage(logoImage);
+            logoView.setFitWidth(44);
+            logoView.setFitHeight(44);
+            logoView.setPreserveRatio(true);
+        } catch (Exception e) {
+            System.err.println("Could not load logo image: " + e.getMessage());
+        }
 
         VBox titleBox = new VBox(2);
         Label title = new Label("MTProAuto");
@@ -130,7 +141,7 @@ public class MainUI extends Application {
         
         userBox.getChildren().addAll(avatarContainer, userInfo);
 
-        header.getChildren().addAll(logoContainer, titleBox, spacer, searchBox, userBox);
+        header.getChildren().addAll(logoView, titleBox, spacer, searchBox, userBox);
         return header;
     }
 
