@@ -22,8 +22,11 @@ public class ProductDAO {
                     rs.getString("name"),
                     rs.getString("category"),
                     rs.getDouble("price"),
+                    rs.getDouble("cost_price"),
                     rs.getInt("stock"),
-                    rs.getString("status")
+                    rs.getString("unit"),
+                    rs.getString("status"),
+                    rs.getInt("min_stock")
                 );
                 products.add(product);
             }
@@ -48,8 +51,11 @@ public class ProductDAO {
                     rs.getString("name"),
                     rs.getString("category"),
                     rs.getDouble("price"),
+                    rs.getDouble("cost_price"),
                     rs.getInt("stock"),
-                    rs.getString("status")
+                    rs.getString("unit"),
+                    rs.getString("status"),
+                    rs.getInt("min_stock")
                 );
             }
         } catch (SQLException e) {
@@ -59,7 +65,7 @@ public class ProductDAO {
     }
     
     public boolean addProduct(Product product) {
-        String sql = "INSERT INTO products (name, category, price, stock, status) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO products (name, category, price, cost_price, stock, unit, status, min_stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -67,8 +73,11 @@ public class ProductDAO {
             pstmt.setString(1, product.getName());
             pstmt.setString(2, product.getCategory());
             pstmt.setDouble(3, product.getPrice());
-            pstmt.setInt(4, product.getStock());
-            pstmt.setString(5, product.getStatus());
+            pstmt.setDouble(4, product.getCostPrice());
+            pstmt.setInt(5, product.getStock());
+            pstmt.setString(6, product.getUnit());
+            pstmt.setString(7, product.getStatus());
+            pstmt.setInt(8, product.getMinStock());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -78,7 +87,7 @@ public class ProductDAO {
     }
     
     public boolean updateProduct(Product product) {
-        String sql = "UPDATE products SET name = ?, category = ?, price = ?, stock = ?, status = ? WHERE id = ?";
+        String sql = "UPDATE products SET name = ?, category = ?, price = ?, cost_price = ?, stock = ?, unit = ?, status = ?, min_stock = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -86,9 +95,12 @@ public class ProductDAO {
             pstmt.setString(1, product.getName());
             pstmt.setString(2, product.getCategory());
             pstmt.setDouble(3, product.getPrice());
-            pstmt.setInt(4, product.getStock());
-            pstmt.setString(5, product.getStatus());
-            pstmt.setInt(6, product.getId());
+            pstmt.setDouble(4, product.getCostPrice());
+            pstmt.setInt(5, product.getStock());
+            pstmt.setString(6, product.getUnit());
+            pstmt.setString(7, product.getStatus());
+            pstmt.setInt(8, product.getMinStock());
+            pstmt.setInt(9, product.getId());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -129,8 +141,11 @@ public class ProductDAO {
                     rs.getString("name"),
                     rs.getString("category"),
                     rs.getDouble("price"),
+                    rs.getDouble("cost_price"),
                     rs.getInt("stock"),
-                    rs.getString("status")
+                    rs.getString("unit"),
+                    rs.getString("status"),
+                    rs.getInt("min_stock")
                 );
             }
         } catch (SQLException e) {

@@ -135,6 +135,7 @@ public class CreateInvoiceForm {
             "-fx-font-size: 14px;"
         );
         txtName.setPrefWidth(300);
+        UIUtils.setupIMEFix(txtName);
         
         // Phone field - Create completely independent TextField
         Label lblPhone = new Label("Số điện thoại *");
@@ -148,7 +149,18 @@ public class CreateInvoiceForm {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
-        txtPhone.setPrefWidth(300);
+        txtPhone.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) { // Lost focus
+                String text = txtPhone.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtPhone.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtPhone);
         
         // License plate field - Create completely independent TextField
         Label lblPlate = new Label("Biển số xe *");
@@ -163,6 +175,15 @@ public class CreateInvoiceForm {
             "-fx-font-size: 14px;"
         );
         txtPlate.setPrefWidth(300);
+        txtPlate.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) { // Lost focus
+                String text = txtPlate.getText();
+                if (text != null && !text.equals(text.toUpperCase())) {
+                    txtPlate.setText(text.toUpperCase());
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtPlate);
 
         // Address field - Create completely independent TextField
         Label lblAddress = new Label("Địa chỉ");
@@ -177,6 +198,7 @@ public class CreateInvoiceForm {
             "-fx-font-size: 14px;"
         );
         txtAddress.setPrefWidth(300);
+        UIUtils.setupIMEFix(txtAddress);
         
         // Car type selection
         Label lblCarType = new Label("Loại xe *");
@@ -500,26 +522,34 @@ public class CreateInvoiceForm {
     
     private void updateServicePrices() {
         // Update services
-        for (var node : servicesContainer.getChildren()) {
-            if (node instanceof ScrollPane) {
-                ScrollPane sp = (ScrollPane) node;
-                VBox servicesList = (VBox) sp.getContent();
-                for (var serviceNode : servicesList.getChildren()) {
-                    if (serviceNode instanceof HBox) {
-                        updateItemPrice((HBox) serviceNode);
+        if (servicesContainer != null) {
+            for (var node : servicesContainer.getChildren()) {
+                if (node instanceof ScrollPane) {
+                    ScrollPane sp = (ScrollPane) node;
+                    VBox servicesList = (VBox) sp.getContent();
+                    if (servicesList != null) {
+                        for (var serviceNode : servicesList.getChildren()) {
+                            if (serviceNode instanceof HBox) {
+                                updateItemPrice((HBox) serviceNode);
+                            }
+                        }
                     }
                 }
             }
         }
         
         // Update packages
-        for (var node : packagesContainer.getChildren()) {
-            if (node instanceof ScrollPane) {
-                ScrollPane sp = (ScrollPane) node;
-                VBox packagesList = (VBox) sp.getContent();
-                for (var packageNode : packagesList.getChildren()) {
-                    if (packageNode instanceof HBox) {
-                        updateItemPrice((HBox) packageNode);
+        if (packagesContainer != null) {
+            for (var node : packagesContainer.getChildren()) {
+                if (node instanceof ScrollPane) {
+                    ScrollPane sp = (ScrollPane) node;
+                    VBox packagesList = (VBox) sp.getContent();
+                    if (packagesList != null) {
+                        for (var packageNode : packagesList.getChildren()) {
+                            if (packageNode instanceof HBox) {
+                                updateItemPrice((HBox) packageNode);
+                            }
+                        }
                     }
                 }
             }
@@ -554,9 +584,23 @@ public class CreateInvoiceForm {
             // Find the price label and update it
             VBox info = (VBox) item.getChildren().get(0);
             Label priceLabel = (Label) info.getChildren().get(info.getChildren().size() - 1);
+            Button btnAdd = (Button) item.getChildren().get(2);
             
             String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
-            priceLabel.setText(currentPrice);
+            
+            if (currentPrice.equals("0đ") || currentPrice.equals("0 đ") || currentPrice.equals("0")) {
+                priceLabel.setText("Không áp dụng");
+                priceLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #e53935; -fx-font-weight: bold;");
+                btnAdd.setDisable(true);
+            } else {
+                priceLabel.setText(currentPrice);
+                if (data.length == 7) {
+                    priceLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575; -fx-font-weight: normal;");
+                } else {
+                    priceLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+                }
+                btnAdd.setDisable(false);
+            }
         }
     }
     
@@ -956,8 +1000,14 @@ public class CreateInvoiceForm {
                 return;
             }
             
-            if (txtPhone.getText().trim().isEmpty()) {
+            String phoneVal = txtPhone.getText().trim();
+            if (phoneVal.isEmpty()) {
                 Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng nhập số điện thoại!");
+                alert.showAndWait();
+                return;
+            }
+            if (phoneVal.length() < 9 || phoneVal.length() > 11) {
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Số điện thoại phải từ 9 đến 11 số!");
                 alert.showAndWait();
                 return;
             }
@@ -1132,6 +1182,7 @@ public class CreateInvoiceForm {
             scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
             servicesContainer.getChildren().add(scrollPane);
         }
+        updateServicePrices();
     }
     
     private void loadPackagesFromDatabase() {
@@ -1163,6 +1214,7 @@ public class CreateInvoiceForm {
             scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
             packagesContainer.getChildren().add(scrollPane);
         }
+        updateServicePrices();
     }
     
     private void loadProductsFromDatabase(VBox productsBox) {

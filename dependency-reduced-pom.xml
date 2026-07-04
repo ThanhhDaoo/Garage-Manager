@@ -16,6 +16,9 @@
         <version>0.0.8</version>
         <configuration>
           <mainClass>ui.LoginUI</mainClass>
+          <options>
+            <option>-Xdock:name=MTProAuto</option>
+          </options>
         </configuration>
       </plugin>
       <plugin>
@@ -30,7 +33,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>ui.LoginUI</mainClass>
+                  <mainClass>org.example.Main</mainClass>
                 </transformer>
               </transformers>
               <filters>

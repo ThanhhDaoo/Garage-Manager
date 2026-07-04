@@ -23,8 +23,14 @@ public class LoginUI extends Application {
         boolean remember = prefs.getBoolean("remember_me", false);
         String savedUser = prefs.get("username", "");
         String savedPass = prefs.get("password", "");
+        long lastLoginTime = prefs.getLong("last_login_time", 0L);
+        long currentTime = System.currentTimeMillis();
+        long threeDaysInMillis = 3L * 24 * 60 * 60 * 1000; // 3 ngày
 
-        if (remember && "admin".equals(savedUser) && "admin".equals(savedPass)) {
+        if (remember && "mtproauto".equals(savedUser) && "232498".equals(savedPass)
+                && (currentTime - lastLoginTime >= 0) && (currentTime - lastLoginTime < threeDaysInMillis)) {
+            // Cập nhật lại thời gian đăng nhập cuối cùng để gia hạn thêm 3 ngày
+            prefs.putLong("last_login_time", currentTime);
             MainUI mainUI = new MainUI();
             Stage mainStage = new Stage();
             try {
@@ -116,6 +122,7 @@ public class LoginUI extends Application {
         txtUsername.setOnMouseExited(e -> txtUsername.setStyle(
             txtUsername.getStyle().replace("-fx-background-color: #eeeeee;", "-fx-background-color: #f5f5f5;")
         ));
+        UIUtils.setupIMEFix(txtUsername);
         
         usernameBox.getChildren().addAll(lblUsername, txtUsername);
 
@@ -143,6 +150,7 @@ public class LoginUI extends Application {
         txtPassword.setOnMouseExited(e -> txtPassword.setStyle(
             txtPassword.getStyle().replace("-fx-background-color: #eeeeee;", "-fx-background-color: #f5f5f5;")
         ));
+        UIUtils.setupIMEFix(txtPassword);
         
         passwordBox.getChildren().addAll(lblPassword, txtPassword);
 
@@ -191,18 +199,19 @@ public class LoginUI extends Application {
                 return;
             }
             
-            // Simple validation (you can add database check here)
-            if (username.equals("admin") && password.equals("admin")) {
+            if (username.equals("mtproauto") && password.equals("232498")) {
                 // Save remember me preferences
                 java.util.prefs.Preferences userPrefs = java.util.prefs.Preferences.userNodeForPackage(LoginUI.class);
                 if (chkRemember.isSelected()) {
                     userPrefs.putBoolean("remember_me", true);
                     userPrefs.put("username", username);
                     userPrefs.put("password", password);
+                    userPrefs.putLong("last_login_time", System.currentTimeMillis());
                 } else {
                     userPrefs.putBoolean("remember_me", false);
                     userPrefs.remove("username");
                     userPrefs.remove("password");
+                    userPrefs.remove("last_login_time");
                 }
 
                 // Open main UI directly

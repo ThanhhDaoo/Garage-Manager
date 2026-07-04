@@ -1447,6 +1447,7 @@ public class MainUI extends Application {
         TextField searchField = new TextField();
         searchField.setPromptText("🔍 Tìm kiếm sản phẩm...");
         searchField.setPrefWidth(300);
+        searchField.setPrefHeight(40);
         searchField.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-padding: 10px 15px;" +
@@ -1457,47 +1458,72 @@ public class MainUI extends Application {
         
         // Category filter buttons
         HBox categoryButtons = new HBox(8);
+        categoryButtons.setAlignment(Pos.CENTER_LEFT);
         Button btnAllCat = createFilterButton("Tất cả", true);
         Button btnWater = createFilterButton("Nước rửa xe", false);
         Button btnSolution = createFilterButton("Dung dịch", false);
         Button btnAccessory = createFilterButton("Phụ kiện", false);
         
+        // ComboBox for status filter
+        ComboBox<String> statusFilterBox = new ComboBox<>();
+        statusFilterBox.setPrefHeight(40);
+        statusFilterBox.getItems().addAll("Tất cả trạng thái", "Đang bán", "Sắp hết hàng", "Hết hàng", "Tạm dừng");
+        statusFilterBox.setValue("Tất cả trạng thái");
+        statusFilterBox.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 8px 12px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;" +
+            "-fx-cursor: hand;"
+        );
+        
         // Store current filter
         final String[] currentCategory = {""};
+        final String[] currentStatus = {"Tất cả trạng thái"};
         
         // Add search listener
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            refreshProductTableWithFilter(tableRows, newVal, currentCategory[0]);
+            refreshProductTableWithFilter(tableRows, newVal, currentCategory[0], currentStatus[0]);
         });
         
         // Add filter button actions
         btnAllCat.setOnAction(e -> {
             currentCategory[0] = "";
             updateFilterButtonStyles(btnAllCat, btnWater, btnSolution, btnAccessory);
-            refreshProductTableWithFilter(tableRows, searchField.getText(), "");
+            refreshProductTableWithFilter(tableRows, searchField.getText(), "", currentStatus[0]);
         });
         
         btnWater.setOnAction(e -> {
             currentCategory[0] = "Nước rửa xe";
             updateFilterButtonStyles(btnWater, btnAllCat, btnSolution, btnAccessory);
-            refreshProductTableWithFilter(tableRows, searchField.getText(), "Nước rửa xe");
+            refreshProductTableWithFilter(tableRows, searchField.getText(), "Nước rửa xe", currentStatus[0]);
         });
         
         btnSolution.setOnAction(e -> {
             currentCategory[0] = "Dung dịch";
             updateFilterButtonStyles(btnSolution, btnAllCat, btnWater, btnAccessory);
-            refreshProductTableWithFilter(tableRows, searchField.getText(), "Dung dịch");
+            refreshProductTableWithFilter(tableRows, searchField.getText(), "Dung dịch", currentStatus[0]);
         });
         
         btnAccessory.setOnAction(e -> {
             currentCategory[0] = "Phụ kiện";
             updateFilterButtonStyles(btnAccessory, btnAllCat, btnWater, btnSolution);
-            refreshProductTableWithFilter(tableRows, searchField.getText(), "Phụ kiện");
+            refreshProductTableWithFilter(tableRows, searchField.getText(), "Phụ kiện", currentStatus[0]);
+        });
+        
+        // Add status filter action
+        statusFilterBox.setOnAction(e -> {
+            currentStatus[0] = statusFilterBox.getValue();
+            refreshProductTableWithFilter(tableRows, searchField.getText(), currentCategory[0], currentStatus[0]);
         });
         
         categoryButtons.getChildren().addAll(btnAllCat, btnWater, btnSolution, btnAccessory);
         
-        searchBar.getChildren().addAll(searchField, categoryButtons);
+        Region searchSpacer = new Region();
+        HBox.setHgrow(searchSpacer, Priority.ALWAYS);
+        
+        searchBar.getChildren().addAll(searchField, categoryButtons, searchSpacer, statusFilterBox);
 
         // Table container
         VBox tableContainer = new VBox(0);
@@ -1588,10 +1614,10 @@ public class MainUI extends Application {
     }
     
     private void refreshProductTable(VBox tableRows) {
-        refreshProductTableWithFilter(tableRows, "", "");
+        refreshProductTableWithFilter(tableRows, "", "", "Tất cả trạng thái");
     }
     
-    private void refreshProductTableWithFilter(VBox tableRows, String searchText, String category) {
+    private void refreshProductTableWithFilter(VBox tableRows, String searchText, String category, String statusFilter) {
         tableRows.getChildren().clear();
         ProductService productService = new ProductService();
         List<Product> products = productService.getAllProducts();
@@ -1612,23 +1638,43 @@ public class MainUI extends Application {
                 .collect(java.util.stream.Collectors.toList());
         }
         
+        // Filter by status
+        if (statusFilter != null && !statusFilter.equals("Tất cả trạng thái")) {
+            products = products.stream()
+                .filter(p -> {
+                    String status = p.getStatus();
+                    int stock = p.getStock();
+                    int minStock = p.getMinStock();
+
+                    if ("Đang bán".equals(statusFilter)) {
+                        if ("Tạm dừng".equals(status)) return false;
+                        if (stock == 0 || "Hết hàng".equals(status)) return false;
+                        if (stock <= minStock) return false;
+                        return "Đang bán".equals(status);
+                    } else if ("Sắp hết hàng".equals(statusFilter)) {
+                        if ("Tạm dừng".equals(status)) return false;
+                        if (stock == 0 || "Hết hàng".equals(status)) return false;
+                        return stock <= minStock;
+                    } else if ("Hết hàng".equals(statusFilter)) {
+                        return stock == 0 || "Hết hàng".equals(status);
+                    } else if ("Tạm dừng".equals(statusFilter)) {
+                        return "Tạm dừng".equals(status);
+                    }
+                    return true;
+                })
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
         if (products.isEmpty()) {
             Label emptyState = new Label((searchText != null && !searchText.trim().isEmpty()) || 
-                                        (category != null && !category.trim().isEmpty()) ? 
+                                         (category != null && !category.trim().isEmpty()) ||
+                                         (statusFilter != null && !statusFilter.equals("Tất cả trạng thái")) ? 
                 "Không tìm thấy sản phẩm nào" : "Chưa có sản phẩm nào");
             emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
             tableRows.getChildren().add(emptyState);
         } else {
             for (Product product : products) {
-                tableRows.getChildren().add(createProductRow(
-                    product.getId(),
-                    product.getName(),
-                    product.getCategory(),
-                    String.format("%.0f đ", product.getPrice()),
-                    String.valueOf(product.getStock()),
-                    product.getStatus(),
-                    tableRows
-                ));
+                tableRows.getChildren().add(createProductRow(product, tableRows));
             }
         }
     }
@@ -2126,6 +2172,7 @@ public class MainUI extends Application {
 
     private Button createFilterButton(String text, boolean active) {
         Button btn = new Button(text);
+        btn.setPrefHeight(40);
         if (active) {
             btn.setStyle(
                 "-fx-background-color: #2196F3;" +
@@ -2165,7 +2212,17 @@ public class MainUI extends Application {
     }
 
 
-    private HBox createProductRow(int id, String name, String category, String price, String stock, String status, VBox tableRows) {
+    private HBox createProductRow(Product product, VBox tableRows) {
+        int id = product.getId();
+        String name = product.getName();
+        String category = product.getCategory();
+        String price = String.format("%.0f đ", product.getPrice());
+        String stock = String.valueOf(product.getStock());
+        if (product.getUnit() != null && !product.getUnit().trim().isEmpty()) {
+            stock += " " + product.getUnit().trim();
+        }
+        String status = product.getStatus();
+        
         HBox row = new HBox(0);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(0));
@@ -2211,25 +2268,63 @@ public class MainUI extends Application {
         lblPrice.setAlignment(Pos.CENTER_RIGHT);
         
         Label lblStock = new Label(stock);
-        lblStock.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121;");
         lblStock.setPrefWidth(100);
         lblStock.setMinWidth(100);
         lblStock.setMaxWidth(100);
         lblStock.setPadding(new Insets(12, 15, 12, 15));
         lblStock.setAlignment(Pos.CENTER_RIGHT);
         
-        Label lblStatus = new Label(status);
-        lblStatus.setStyle(
-            "-fx-font-size: 12px;" +
-            "-fx-text-fill: #4CAF50;" +
-            "-fx-background-color: #E8F5E9;" +
-            "-fx-padding: 4px 10px;" +
-            "-fx-background-radius: 6;"
-        );
+        Label lblStatus = new Label();
         lblStatus.setPrefWidth(100);
         lblStatus.setMinWidth(100);
         lblStatus.setMaxWidth(100);
         lblStatus.setAlignment(Pos.CENTER);
+        
+        // Cảnh báo trực quan dựa trên tồn kho tối thiểu
+        int stockVal = product.getStock();
+        int minStockVal = product.getMinStock();
+        
+        if ("Tạm dừng".equals(status)) {
+            lblStatus.setText("Tạm dừng");
+            lblStatus.setStyle(
+                "-fx-font-size: 12px;" +
+                "-fx-text-fill: #9E9E9E;" +
+                "-fx-background-color: #F5F5F5;" +
+                "-fx-padding: 4px 10px;" +
+                "-fx-background-radius: 6;"
+            );
+            lblStock.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121;");
+        } else if (stockVal == 0 || "Hết hàng".equals(status)) {
+            lblStatus.setText("Hết hàng");
+            lblStatus.setStyle(
+                "-fx-font-size: 12px;" +
+                "-fx-text-fill: #C62828;" +
+                "-fx-background-color: #FFEBEE;" +
+                "-fx-padding: 4px 10px;" +
+                "-fx-background-radius: 6;"
+            );
+            lblStock.setStyle("-fx-font-size: 14px; -fx-text-fill: #C62828; -fx-font-weight: bold;");
+        } else if (stockVal <= minStockVal) {
+            lblStatus.setText("Sắp hết hàng");
+            lblStatus.setStyle(
+                "-fx-font-size: 12px;" +
+                "-fx-text-fill: #E65100;" +
+                "-fx-background-color: #FFE0B2;" +
+                "-fx-padding: 4px 10px;" +
+                "-fx-background-radius: 6;"
+            );
+            lblStock.setStyle("-fx-font-size: 14px; -fx-text-fill: #E65100; -fx-font-weight: bold;");
+        } else {
+            lblStatus.setText("Đang bán");
+            lblStatus.setStyle(
+                "-fx-font-size: 12px;" +
+                "-fx-text-fill: #2E7D32;" +
+                "-fx-background-color: #E8F5E9;" +
+                "-fx-padding: 4px 10px;" +
+                "-fx-background-radius: 6;"
+            );
+            lblStock.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121;");
+        }
         
         HBox actions = new HBox(6);
         actions.setAlignment(Pos.CENTER);
@@ -2250,7 +2345,7 @@ public class MainUI extends Application {
             "-fx-min-height: 32;"
         );
         btnEdit.setOnAction(e -> {
-            ProductForm form = new ProductForm(id, name, category, price, stock, () -> refreshProductTable(tableRows));
+            ProductForm form = new ProductForm(product, () -> refreshProductTable(tableRows));
             form.show();
         });
         
@@ -3149,7 +3244,7 @@ public class MainUI extends Application {
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
             
             com.itextpdf.layout.element.Table signatureTable = new com.itextpdf.layout.element.Table(
-                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{33, 34, 33}));
+                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{50, 50}));
             signatureTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             
             // Column 1: Xác nhận của khách hàng
@@ -3160,59 +3255,20 @@ public class MainUI extends Application {
             sig1Cell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n\n"));
             signatureTable.addCell(sig1Cell);
             
-            // Column 2: QR Thanh Toán
+            // Column 2: Chữ ký đại diện công ty
             com.itextpdf.layout.element.Cell sig2Cell = new com.itextpdf.layout.element.Cell().setBorder(null);
-            sig2Cell.add(new com.itextpdf.layout.element.Paragraph("QR Thanh Toán")
+            sig2Cell.add(new com.itextpdf.layout.element.Paragraph("Chữ ký đại diện công ty")
                 .setFont(font).setFontSize(10).setFontColor(redColor)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            
-            try {
-                // Generate QR code for payment
-                String bankAccount = "19035455876019";
-                String bankName = "Techcombank";
-                String accountHolder = "NGUYEN THI HANH";
-                String qrContent = accountHolder + "\n" + bankAccount + "\n" + bankName;
-                
-                com.google.zxing.BarcodeFormat format = com.google.zxing.BarcodeFormat.QR_CODE;
-                com.google.zxing.qrcode.QRCodeWriter qrWriter = new com.google.zxing.qrcode.QRCodeWriter();
-                com.google.zxing.common.BitMatrix bitMatrix = qrWriter.encode(qrContent, format, 120, 120);
-                
-                java.awt.image.BufferedImage qrImage = new java.awt.image.BufferedImage(120, 120, java.awt.image.BufferedImage.TYPE_INT_RGB);
-                for (int x = 0; x < 120; x++) {
-                    for (int y = 0; y < 120; y++) {
-                        qrImage.setRGB(x, y, bitMatrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF);
-                    }
-                }
-                
-                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-                javax.imageio.ImageIO.write(qrImage, "png", baos);
-                com.itextpdf.io.image.ImageData imageData = com.itextpdf.io.image.ImageDataFactory.create(baos.toByteArray());
-                com.itextpdf.layout.element.Image qrImg = new com.itextpdf.layout.element.Image(imageData);
-                qrImg.setWidth(80);
-                qrImg.setHeight(80);
-                qrImg.setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER);
-                sig2Cell.add(qrImg);
-            } catch (Exception e) {
-                sig2Cell.add(new com.itextpdf.layout.element.Paragraph("[QR CODE]")
-                    .setFont(font).setFontSize(10).setFontColor(blackColor)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            }
-            signatureTable.addCell(sig2Cell);
-            
-            // Column 3: Chữ ký đại diện công ty
-            com.itextpdf.layout.element.Cell sig3Cell = new com.itextpdf.layout.element.Cell().setBorder(null);
-            sig3Cell.add(new com.itextpdf.layout.element.Paragraph("Chữ ký đại diện công ty")
-                .setFont(font).setFontSize(10).setFontColor(redColor)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            sig3Cell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n"));
-            sig3Cell.add(new com.itextpdf.layout.element.Paragraph("Phạm Minh Tâm")
+            sig2Cell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n"));
+            sig2Cell.add(new com.itextpdf.layout.element.Paragraph("Phạm Minh Tâm")
                 .setFont(boldFont).setFontSize(11).setFontColor(redColor)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            signatureTable.addCell(sig3Cell);
+            signatureTable.addCell(sig2Cell);
             
             document.add(signatureTable);
             
-            // ===== BANK INFO FOOTER =====
+            // ===== FOOTER =====
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
             
             com.itextpdf.layout.element.Paragraph hotline = new com.itextpdf.layout.element.Paragraph(
@@ -3220,17 +3276,6 @@ public class MainUI extends Application {
                 .setFont(font).setFontSize(10).setFontColor(redColor)
                 .setMarginBottom(1);
             document.add(hotline);
-            
-            com.itextpdf.layout.element.Paragraph stk = new com.itextpdf.layout.element.Paragraph(
-                "STK: 19035455876019 (Techcombank)")
-                .setFont(font).setFontSize(10).setFontColor(redColor)
-                .setMarginBottom(1);
-            document.add(stk);
-            
-            com.itextpdf.layout.element.Paragraph stkOwner = new com.itextpdf.layout.element.Paragraph(
-                "Tên chủ STK: NGUYỄN THỊ HẠNH")
-                .setFont(boldFont).setFontSize(10).setFontColor(redColor);
-            document.add(stkOwner);
             
             document.close();
             

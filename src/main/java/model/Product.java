@@ -5,18 +5,24 @@ public class Product {
     private String name;
     private String category;
     private double price;
+    private double costPrice;
     private int stock;
+    private String unit;
     private String status;
+    private int minStock;
 
     public Product() {}
 
-    public Product(int id, String name, String category, double price, int stock, String status) {
+    public Product(int id, String name, String category, double price, double costPrice, int stock, String unit, String status, int minStock) {
         this.id = id;
         this.name = name;
         this.category = category;
         this.price = price;
+        this.costPrice = costPrice;
         this.stock = stock;
+        this.unit = unit;
         this.status = status;
+        this.minStock = minStock;
     }
 
     public int getId() { return id; }
@@ -31,9 +37,18 @@ public class Product {
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
 
+    public double getCostPrice() { return costPrice; }
+    public void setCostPrice(double costPrice) { this.costPrice = costPrice; }
+
     public int getStock() { return stock; }
     public void setStock(int stock) { this.stock = stock; }
 
+    public String getUnit() { return unit; }
+    public void setUnit(String unit) { this.unit = unit; }
+
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public int getMinStock() { return minStock; }
+    public void setMinStock(int minStock) { this.minStock = minStock; }
 }

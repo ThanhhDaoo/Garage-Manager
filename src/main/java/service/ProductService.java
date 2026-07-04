@@ -15,19 +15,19 @@ public class ProductService {
         return productDAO.getProductById(id);
     }
     
-    public boolean addProduct(String name, String category, double price, int stock, String status) {
+    public boolean addProduct(String name, String category, double price, double costPrice, int stock, String unit, String status, int minStock) {
         if (name == null || name.trim().isEmpty()) {
             return false;
         }
-        Product product = new Product(0, name, category, price, stock, status);
+        Product product = new Product(0, name, category, price, costPrice, stock, unit, status, minStock);
         return productDAO.addProduct(product);
     }
     
-    public boolean updateProduct(int id, String name, String category, double price, int stock, String status) {
+    public boolean updateProduct(int id, String name, String category, double price, double costPrice, int stock, String unit, String status, int minStock) {
         if (name == null || name.trim().isEmpty()) {
             return false;
         }
-        Product product = new Product(id, name, category, price, stock, status);
+        Product product = new Product(id, name, category, price, costPrice, stock, unit, status, minStock);
         return productDAO.updateProduct(product);
     }
     

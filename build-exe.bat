@@ -14,7 +14,7 @@ call mvn package
 echo.
 echo [3/4] Copying database file...
 if not exist "target\data" mkdir "target\data"
-copy "identifier.sqlite" "target\data\"
+copy "DuLieuMTProAuto.sqlite" "target\data\"
 
 echo.
 echo [4/4] Creating executable with Launch4j...
@@ -31,6 +31,6 @@ echo 4. Build để tạo file .exe
 
 echo.
 echo ✓ JAR file đã sẵn sàng tại: target\GarageManager-1.0-SNAPSHOT-shaded.jar
-echo ✓ Database đã được copy tại: target\data\identifier.sqlite
+echo ✓ Database đã được copy tại: target\data\DuLieuMTProAuto.sqlite
 echo.
 pause

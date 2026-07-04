@@ -8,6 +8,7 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import service.ProductService;
+import model.Product;
 
 public class ProductForm {
     
@@ -18,6 +19,9 @@ public class ProductForm {
     private String productCategory;
     private String productPrice;
     private String productStock;
+    private String productMinStock;
+    private String productCostPrice;
+    private String productUnit;
     private TextField txtName;
     private ToggleGroup categoryGroup;
     private TextArea txtDesc;
@@ -38,13 +42,16 @@ public class ProductForm {
         this.onSave = onSave;
     }
     
-    public ProductForm(int id, String productName, String category, String price, String stock, Runnable onSave) {
+    public ProductForm(Product product, Runnable onSave) {
         this.isEdit = true;
-        this.productId = id;
-        this.productName = productName;
-        this.productCategory = category;
-        this.productPrice = price;
-        this.productStock = stock;
+        this.productId = product.getId();
+        this.productName = product.getName();
+        this.productCategory = product.getCategory();
+        this.productPrice = String.format("%.0f", product.getPrice());
+        this.productStock = String.valueOf(product.getStock());
+        this.productMinStock = String.valueOf(product.getMinStock());
+        this.productCostPrice = String.format("%.0f", product.getCostPrice());
+        this.productUnit = product.getUnit();
         this.onSave = onSave;
     }
     
@@ -114,6 +121,7 @@ public class ProductForm {
         if (isEdit && productName != null) {
             txtName.setText(productName);
         }
+        UIUtils.setupIMEFix(txtName);
         
         // Category
         Label lblCategory = new Label("Danh mục *");
@@ -175,6 +183,18 @@ public class ProductForm {
             "-fx-font-size: 14px;"
         );
         txtPrice.setPrefWidth(400);
+        txtPrice.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) { // Lost focus
+                String text = txtPrice.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtPrice.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtPrice);
         if (isEdit && productPrice != null) {
             txtPrice.setText(productPrice.replace("đ", "").trim());
         }
@@ -192,6 +212,21 @@ public class ProductForm {
             "-fx-font-size: 14px;"
         );
         txtCostPrice.setPrefWidth(400);
+        txtCostPrice.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) { // Lost focus
+                String text = txtCostPrice.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostPrice.setText(clean);
+                    }
+                }
+            }
+        });
+        if (isEdit && productCostPrice != null) {
+            txtCostPrice.setText(productCostPrice);
+        }
+        UIUtils.setupIMEFix(txtCostPrice);
         
         // Stock quantity
         Label lblStock = new Label("Số lượng tồn kho *");
@@ -208,6 +243,18 @@ public class ProductForm {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
+        txtStock.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) { // Lost focus
+                String text = txtStock.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtStock.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtStock);
         if (isEdit && productStock != null) {
             txtStock.setText(productStock);
         }
@@ -225,6 +272,10 @@ public class ProductForm {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
+        if (isEdit && productUnit != null) {
+            txtUnit.setText(productUnit);
+        }
+        UIUtils.setupIMEFix(txtUnit);
         
         stockBox.getChildren().addAll(txtStock, lblUnit, txtUnit);
         
@@ -238,9 +289,25 @@ public class ProductForm {
             "-fx-padding: 12px 15px;" +
             "-fx-background-radius: 8;" +
             "-fx-border-color: transparent;" +
-            "-fx-font-size: 14px;"
+            "-fx-font-size: 14px;" +
+            "-fx-font-family: 'Times New Roman';"
         );
         txtMinStock.setPrefWidth(400);
+        txtMinStock.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) { // Lost focus
+                String text = txtMinStock.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtMinStock.setText(clean);
+                    }
+                }
+            }
+        });
+        if (isEdit && productMinStock != null) {
+            txtMinStock.setText(productMinStock);
+        }
+        UIUtils.setupIMEFix(txtMinStock);
         
         // Status
         Label lblStatus = new Label("Trạng thái");
@@ -348,20 +415,67 @@ public class ProductForm {
                 String category = selectedCategory != null ? selectedCategory.getText() : "Khác";
                 
                 double price = Double.parseDouble(txtPrice.getText().trim());
+                if (price < 0) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Cảnh báo");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Giá bán không được nhỏ hơn 0!");
+                    alert.showAndWait();
+                    return;
+                }
+                
                 int stock = Integer.parseInt(txtStock.getText().trim());
+                if (stock < 0) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Cảnh báo");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Số lượng tồn kho không được nhỏ hơn 0!");
+                    alert.showAndWait();
+                    return;
+                }
                 
                 // Get status
                 RadioButton selectedStatus = (RadioButton) statusGroup.getSelectedToggle();
                 String status = selectedStatus != null ? selectedStatus.getText() : "Còn hàng";
+                
+                int minStock = 0;
+                String minStockText = txtMinStock.getText().trim();
+                if (!minStockText.isEmpty()) {
+                    minStock = Integer.parseInt(minStockText);
+                    if (minStock < 0) {
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setTitle("Cảnh báo");
+                        alert.setHeaderText(null);
+                        alert.setContentText("Số lượng tối thiểu không được nhỏ hơn 0!");
+                        alert.showAndWait();
+                        return;
+                    }
+                }
+                
+                double costPrice = 0;
+                String costPriceText = txtCostPrice.getText().trim();
+                if (!costPriceText.isEmpty()) {
+                    costPrice = Double.parseDouble(costPriceText);
+                    if (costPrice < 0) {
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setTitle("Cảnh báo");
+                        alert.setHeaderText(null);
+                        alert.setContentText("Giá nhập không được nhỏ hơn 0!");
+                        alert.showAndWait();
+                        return;
+                    }
+                }
+                
+                String unit = txtUnit.getText().trim();
                 
                 // Save to database
                 ProductService productService = new ProductService();
                 boolean success;
                 
                 if (isEdit) {
-                    success = productService.updateProduct(productId, name, category, price, stock, status);
+                    success = productService.updateProduct(productId, name, category, price, costPrice, stock, unit, status, minStock);
                 } else {
-                    success = productService.addProduct(name, category, price, stock, status);
+                    success = productService.addProduct(name, category, price, costPrice, stock, unit, status, minStock);
                 }
                 
                 if (success) {

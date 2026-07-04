@@ -34,8 +34,11 @@ CREATE TABLE IF NOT EXISTS products (
     name TEXT NOT NULL,
     category TEXT,
     price REAL NOT NULL DEFAULT 0,
+    cost_price REAL DEFAULT 0,
     stock INTEGER NOT NULL DEFAULT 0,
+    unit TEXT,
     status TEXT DEFAULT 'Còn hàng',
+    min_stock INTEGER NOT NULL DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now','localtime'))
 );
 

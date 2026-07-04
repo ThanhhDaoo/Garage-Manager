@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.stream.Collectors;
@@ -12,7 +13,7 @@ import java.util.stream.Collectors;
 public class DatabaseManager {
     // Database sẽ được copy ra thư mục data bên cạnh file .exe
     private static final String DB_DIR = "data";
-    private static final String DB_FILE = "identifier.sqlite";
+    private static final String DB_FILE = "DuLieuMTProAuto.sqlite";
     private static final String DB_URL;
     private static Connection connection;
     
@@ -56,6 +57,47 @@ public class DatabaseManager {
     public static void initializeDatabase() {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
+            
+            // Tự động kiểm tra và thêm các cột min_stock, cost_price, unit nếu chưa tồn tại
+            boolean hasMinStock = false;
+            boolean hasCostPrice = false;
+            boolean hasUnit = false;
+            try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(products)")) {
+                while (rs.next()) {
+                    String columnName = rs.getString("name");
+                    if ("min_stock".equals(columnName)) {
+                        hasMinStock = true;
+                    } else if ("cost_price".equals(columnName)) {
+                        hasCostPrice = true;
+                    } else if ("unit".equals(columnName)) {
+                        hasUnit = true;
+                    }
+                }
+            }
+            if (!hasMinStock) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE products ADD COLUMN min_stock INTEGER NOT NULL DEFAULT 0;");
+                    System.out.println("✓ Đã thêm cột min_stock vào bảng products.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột min_stock: " + e.getMessage());
+                }
+            }
+            if (!hasCostPrice) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE products ADD COLUMN cost_price REAL DEFAULT 0;");
+                    System.out.println("✓ Đã thêm cột cost_price vào bảng products.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột cost_price: " + e.getMessage());
+                }
+            }
+            if (!hasUnit) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE products ADD COLUMN unit TEXT;");
+                    System.out.println("✓ Đã thêm cột unit vào bảng products.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột unit: " + e.getMessage());
+                }
+            }
             
             // Đọc file schema.sql từ resources
             InputStream is = DatabaseManager.class.getClassLoader()
