@@ -35,6 +35,13 @@ public class InvoiceService {
         return invoiceDAO.updateInvoice(invoice);
     }
     
+    public boolean updateInvoice(Invoice invoice) {
+        if (invoice == null || invoice.getCustomerName() == null || invoice.getCustomerName().trim().isEmpty()) {
+            return false;
+        }
+        return invoiceDAO.updateInvoice(invoice);
+    }
+    
     public boolean deleteInvoice(int id) {
         return invoiceDAO.deleteInvoice(id);
     }

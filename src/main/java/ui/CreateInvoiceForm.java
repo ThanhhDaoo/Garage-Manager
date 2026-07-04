@@ -39,6 +39,7 @@ public class CreateInvoiceForm {
     private TextField txtPhone;
     private TextField txtPlate;
     private TextField txtAddress;
+    private TextField txtNotes;
     private Runnable onInvoiceCreated;
     
     // Track selected items for saving to database
@@ -200,6 +201,21 @@ public class CreateInvoiceForm {
         txtAddress.setPrefWidth(300);
         UIUtils.setupIMEFix(txtAddress);
         
+        // Notes field
+        Label lblNotes = new Label("Ghi chú");
+        lblNotes.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
+        txtNotes = new TextField("");
+        txtNotes.setPromptText("Nhập ghi chú (ví dụ: Thanh toán trước 50%...)");
+        txtNotes.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 12px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        txtNotes.setPrefWidth(300);
+        UIUtils.setupIMEFix(txtNotes);
+        
         // Car type selection
         Label lblCarType = new Label("Loại xe *");
         lblCarType.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
@@ -251,6 +267,8 @@ public class CreateInvoiceForm {
         grid.add(txtAddress, 1, 3);
         grid.add(lblCarType, 0, 4);
         grid.add(carTypeBox, 1, 4);
+        grid.add(lblNotes, 0, 5);
+        grid.add(txtNotes, 1, 5);
         
         section.getChildren().addAll(sectionTitle, grid);
         return section;
@@ -836,8 +854,46 @@ public class CreateInvoiceForm {
             "-fx-border-radius: 4;" +
             "-fx-background-radius: 4;"
         );
-        itemDiscountCombo.setOnAction(e -> recalculateTotal());
+        
+        Label customDiscLabel = new Label("hoặc VNĐ:");
+        customDiscLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
+        
+        TextField txtCustomDiscount = new TextField();
+        txtCustomDiscount.setPromptText("Số tiền...");
+        txtCustomDiscount.setPrefWidth(90);
+        txtCustomDiscount.setStyle(
+            "-fx-font-size: 12px;" +
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-border-color: #bdbdbd;" +
+            "-fx-border-radius: 4;" +
+            "-fx-background-radius: 4;" +
+            "-fx-padding: 3 6;"
+        );
+        
+        // Ràng buộc chỉ nhập số
+        txtCustomDiscount.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.matches("\\d*")) {
+                txtCustomDiscount.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+        });
+        
+        // Đồng bộ để không xung đột giữa % và tiền mặt
+        itemDiscountCombo.setOnAction(e -> {
+            if (!itemDiscountCombo.getValue().equals("0%")) {
+                txtCustomDiscount.setText(""); // Xóa tiền mặt khi chọn phần trăm
+            }
+            recalculateTotal();
+        });
+        
+        txtCustomDiscount.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.trim().isEmpty()) {
+                itemDiscountCombo.setValue("0%"); // Reset % về 0% khi nhập tiền mặt
+            }
+            recalculateTotal();
+        });
+        
         container.getProperties().put("discountCombo", itemDiscountCombo);
+        container.getProperties().put("customDiscountField", txtCustomDiscount);
         
         Button btnRemove = new Button("✕");
         btnRemove.setStyle(
@@ -871,7 +927,7 @@ public class CreateInvoiceForm {
             recalculateTotal();
         });
         
-        topRow.getChildren().addAll(lblName, spacer, discLabel, itemDiscountCombo, btnRemove);
+        topRow.getChildren().addAll(lblName, spacer, discLabel, itemDiscountCombo, customDiscLabel, txtCustomDiscount, btnRemove);
         
         // === Bottom row: Price breakdown ===
         HBox bottomRow = new HBox(12);
@@ -1035,8 +1091,7 @@ public class CreateInvoiceForm {
             
             for (Map<String, Object> svc : selectedServices) {
                 double bp = (Double) svc.get("price");
-                int dp = getItemDiscountPercent(svc);
-                double da = bp * dp / 100.0;
+                double da = getItemDiscountAmount(svc, bp);
                 double ad = bp - da;
                 double vt = ad * 0.08;
                 totalSubtotal += bp;
@@ -1045,8 +1100,7 @@ public class CreateInvoiceForm {
             }
             for (Map<String, Object> pk : selectedPackages) {
                 double bp = (Double) pk.get("price");
-                int dp = getItemDiscountPercent(pk);
-                double da = bp * dp / 100.0;
+                double da = getItemDiscountAmount(pk, bp);
                 double ad = bp - da;
                 double vt = ad * 0.08;
                 totalSubtotal += bp;
@@ -1055,8 +1109,7 @@ public class CreateInvoiceForm {
             }
             for (Map<String, Object> pr : selectedProducts) {
                 double bp = (Double) pr.get("totalPrice");
-                int dp = getItemDiscountPercent(pr);
-                double da = bp * dp / 100.0;
+                double da = getItemDiscountAmount(pr, bp);
                 double ad = bp - da;
                 double vt = ad * 0.08;
                 totalSubtotal += bp;
@@ -1075,7 +1128,7 @@ public class CreateInvoiceForm {
                 totalSubtotal,
                 totalDiscountAmount,
                 totalFinalAmount,
-                ""
+                txtNotes.getText().trim()
             );
             
             if (invoiceId > 0) {
@@ -1085,8 +1138,8 @@ public class CreateInvoiceForm {
                 // Save services (totalPrice = price after discount, before VAT)
                 for (Map<String, Object> service : selectedServices) {
                     double bp = (Double) service.get("price");
-                    int dp = getItemDiscountPercent(service);
-                    double afterDisc = bp - (bp * dp / 100.0);
+                    double da = getItemDiscountAmount(service, bp);
+                    double afterDisc = bp - da;
                     itemService.addInvoiceItem(
                         invoiceId,
                         "service",
@@ -1100,8 +1153,8 @@ public class CreateInvoiceForm {
                 // Save packages
                 for (Map<String, Object> pkg : selectedPackages) {
                     double bp = (Double) pkg.get("price");
-                    int dp = getItemDiscountPercent(pkg);
-                    double afterDisc = bp - (bp * dp / 100.0);
+                    double da = getItemDiscountAmount(pkg, bp);
+                    double afterDisc = bp - da;
                     itemService.addInvoiceItem(
                         invoiceId,
                         "package",
@@ -1115,8 +1168,8 @@ public class CreateInvoiceForm {
                 // Save products
                 for (Map<String, Object> product : selectedProducts) {
                     double bp = (Double) product.get("totalPrice");
-                    int dp = getItemDiscountPercent(product);
-                    double afterDisc = bp - (bp * dp / 100.0);
+                    double da = getItemDiscountAmount(product, bp);
+                    double afterDisc = bp - da;
                     itemService.addInvoiceItem(
                         invoiceId,
                         "product",
@@ -1244,12 +1297,24 @@ public class CreateInvoiceForm {
     }
     
     @SuppressWarnings("unchecked")
-    private int getItemDiscountPercent(Map<String, Object> item) {
+    private double getItemDiscountAmount(Map<String, Object> item, double basePrice) {
         javafx.scene.Node node = (javafx.scene.Node) item.get("hbox");
         if (node != null) {
+            TextField txtCustom = (TextField) node.getProperties().get("customDiscountField");
+            if (txtCustom != null && !txtCustom.getText().trim().isEmpty()) {
+                try {
+                    double customDisc = Double.parseDouble(txtCustom.getText().trim().replaceAll("[^\\d]", ""));
+                    if (customDisc >= 0) {
+                        return Math.min(customDisc, basePrice); // Không giảm quá giá gốc
+                    }
+                } catch (NumberFormatException e) {
+                    // Fallback to combo
+                }
+            }
             ComboBox<String> combo = (ComboBox<String>) node.getProperties().get("discountCombo");
             if (combo != null && combo.getValue() != null) {
-                return Integer.parseInt(combo.getValue().replace("%", ""));
+                int pct = Integer.parseInt(combo.getValue().replace("%", ""));
+                return basePrice * pct / 100.0;
             }
         }
         return 0;
@@ -1265,8 +1330,8 @@ public class CreateInvoiceForm {
         // Process services
         for (Map<String, Object> service : selectedServices) {
             double basePrice = (Double) service.get("price");
-            int discPct = getItemDiscountPercent(service);
-            double[] result = calcItemTotals(service, basePrice, discPct);
+            double discAmount = getItemDiscountAmount(service, basePrice);
+            double[] result = calcItemTotals(service, basePrice, discAmount);
             grandSubtotal += result[0];
             grandDiscount += result[1];
             grandVat += result[2];
@@ -1276,8 +1341,8 @@ public class CreateInvoiceForm {
         // Process packages
         for (Map<String, Object> pkg : selectedPackages) {
             double basePrice = (Double) pkg.get("price");
-            int discPct = getItemDiscountPercent(pkg);
-            double[] result = calcItemTotals(pkg, basePrice, discPct);
+            double discAmount = getItemDiscountAmount(pkg, basePrice);
+            double[] result = calcItemTotals(pkg, basePrice, discAmount);
             grandSubtotal += result[0];
             grandDiscount += result[1];
             grandVat += result[2];
@@ -1287,8 +1352,8 @@ public class CreateInvoiceForm {
         // Process products
         for (Map<String, Object> product : selectedProducts) {
             double basePrice = (Double) product.get("totalPrice");
-            int discPct = getItemDiscountPercent(product);
-            double[] result = calcItemTotals(product, basePrice, discPct);
+            double discAmount = getItemDiscountAmount(product, basePrice);
+            double[] result = calcItemTotals(product, basePrice, discAmount);
             grandSubtotal += result[0];
             grandDiscount += result[1];
             grandVat += result[2];
@@ -1306,8 +1371,7 @@ public class CreateInvoiceForm {
     }
     
     @SuppressWarnings("unchecked")
-    private double[] calcItemTotals(Map<String, Object> item, double basePrice, int discPct) {
-        double discAmount = basePrice * discPct / 100.0;
+    private double[] calcItemTotals(Map<String, Object> item, double basePrice, double discAmount) {
         double afterDisc = basePrice - discAmount;
         double vat = afterDisc * 0.08;
         double itemTotal = afterDisc + vat;
@@ -1319,7 +1383,7 @@ public class CreateInvoiceForm {
             Label vatLbl = (Label) node.getProperties().get("vatLabel");
             Label totalLbl = (Label) node.getProperties().get("totalLabel");
             
-            if (discLabel != null) discLabel.setText(discPct > 0 ? "Giảm: -" + formatPrice(discAmount) : "");
+            if (discLabel != null) discLabel.setText(discAmount > 0 ? "Giảm: -" + formatPrice(discAmount) : "");
             if (vatLbl != null) vatLbl.setText("VAT 8%: " + formatPrice(vat));
             if (totalLbl != null) totalLbl.setText("= " + formatPrice(itemTotal));
         }

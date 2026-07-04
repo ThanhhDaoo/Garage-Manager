@@ -548,32 +548,7 @@ public class MainUI extends Application {
         // Store current filter
         final String[] currentStatus = {""};
         
-        // Add search listener
-        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            refreshInvoiceTableWithFilter(invoiceTableRows, newVal, currentStatus[0]);
-        });
-        
-        // Add filter button actions
-        btnAll.setOnAction(e -> {
-            currentStatus[0] = "";
-            updateFilterButtonStyles(btnAll, btnPaid, btnUnpaid);
-            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "");
-        });
-        
-        btnPaid.setOnAction(e -> {
-            currentStatus[0] = "paid";
-            updateFilterButtonStyles(btnPaid, btnAll, btnUnpaid);
-            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "paid");
-        });
-        
-        btnUnpaid.setOnAction(e -> {
-            currentStatus[0] = "nhap";
-            updateFilterButtonStyles(btnUnpaid, btnAll, btnPaid);
-            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "nhap");
-        });
-        
-        filterButtons.getChildren().addAll(btnAll, btnPaid, btnUnpaid);
-        
+        // Date picker for filtering by date
         DatePicker datePicker = new DatePicker();
         datePicker.setPromptText("Chọn ngày");
         datePicker.setStyle(
@@ -582,7 +557,56 @@ public class MainUI extends Application {
             "-fx-font-size: 14px;"
         );
         
-        filterBar.getChildren().addAll(searchField, filterButtons, datePicker);
+        Button btnClearDate = new Button("Xóa lọc ngày");
+        btnClearDate.setStyle(
+            "-fx-background-color: #ffebee;" +
+            "-fx-text-fill: #c62828;" +
+            "-fx-font-size: 13px;" +
+            "-fx-padding: 8 12;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnClearDate.setVisible(false);
+        btnClearDate.setManaged(false); // Hide completely when not visible
+        
+        datePicker.valueProperty().addListener((observable, oldVal, newVal) -> {
+            boolean hasDate = (newVal != null);
+            btnClearDate.setVisible(hasDate);
+            btnClearDate.setManaged(hasDate);
+            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), currentStatus[0], newVal);
+        });
+        
+        btnClearDate.setOnAction(e -> {
+            datePicker.setValue(null);
+        });
+        
+        // Add search listener
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            refreshInvoiceTableWithFilter(invoiceTableRows, newVal, currentStatus[0], datePicker.getValue());
+        });
+        
+        // Add filter button actions
+        btnAll.setOnAction(e -> {
+            currentStatus[0] = "";
+            updateFilterButtonStyles(btnAll, btnPaid, btnUnpaid);
+            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "", datePicker.getValue());
+        });
+        
+        btnPaid.setOnAction(e -> {
+            currentStatus[0] = "paid";
+            updateFilterButtonStyles(btnPaid, btnAll, btnUnpaid);
+            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "paid", datePicker.getValue());
+        });
+        
+        btnUnpaid.setOnAction(e -> {
+            currentStatus[0] = "nhap";
+            updateFilterButtonStyles(btnUnpaid, btnAll, btnPaid);
+            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "nhap", datePicker.getValue());
+        });
+        
+        filterButtons.getChildren().addAll(btnAll, btnPaid, btnUnpaid);
+        
+        filterBar.getChildren().addAll(searchField, filterButtons, datePicker, btnClearDate);
 
         // Table
         VBox tableContainer = new VBox(0);
@@ -609,55 +633,63 @@ public class MainUI extends Application {
         );
         
         Label hMaHD = new Label("Mã HĐ");
-        hMaHD.setPrefWidth(100);
-        hMaHD.setMinWidth(100);
-        hMaHD.setMaxWidth(100);
-        hMaHD.setPadding(new Insets(0, 15, 0, 15));
+        hMaHD.setPrefWidth(70);
+        hMaHD.setMinWidth(70);
+        hMaHD.setMaxWidth(70);
+        hMaHD.setPadding(new Insets(0, 5, 0, 5));
         hMaHD.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hMaHD.setAlignment(Pos.CENTER_LEFT);
         
         Label hKhachHang = new Label("Khách Hàng");
-        hKhachHang.setPrefWidth(200);
-        hKhachHang.setMinWidth(200);
-        hKhachHang.setMaxWidth(200);
-        hKhachHang.setPadding(new Insets(0, 15, 0, 15));
+        hKhachHang.setPrefWidth(150);
+        hKhachHang.setMinWidth(150);
+        hKhachHang.setMaxWidth(150);
+        hKhachHang.setPadding(new Insets(0, 5, 0, 5));
         hKhachHang.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hKhachHang.setAlignment(Pos.CENTER_LEFT);
         
         Label hDichVu = new Label("Dịch Vụ");
-        hDichVu.setPrefWidth(200);
-        hDichVu.setMinWidth(200);
-        hDichVu.setMaxWidth(Double.MAX_VALUE);
-        hDichVu.setPadding(new Insets(0, 15, 0, 15));
+        hDichVu.setPrefWidth(120);
+        hDichVu.setMinWidth(120);
+        hDichVu.setMaxWidth(120);
+        hDichVu.setPadding(new Insets(0, 5, 0, 5));
         hDichVu.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hDichVu.setAlignment(Pos.CENTER_LEFT);
         
+        Label hGhiChu = new Label("Ghi Chú");
+        hGhiChu.setPrefWidth(200);
+        hGhiChu.setMinWidth(150);
+        hGhiChu.setMaxWidth(Double.MAX_VALUE);
+        hGhiChu.setPadding(new Insets(0, 5, 0, 5));
+        hGhiChu.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        hGhiChu.setAlignment(Pos.CENTER_LEFT);
+        
         Label hTongTien = new Label("Tổng Tiền");
-        hTongTien.setPrefWidth(150);
-        hTongTien.setMinWidth(150);
-        hTongTien.setMaxWidth(150);
-        hTongTien.setPadding(new Insets(0, 15, 0, 15));
+        hTongTien.setPrefWidth(120);
+        hTongTien.setMinWidth(120);
+        hTongTien.setMaxWidth(120);
+        hTongTien.setPadding(new Insets(0, 5, 0, 5));
         hTongTien.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hTongTien.setAlignment(Pos.CENTER_RIGHT);
         
         Label hTrangThai = new Label("Trạng Thái");
-        hTrangThai.setPrefWidth(120);
-        hTrangThai.setMinWidth(120);
-        hTrangThai.setMaxWidth(120);
-        hTrangThai.setPadding(new Insets(0, 15, 0, 15));
+        hTrangThai.setPrefWidth(130);
+        hTrangThai.setMinWidth(130);
+        hTrangThai.setMaxWidth(130);
+        hTrangThai.setPadding(new Insets(0, 5, 0, 5));
         hTrangThai.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hTrangThai.setAlignment(Pos.CENTER);
         
         Label hThaoTac = new Label("Thao Tác");
-        hThaoTac.setPrefWidth(180);
-        hThaoTac.setMinWidth(180);
-        hThaoTac.setMaxWidth(180);
-        hThaoTac.setPadding(new Insets(0, 15, 0, 15));
+        hThaoTac.setPrefWidth(150);
+        hThaoTac.setMinWidth(150);
+        hThaoTac.setMaxWidth(150);
+        hThaoTac.setPadding(new Insets(0, 5, 0, 5));
         hThaoTac.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hThaoTac.setAlignment(Pos.CENTER);
         
-        tableHeader.getChildren().addAll(hMaHD, hKhachHang, hDichVu, hTongTien, hTrangThai, hThaoTac);
-        HBox.setHgrow(hDichVu, Priority.ALWAYS);
+        tableHeader.getChildren().addAll(hMaHD, hKhachHang, hDichVu, hGhiChu, hTongTien, hTrangThai, hThaoTac);
+        HBox.setHgrow(hGhiChu, Priority.ALWAYS);
         
         // Load data from database
         refreshInvoiceTable(invoiceTableRows);
@@ -678,10 +710,10 @@ public class MainUI extends Application {
     }
     
     private void refreshInvoiceTable(VBox tableRows) {
-        refreshInvoiceTableWithFilter(tableRows, "", "");
+        refreshInvoiceTableWithFilter(tableRows, "", "", null);
     }
     
-    private void refreshInvoiceTableWithFilter(VBox tableRows, String searchText, String status) {
+    private void refreshInvoiceTableWithFilter(VBox tableRows, String searchText, String status, java.time.LocalDate filterDate) {
         tableRows.getChildren().clear();
         InvoiceService invoiceService = new InvoiceService();
         List<Invoice> invoices = invoiceService.getAllInvoices();
@@ -690,6 +722,14 @@ public class MainUI extends Application {
         if (status != null && !status.trim().isEmpty()) {
             invoices = invoices.stream()
                 .filter(i -> i.getStatus().equals(status))
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
+        // Filter by date
+        if (filterDate != null) {
+            String dateStr = filterDate.toString(); // YYYY-MM-DD
+            invoices = invoices.stream()
+                .filter(i -> i.getCreatedAt() != null && i.getCreatedAt().startsWith(dateStr))
                 .collect(java.util.stream.Collectors.toList());
         }
         
@@ -717,13 +757,14 @@ public class MainUI extends Application {
                     "Dịch vụ",
                     String.format("%.0f đ", invoice.getTotalAmount()),
                     invoice.getStatus(),
+                    invoice.getNotes(),
                     tableRows
                 ));
             }
         }
     }
     
-    private HBox createInvoiceRow(int id, String customerName, String service, String totalAmount, String status, VBox tableRows) {
+    private HBox createInvoiceRow(int id, String customerName, String service, String totalAmount, String status, String notes, VBox tableRows) {
         HBox row = new HBox(0);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(0));
@@ -746,34 +787,42 @@ public class MainUI extends Application {
         
         Label lblId = new Label(String.format("%05d", id));
         lblId.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 500;");
-        lblId.setPrefWidth(100);
-        lblId.setMinWidth(100);
-        lblId.setMaxWidth(100);
-        lblId.setPadding(new Insets(12, 15, 12, 15));
+        lblId.setPrefWidth(70);
+        lblId.setMinWidth(70);
+        lblId.setMaxWidth(70);
+        lblId.setPadding(new Insets(12, 5, 12, 5));
         lblId.setAlignment(Pos.CENTER_LEFT);
         
         Label lblCustomer = new Label(customerName);
         lblCustomer.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121;");
-        lblCustomer.setPrefWidth(200);
-        lblCustomer.setMinWidth(200);
-        lblCustomer.setMaxWidth(200);
-        lblCustomer.setPadding(new Insets(12, 15, 12, 15));
+        lblCustomer.setPrefWidth(150);
+        lblCustomer.setMinWidth(150);
+        lblCustomer.setMaxWidth(150);
+        lblCustomer.setPadding(new Insets(12, 5, 12, 5));
         lblCustomer.setAlignment(Pos.CENTER_LEFT);
         
         Label lblService = new Label(service);
         lblService.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
-        lblService.setPrefWidth(200);
-        lblService.setMinWidth(200);
-        lblService.setMaxWidth(Double.MAX_VALUE);
-        lblService.setPadding(new Insets(12, 15, 12, 15));
+        lblService.setPrefWidth(120);
+        lblService.setMinWidth(120);
+        lblService.setMaxWidth(120);
+        lblService.setPadding(new Insets(12, 5, 12, 5));
         lblService.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblNotes = new Label(notes != null ? notes : "");
+        lblNotes.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+        lblNotes.setPrefWidth(200);
+        lblNotes.setMinWidth(150);
+        lblNotes.setMaxWidth(Double.MAX_VALUE);
+        lblNotes.setPadding(new Insets(12, 5, 12, 5));
+        lblNotes.setAlignment(Pos.CENTER_LEFT);
         
         Label lblTotal = new Label(totalAmount);
         lblTotal.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
-        lblTotal.setPrefWidth(150);
-        lblTotal.setMinWidth(150);
-        lblTotal.setMaxWidth(150);
-        lblTotal.setPadding(new Insets(12, 15, 12, 15));
+        lblTotal.setPrefWidth(120);
+        lblTotal.setMinWidth(120);
+        lblTotal.setMaxWidth(120);
+        lblTotal.setPadding(new Insets(12, 5, 12, 5));
         lblTotal.setAlignment(Pos.CENTER_RIGHT);
         
         Label lblStatus = new Label(status.equals("nhap") ? "Chưa thanh toán" : "Đã thanh toán");
@@ -784,17 +833,17 @@ public class MainUI extends Application {
             "-fx-padding: 4px 10px;" +
             "-fx-background-radius: 6;"
         );
-        lblStatus.setPrefWidth(120);
-        lblStatus.setMinWidth(120);
-        lblStatus.setMaxWidth(120);
+        lblStatus.setPrefWidth(130);
+        lblStatus.setMinWidth(130);
+        lblStatus.setMaxWidth(130);
         lblStatus.setAlignment(Pos.CENTER);
         
         HBox actions = new HBox(6);
         actions.setAlignment(Pos.CENTER);
-        actions.setPrefWidth(180);
-        actions.setMinWidth(180);
-        actions.setMaxWidth(180);
-        actions.setPadding(new Insets(12, 15, 12, 15));
+        actions.setPrefWidth(150);
+        actions.setMinWidth(150);
+        actions.setMaxWidth(150);
+        actions.setPadding(new Insets(12, 5, 12, 5));
         
         Button btnPDF = new Button("Xuất");
         btnPDF.setStyle(
@@ -854,8 +903,8 @@ public class MainUI extends Application {
         
         actions.getChildren().addAll(btnPDF, btnView, btnDelete);
         
-        row.getChildren().addAll(lblId, lblCustomer, lblService, lblTotal, lblStatus, actions);
-        HBox.setHgrow(lblService, Priority.ALWAYS);
+        row.getChildren().addAll(lblId, lblCustomer, lblService, lblNotes, lblTotal, lblStatus, actions);
+        HBox.setHgrow(lblNotes, Priority.ALWAYS);
         return row;
     }
 
@@ -2827,14 +2876,15 @@ public class MainUI extends Application {
                 // Add detail sub-row showing unit price, quantity, and discount
                 double originalTotal = item.getUnitPrice() * item.getQuantity();
                 double itemDiscount = originalTotal - item.getTotalPrice();
-                int discountPercent = 0;
-                if (itemDiscount > 0 && originalTotal > 0) {
-                    discountPercent = (int) Math.round((itemDiscount / originalTotal) * 100.0);
-                }
                 
                 String detailStr = String.format("Đơn giá: %,.0f đ | Số lượng: %d", item.getUnitPrice(), item.getQuantity());
-                if (discountPercent > 0) {
-                    detailStr += String.format(" | Giảm giá: %d%%", discountPercent);
+                if (itemDiscount > 0 && originalTotal > 0) {
+                    double pct = (itemDiscount / originalTotal) * 100.0;
+                    if (Math.abs(pct - Math.round(pct)) < 0.01 && Math.round(pct) % 5 == 0) {
+                        detailStr += String.format(" | Giảm giá: %.0f%%", pct);
+                    } else {
+                        detailStr += String.format(" | Giảm giá: -%,.0f đ", itemDiscount);
+                    }
                 }
                 
                 Label lblDetails = new Label(detailStr);
@@ -2906,25 +2956,31 @@ public class MainUI extends Application {
         statusBox.getChildren().addAll(rbUnpaid, rbPaid);
         statusSection.getChildren().addAll(statusTitle, statusBox);
         
-        // Notes section
-        if (invoice.getNotes() != null && !invoice.getNotes().trim().isEmpty()) {
-            VBox notesSection = new VBox(10);
-            notesSection.setStyle(
-                "-fx-background-color: #FFF3E0;" +
-                "-fx-background-radius: 12;" +
-                "-fx-padding: 20;"
-            );
-            
-            Label notesTitle = new Label("Ghi Chú");
-            notesTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #212121;");
-            
-            Label lblNotes = new Label(invoice.getNotes());
-            lblNotes.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
-            lblNotes.setWrapText(true);
-            
-            notesSection.getChildren().addAll(notesTitle, lblNotes);
-            content.getChildren().add(notesSection);
-        }
+        // Notes section (always visible and editable)
+        VBox notesSection = new VBox(10);
+        notesSection.setStyle(
+            "-fx-background-color: #FFF3E0;" +
+            "-fx-background-radius: 12;" +
+            "-fx-padding: 20;"
+        );
+        
+        Label notesTitle = new Label("Ghi Chú");
+        notesTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        TextArea txtAreaNotes = new TextArea(invoice.getNotes() != null ? invoice.getNotes() : "");
+        txtAreaNotes.setPromptText("Nhập ghi chú hoặc thông tin thanh toán (ví dụ: Khách thanh toán trước 50%...)");
+        txtAreaNotes.setPrefRowCount(3);
+        txtAreaNotes.setWrapText(true);
+        txtAreaNotes.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: #ffe0b2;" +
+            "-fx-border-radius: 8;" +
+            "-fx-font-size: 14px;"
+        );
+        UIUtils.setupIMEFix(txtAreaNotes);
+        
+        notesSection.getChildren().addAll(notesTitle, txtAreaNotes);
         
         // Buttons
         HBox buttonBox = new HBox(15);
@@ -2967,20 +3023,28 @@ public class MainUI extends Application {
             // Get selected status
             RadioButton selected = (RadioButton) statusGroup.getSelectedToggle();
             String newStatus = selected == rbPaid ? "paid" : "nhap";
+            String newNotes = txtAreaNotes.getText().trim();
             
-            // Update status in database
-            if (invoiceService.updateInvoiceStatus(invoiceId, newStatus)) {
-                showSuccessAlert("Thành công", "Cập nhật trạng thái thành công!");
-                refreshInvoiceTable(tableRows);
-                dialogStage.close();
+            // Update in database
+            Invoice inv = invoiceService.getInvoiceById(invoiceId);
+            if (inv != null) {
+                inv.setStatus(newStatus);
+                inv.setNotes(newNotes);
+                if (invoiceService.updateInvoice(inv)) {
+                    showSuccessAlert("Thành công", "Cập nhật hóa đơn thành công!");
+                    refreshInvoiceTable(tableRows);
+                    dialogStage.close();
+                } else {
+                    showErrorAlert("Lỗi", "Không thể cập nhật hóa đơn!");
+                }
             } else {
-                showErrorAlert("Lỗi", "Không thể cập nhật trạng thái!");
+                showErrorAlert("Lỗi", "Không tìm thấy hóa đơn!");
             }
         });
         
         buttonBox.getChildren().addAll(btnClose, btnUpdate);
         
-        content.getChildren().addAll(title, customerSection, itemsSection, paymentSection, statusSection, buttonBox);
+        content.getChildren().addAll(title, customerSection, itemsSection, paymentSection, statusSection, notesSection, buttonBox);
         
         ScrollPane scrollPane = new ScrollPane(content);
         scrollPane.setFitToWidth(true);
@@ -3153,8 +3217,12 @@ public class MainUI extends Application {
                     double originalTotal = item.getUnitPrice() * item.getQuantity();
                     double itemDiscount = originalTotal - item.getTotalPrice();
                     if (itemDiscount > 0 && originalTotal > 0) {
-                        double pct = Math.round((itemDiscount / originalTotal) * 100.0);
-                        discount = String.format("%.0f%%", pct);
+                        double pct = (itemDiscount / originalTotal) * 100.0;
+                        if (Math.abs(pct - Math.round(pct)) < 0.01 && Math.round(pct) % 5 == 0) {
+                            discount = String.format("%.0f%%", pct);
+                        } else {
+                            discount = String.format("%,.0f", itemDiscount);
+                        }
                     } else {
                         discount = "";
                     }
