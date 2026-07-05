@@ -16,12 +16,24 @@ import service.ServiceService;
 import service.PackageService;
 import service.ProductService;
 import service.InvoiceService;
+import service.InvoiceItemService;
+import service.AppointmentService;
+import service.EmployeeService;
+import service.AttendanceService;
+import service.PayrollService;
+
 import model.Service;
 import model.Package;
 import model.Product;
 import model.Invoice;
+import model.InvoiceItem;
+import model.Appointment;
+import model.Employee;
+import model.Attendance;
+import model.Payroll;
 import java.util.List;
 import java.time.LocalDate;
+import java.time.YearMonth;
 
 public class MainUI extends Application {
 
@@ -167,6 +179,7 @@ public class MainUI extends Application {
         Button btnPackage = createModernMenuButton("📦", "Gói Dịch Vụ", "#2196F3", false);
         Button btnProduct = createModernMenuButton("🛒", "Sản Phẩm", "#2196F3", false);
         Button btnReport = createModernMenuButton("📈", "Báo Cáo", "#2196F3", false);
+        Button btnHR = createModernMenuButton("👥", "Nhân Sự", "#2196F3", false);
 
         btnDashboard.setOnAction(e -> {
             resetMenuButtons();
@@ -203,6 +216,11 @@ public class MainUI extends Application {
             setActiveButton(btnReport);
             showReport();
         });
+        btnHR.setOnAction(e -> {
+            resetMenuButtons();
+            setActiveButton(btnHR);
+            showHRManagement();
+        });
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
@@ -219,7 +237,7 @@ public class MainUI extends Application {
 
         sidebar.getChildren().addAll(
             btnDashboard, btnAppointment, btnInvoice, btnService, 
-            btnPackage, btnProduct, btnReport, spacer, btnLogout
+            btnPackage, btnProduct, btnReport, btnHR, spacer, btnLogout
         );
 
         return sidebar;
@@ -356,7 +374,7 @@ public class MainUI extends Application {
         }
     }
 
-    private List<String> getAvailableYears() {
+    public List<String> getAvailableYears() {
         java.util.Set<String> years = new java.util.TreeSet<>(java.util.Comparator.reverseOrder());
         
         int curYear = LocalDate.now().getYear();
@@ -4641,5 +4659,1053 @@ public class MainUI extends Application {
         Scene scene = new Scene(content, 450, 480);
         dialogStage.setScene(scene);
         dialogStage.show();
+    }
+
+    private void showHRManagement() {
+        currentView = "hr";
+        VBox view = new VBox(25);
+        view.setPadding(new Insets(30));
+
+        Label title = new Label("👥 Quản Lý Nhân Sự & Tính Lương");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+
+        TabPane tabPane = new TabPane();
+        tabPane.setStyle("-fx-background-color: transparent;");
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+
+        Tab tabEmployee = new Tab("Hồ Sơ Nhân Viên");
+        tabEmployee.setContent(createEmployeeTab());
+
+        Tab tabAttendance = new Tab("Chấm Công Tháng");
+        tabAttendance.setContent(createAttendanceTab());
+
+        Tab tabPayroll = new Tab("Tính Lương & Phiếu Lương");
+        tabPayroll.setContent(createPayrollTab());
+
+        tabPane.getTabs().addAll(tabEmployee, tabAttendance, tabPayroll);
+        VBox.setVgrow(tabPane, Priority.ALWAYS);
+
+        view.getChildren().addAll(title, tabPane);
+
+        contentArea.getChildren().clear();
+        contentArea.getChildren().add(view);
+    }
+
+    private VBox createEmployeeTab() {
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(20, 0, 20, 0));
+        root.setStyle("-fx-background-color: transparent;");
+
+        // Filter & Add bar
+        HBox topBar = new HBox(15);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("🔍 Tìm kiếm nhân viên (Tên hoặc mã)...");
+        searchField.setPrefWidth(350);
+        searchField.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 10px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button btnAdd = new Button("+ Thêm Nhân Viên Mới");
+        btnAdd.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-weight: bold;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        topBar.getChildren().addAll(searchField, spacer, btnAdd);
+
+        // Table container
+        VBox tableContainer = new VBox(0);
+        tableContainer.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 10, 0, 0, 5);"
+        );
+
+        // Table Header
+        HBox tableHeader = new HBox(0);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+        tableHeader.setPadding(new Insets(15, 20, 15, 20));
+        tableHeader.setStyle("-fx-background-color: #F9FAFB; -fx-background-radius: 12 12 0 0; -fx-border-color: #e0e0e0; -fx-border-width: 0 0 1 0;");
+
+        Label colCode = new Label("Mã NV");
+        colCode.setPrefWidth(90);
+        colCode.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colName = new Label("Họ Tên");
+        colName.setPrefWidth(180);
+        colName.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colPhone = new Label("Số Điện Thoại");
+        colPhone.setPrefWidth(120);
+        colPhone.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colPosition = new Label("Chức Vụ");
+        colPosition.setPrefWidth(140);
+        colPosition.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colSalary = new Label("Lương Cơ Bản");
+        colSalary.setPrefWidth(130);
+        colSalary.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colStartDate = new Label("Ngày Vào Làm");
+        colStartDate.setPrefWidth(120);
+        colStartDate.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colAction = new Label("Thao Tác");
+        colAction.setPrefWidth(100);
+        colAction.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        tableHeader.getChildren().addAll(colCode, colName, colPhone, colPosition, colSalary, colStartDate, colAction);
+
+        VBox tableRows = new VBox(0);
+        ScrollPane scrollPane = new ScrollPane(tableRows);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+
+        tableContainer.getChildren().addAll(tableHeader, scrollPane);
+        VBox.setVgrow(tableContainer, Priority.ALWAYS);
+
+        root.getChildren().addAll(topBar, tableContainer);
+
+        Runnable refreshList = () -> {
+            tableRows.getChildren().clear();
+            EmployeeService empService = new EmployeeService();
+            List<Employee> list = empService.getAllEmployees();
+            String query = searchField.getText().toLowerCase().trim();
+            for (Employee emp : list) {
+                if (query.isEmpty() || emp.getName().toLowerCase().contains(query) || emp.getEmployeeCode().toLowerCase().contains(query)) {
+                    tableRows.getChildren().add(createEmployeeRow(emp, () -> {
+                        // Refresh after action
+                        searchField.setText(searchField.getText());
+                    }));
+                }
+            }
+        };
+
+        searchField.textProperty().addListener((obs, old, val) -> refreshList.run());
+        btnAdd.setOnAction(e -> showEmployeeDialog(null, refreshList));
+
+        refreshList.run();
+        return root;
+    }
+
+    private HBox createEmployeeRow(Employee emp, Runnable onRefresh) {
+        HBox row = new HBox(0);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(12, 20, 12, 20));
+        row.setStyle("-fx-background-color: white; -fx-border-color: #f1f3f9; -fx-border-width: 0 0 1 0;");
+
+        Label colCode = new Label(emp.getEmployeeCode());
+        colCode.setPrefWidth(90);
+        colCode.setStyle("-fx-font-weight: bold; -fx-text-fill: #1976D2;");
+
+        Label colName = new Label(emp.getName());
+        colName.setPrefWidth(180);
+        colName.setStyle("-fx-font-weight: 500; -fx-text-fill: #212121;");
+
+        Label colPhone = new Label(emp.getPhone() != null ? emp.getPhone() : "-");
+        colPhone.setPrefWidth(120);
+        colPhone.setStyle("-fx-text-fill: #424242;");
+
+        Label colPosition = new Label(emp.getPosition() != null ? emp.getPosition() : "-");
+        colPosition.setPrefWidth(140);
+        colPosition.setStyle("-fx-text-fill: #424242;");
+
+        Label colSalary = new Label(String.format("%,.0f đ", emp.getBasicSalary()));
+        colSalary.setPrefWidth(130);
+        colSalary.setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: bold;");
+
+        Label colStartDate = new Label(emp.getStartDate() != null ? emp.getStartDate() : "-");
+        colStartDate.setPrefWidth(120);
+        colStartDate.setStyle("-fx-text-fill: #616161;");
+
+        HBox actions = new HBox(8);
+        actions.setPrefWidth(100);
+        actions.setAlignment(Pos.CENTER_LEFT);
+
+        Button btnEdit = new Button("✏");
+        btnEdit.setStyle("-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2; -fx-font-size: 13px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnEdit.setOnAction(e -> showEmployeeDialog(emp, onRefresh));
+
+        Button btnDelete = new Button("🗑");
+        btnDelete.setStyle("-fx-background-color: #FFEBEE; -fx-text-fill: #D32F2F; -fx-font-size: 13px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnDelete.setOnAction(e -> {
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Bạn có chắc chắn muốn xóa nhân viên " + emp.getName() + "?", ButtonType.YES, ButtonType.NO);
+            confirm.setHeaderText(null);
+            confirm.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.YES) {
+                    EmployeeService empService = new EmployeeService();
+                    empService.deleteEmployee(emp.getId());
+                    onRefresh.run();
+                }
+            });
+        });
+
+        actions.getChildren().addAll(btnEdit, btnDelete);
+
+        row.getChildren().addAll(colCode, colName, colPhone, colPosition, colSalary, colStartDate, actions);
+
+        row.setOnMouseEntered(e -> row.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #f1f3f9; -fx-border-width: 0 0 1 0;"));
+        row.setOnMouseExited(e -> row.setStyle("-fx-background-color: white; -fx-border-color: #f1f3f9; -fx-border-width: 0 0 1 0;"));
+
+        return row;
+    }
+
+    private void showEmployeeDialog(Employee emp, Runnable onSaved) {
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        dialogStage.setTitle(emp != null ? "Chỉnh Sửa Nhân Viên" : "Thêm Nhân Viên Mới");
+
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(25));
+        root.setStyle("-fx-background-color: white;");
+
+        Label title = new Label(emp != null ? "👥 Chỉnh Sửa Nhân Viên" : "👥 Thêm Nhân Viên Mới");
+        title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #212121;");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(15);
+        grid.setVgap(15);
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(140);
+        col1.setPrefWidth(140);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setMinWidth(300);
+        col2.setPrefWidth(300);
+        col2.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col1, col2);
+
+        Label lblCode = new Label("Mã nhân viên *");
+        lblCode.setStyle("-fx-font-weight: 500;");
+        TextField txtCode = new TextField(emp != null ? emp.getEmployeeCode() : "");
+        txtCode.setPromptText("Ví dụ: NV001");
+        txtCode.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 10px; -fx-background-radius: 6;");
+
+        Label lblName = new Label("Họ tên *");
+        lblName.setStyle("-fx-font-weight: 500;");
+        TextField txtName = new TextField(emp != null ? emp.getName() : "");
+        txtName.setPromptText("Nhập họ tên...");
+        txtName.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 10px; -fx-background-radius: 6;");
+
+        Label lblPhone = new Label("Số điện thoại");
+        lblPhone.setStyle("-fx-font-weight: 500;");
+        TextField txtPhone = new TextField(emp != null ? emp.getPhone() : "");
+        txtPhone.setPromptText("Nhập số điện thoại...");
+        txtPhone.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 10px; -fx-background-radius: 6;");
+
+        Label lblAddress = new Label("Địa chỉ");
+        lblAddress.setStyle("-fx-font-weight: 500;");
+        TextField txtAddress = new TextField(emp != null ? emp.getAddress() : "");
+        txtAddress.setPromptText("Nhập địa chỉ...");
+        txtAddress.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 10px; -fx-background-radius: 6;");
+
+        Label lblDob = new Label("Ngày sinh");
+        lblDob.setStyle("-fx-font-weight: 500;");
+        DatePicker dpDob = new DatePicker();
+        dpDob.setStyle("-fx-pref-width: 300px; -fx-font-size: 13px;");
+        if (emp != null && emp.getDob() != null && !emp.getDob().isEmpty()) {
+            try { dpDob.setValue(LocalDate.parse(emp.getDob())); } catch (Exception ex) {}
+        }
+
+        Label lblGender = new Label("Giới tính");
+        lblGender.setStyle("-fx-font-weight: 500;");
+        ComboBox<String> cbGender = new ComboBox<>();
+        cbGender.getItems().addAll("Nam", "Nữ", "Khác");
+        cbGender.setValue(emp != null && emp.getGender() != null ? emp.getGender() : "Nam");
+        cbGender.setStyle("-fx-pref-width: 300px; -fx-background-color: #f5f5f5; -fx-background-radius: 6;");
+
+        Label lblStartDate = new Label("Ngày vào làm");
+        lblStartDate.setStyle("-fx-font-weight: 500;");
+        DatePicker dpStartDate = new DatePicker();
+        dpStartDate.setStyle("-fx-pref-width: 300px; -fx-font-size: 13px;");
+        if (emp != null && emp.getStartDate() != null && !emp.getStartDate().isEmpty()) {
+            try { dpStartDate.setValue(LocalDate.parse(emp.getStartDate())); } catch (Exception ex) {}
+        } else {
+            dpStartDate.setValue(LocalDate.now());
+        }
+
+        Label lblPosition = new Label("Chức vụ *");
+        lblPosition.setStyle("-fx-font-weight: 500;");
+        ComboBox<String> cbPosition = new ComboBox<>();
+        cbPosition.getItems().addAll("Kỹ thuật điện", "Kỹ thuật viên", "Học viên", "Quản lý", "Khác");
+        cbPosition.setValue(emp != null && emp.getPosition() != null ? emp.getPosition() : "Kỹ thuật viên");
+        cbPosition.setEditable(true);
+        cbPosition.setStyle("-fx-pref-width: 300px; -fx-background-color: #f5f5f5; -fx-background-radius: 6;");
+
+        Label lblSalary = new Label("Lương cơ bản *");
+        lblSalary.setStyle("-fx-font-weight: 500;");
+        TextField txtSalary = new TextField(emp != null ? String.format("%.0f", emp.getBasicSalary()) : "0");
+        txtSalary.setPromptText("Nhập mức lương cơ bản...");
+        txtSalary.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 10px; -fx-background-radius: 6;");
+
+        grid.add(lblCode, 0, 0); grid.add(txtCode, 1, 0);
+        grid.add(lblName, 0, 1); grid.add(txtName, 1, 1);
+        grid.add(lblPhone, 0, 2); grid.add(txtPhone, 1, 2);
+        grid.add(lblAddress, 0, 3); grid.add(txtAddress, 1, 3);
+        grid.add(lblDob, 0, 4); grid.add(dpDob, 1, 4);
+        grid.add(lblGender, 0, 5); grid.add(cbGender, 1, 5);
+        grid.add(lblStartDate, 0, 6); grid.add(dpStartDate, 1, 6);
+        grid.add(lblPosition, 0, 7); grid.add(cbPosition, 1, 7);
+        grid.add(lblSalary, 0, 8); grid.add(txtSalary, 1, 8);
+
+        HBox buttons = new HBox(15);
+        buttons.setAlignment(Pos.CENTER_RIGHT);
+
+        Button btnCancel = new Button("Hủy");
+        btnCancel.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #424242; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 8; -fx-cursor: hand;");
+        btnCancel.setOnAction(e -> dialogStage.close());
+
+        Button btnSave = new Button("Lưu");
+        btnSave.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 30px; -fx-background-radius: 8; -fx-cursor: hand;");
+        btnSave.setOnAction(e -> {
+            String code = txtCode.getText().trim();
+            String name = txtName.getText().trim();
+            String position = cbPosition.getValue() != null ? cbPosition.getValue().trim() : "";
+            double salary = parseDoubleSafe(txtSalary.getText());
+
+            if (code.isEmpty() || name.isEmpty() || position.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.WARNING, "Vui lòng nhập đầy đủ Mã NV, Họ Tên và Chức Vụ!");
+                alert.setHeaderText(null);
+                alert.show();
+                return;
+            }
+
+            EmployeeService empService = new EmployeeService();
+            Employee saveEmp = (emp != null) ? emp : new Employee();
+            saveEmp.setEmployeeCode(code);
+            saveEmp.setName(name);
+            saveEmp.setPhone(txtPhone.getText().trim());
+            saveEmp.setAddress(txtAddress.getText().trim());
+            saveEmp.setDob(dpDob.getValue() != null ? dpDob.getValue().toString() : "");
+            saveEmp.setGender(cbGender.getValue());
+            saveEmp.setStartDate(dpStartDate.getValue() != null ? dpStartDate.getValue().toString() : "");
+            saveEmp.setPosition(position);
+            saveEmp.setBasicSalary(salary);
+
+            boolean success;
+            if (emp != null) {
+                success = empService.updateEmployee(saveEmp);
+            } else {
+                success = empService.addEmployee(saveEmp);
+            }
+
+            if (success) {
+                onSaved.run();
+                dialogStage.close();
+            } else {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Mã nhân viên đã tồn tại hoặc có lỗi xảy ra!");
+                alert.setHeaderText(null);
+                alert.show();
+            }
+        });
+
+        buttons.getChildren().addAll(btnCancel, btnSave);
+        root.getChildren().addAll(title, grid, buttons);
+
+        Scene scene = new Scene(root);
+        dialogStage.setScene(scene);
+        dialogStage.show();
+    }
+
+    private VBox createAttendanceTab() {
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(20, 0, 20, 0));
+        root.setStyle("-fx-background-color: transparent;");
+
+        HBox topBar = new HBox(15);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+
+        ComboBox<String> cbMonth = new ComboBox<>();
+        for (int m = 1; m <= 12; m++) {
+            cbMonth.getItems().add("Tháng " + m);
+        }
+        cbMonth.setValue("Tháng " + LocalDate.now().getMonthValue());
+        cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-width: 130;");
+
+        ComboBox<String> cbYear = new ComboBox<>();
+        cbYear.getItems().addAll(getAvailableYears());
+        cbYear.setValue(String.valueOf(LocalDate.now().getYear()));
+        cbYear.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-width: 110;");
+
+        Button btnSave = new Button("💾 Lưu Bảng Công");
+        btnSave.setStyle(
+            "-fx-background-color: #2e7d32;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-weight: bold;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        topBar.getChildren().addAll(cbMonth, cbYear, spacer, btnSave);
+
+        ScrollPane gridScroll = new ScrollPane();
+        gridScroll.setFitToHeight(true);
+        gridScroll.setStyle("-fx-background-color: white; -fx-background: white; -fx-border-color: #e0e0e0; -fx-border-radius: 12; -fx-background-radius: 12;");
+        VBox.setVgrow(gridScroll, Priority.ALWAYS);
+
+        java.util.Map<Integer, java.util.Map<Integer, Button>> attendanceInputs = new java.util.HashMap<>();
+        java.util.Map<Integer, Label> totalLabels = new java.util.HashMap<>();
+
+        Runnable loadGrid = () -> {
+            attendanceInputs.clear();
+            totalLabels.clear();
+
+            GridPane grid = new GridPane();
+            grid.setStyle("-fx-background-color: white;");
+            grid.setPadding(new Insets(15));
+            grid.setHgap(8);
+            grid.setVgap(10);
+
+            int month = parseIntSafe(cbMonth.getValue());
+            int year = Integer.parseInt(cbYear.getValue());
+            YearMonth ym = YearMonth.of(year, month);
+            int totalDays = ym.lengthOfMonth();
+            String monthStr = String.format("%04d-%02d", year, month);
+
+            // Headers
+            Label lblEmpHeader = new Label("Nhân Viên");
+            lblEmpHeader.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-pref-width: 150px;");
+            grid.add(lblEmpHeader, 0, 0);
+
+            for (int d = 1; d <= totalDays; d++) {
+                Label lblDay = new Label(String.valueOf(d));
+                lblDay.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-pref-width: 32px; -fx-alignment: center;");
+                grid.add(lblDay, d, 0);
+            }
+
+            Label lblTotalHeader = new Label("Tổng Công");
+            lblTotalHeader.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-pref-width: 80px; -fx-alignment: center;");
+            grid.add(lblTotalHeader, totalDays + 1, 0);
+
+            EmployeeService empService = new EmployeeService();
+            AttendanceService attService = new AttendanceService();
+            List<Employee> employees = empService.getAllEmployees();
+
+            int rowIdx = 1;
+            for (Employee emp : employees) {
+                Label lblEmp = new Label(emp.getName() + " (" + emp.getEmployeeCode() + ")");
+                lblEmp.setStyle("-fx-font-weight: 500; -fx-text-fill: #212121; -fx-pref-width: 150px;");
+                grid.add(lblEmp, 0, rowIdx);
+
+                java.util.Map<Integer, Button> empButtons = new java.util.HashMap<>();
+                attendanceInputs.put(emp.getId(), empButtons);
+
+                List<Attendance> currentAtts = attService.getAttendanceByMonth(emp.getId(), monthStr);
+                java.util.Map<Integer, String> dayToVal = new java.util.HashMap<>();
+                for (Attendance a : currentAtts) {
+                    try {
+                        int day = Integer.parseInt(a.getWorkDate().substring(8, 10));
+                        dayToVal.put(day, a.getAttendanceVal());
+                    } catch (Exception ex) {}
+                }
+
+                Label lblTotal = new Label("0.0");
+                lblTotal.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32; -fx-pref-width: 80px; -fx-alignment: center; -fx-font-size: 14px;");
+                totalLabels.put(emp.getId(), lblTotal);
+
+                Runnable updateTotal = () -> {
+                    double tot = 0;
+                    for (Button b : empButtons.values()) {
+                        String txt = b.getText();
+                        if ("1".equals(txt)) tot += 1.0;
+                        else if ("0.5".equals(txt)) tot += 0.5;
+                    }
+                    lblTotal.setText(String.format("%.1f", tot));
+                };
+
+                for (int d = 1; d <= totalDays; d++) {
+                    final int day = d;
+                    String val = dayToVal.getOrDefault(day, "1");
+                    Button btnDay = new Button(val);
+                    btnDay.setStyle(getAttendanceButtonStyle(val));
+                    btnDay.setPrefSize(32, 32);
+                    btnDay.setCursor(javafx.scene.Cursor.HAND);
+
+                    btnDay.setOnAction(e -> {
+                        String cur = btnDay.getText();
+                        String next = "1";
+                        if ("1".equals(cur)) next = "0.5";
+                        else if ("0.5".equals(cur)) next = "N";
+                        
+                        btnDay.setText(next);
+                        btnDay.setStyle(getAttendanceButtonStyle(next));
+                        updateTotal.run();
+                    });
+
+                    empButtons.put(day, btnDay);
+                    grid.add(btnDay, d, rowIdx);
+                }
+
+                grid.add(lblTotal, totalDays + 1, rowIdx);
+                updateTotal.run();
+                rowIdx++;
+            }
+
+            gridScroll.setContent(grid);
+        };
+
+        cbMonth.valueProperty().addListener((obs, old, val) -> loadGrid.run());
+        cbYear.valueProperty().addListener((obs, old, val) -> loadGrid.run());
+
+        btnSave.setOnAction(e -> {
+            int month = parseIntSafe(cbMonth.getValue());
+            int year = Integer.parseInt(cbYear.getValue());
+            String monthStr = String.format("%04d-%02d", year, month);
+            AttendanceService attService = new AttendanceService();
+
+            boolean ok = true;
+            for (var entry : attendanceInputs.entrySet()) {
+                int empId = entry.getKey();
+                var empButtons = entry.getValue();
+                for (var btnEntry : empButtons.entrySet()) {
+                    int day = btnEntry.getKey();
+                    Button btn = btnEntry.getValue();
+                    String val = btn.getText();
+                    String workDate = String.format("%s-%02d", monthStr, day);
+                    
+                    Attendance att = new Attendance(0, empId, monthStr, workDate, val);
+                    ok = ok && attService.saveAttendance(att);
+                }
+            }
+
+            if (ok) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION, "Đã lưu bảng chấm công thành công!");
+                alert.setHeaderText(null);
+                alert.show();
+            } else {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Lỗi khi lưu bảng chấm công!");
+                alert.setHeaderText(null);
+                alert.show();
+            }
+        });
+
+        loadGrid.run();
+        root.getChildren().addAll(topBar, gridScroll);
+        return root;
+    }
+
+    private String getAttendanceButtonStyle(String val) {
+        if ("1".equals(val)) {
+            return "-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32; -fx-font-weight: bold; -fx-border-color: #A5D6A7; -fx-border-radius: 4; -fx-background-radius: 4;";
+        } else if ("0.5".equals(val)) {
+            return "-fx-background-color: #FFFDE7; -fx-text-fill: #F57F17; -fx-font-weight: bold; -fx-border-color: #FFF59D; -fx-border-radius: 4; -fx-background-radius: 4;";
+        } else {
+            return "-fx-background-color: #FFEBEE; -fx-text-fill: #C62828; -fx-font-weight: bold; -fx-border-color: #EF9A9A; -fx-border-radius: 4; -fx-background-radius: 4;";
+        }
+    }
+
+    private VBox createPayrollTab() {
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(20, 0, 20, 0));
+        root.setStyle("-fx-background-color: transparent;");
+
+        HBox topBar = new HBox(15);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+
+        ComboBox<String> cbMonth = new ComboBox<>();
+        for (int m = 1; m <= 12; m++) {
+            cbMonth.getItems().add("Tháng " + m);
+        }
+        cbMonth.setValue("Tháng " + LocalDate.now().getMonthValue());
+        cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-width: 130;");
+
+        ComboBox<String> cbYear = new ComboBox<>();
+        cbYear.getItems().addAll(getAvailableYears());
+        cbYear.setValue(String.valueOf(LocalDate.now().getYear()));
+        cbYear.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-width: 110;");
+
+        topBar.getChildren().addAll(cbMonth, cbYear);
+
+        VBox tableContainer = new VBox(0);
+        tableContainer.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 10, 0, 0, 5);"
+        );
+
+        HBox tableHeader = new HBox(0);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+        tableHeader.setPadding(new Insets(15, 20, 15, 20));
+        tableHeader.setStyle("-fx-background-color: #F9FAFB; -fx-background-radius: 12 12 0 0; -fx-border-color: #e0e0e0; -fx-border-width: 0 0 1 0;");
+
+        Label colCode = new Label("Mã NV");
+        colCode.setPrefWidth(80);
+        colCode.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colName = new Label("Họ Tên");
+        colName.setPrefWidth(160);
+        colName.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colPos = new Label("Chức Vụ");
+        colPos.setPrefWidth(120);
+        colPos.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colBasic = new Label("Lương Cơ Bản");
+        colBasic.setPrefWidth(120);
+        colBasic.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colDays = new Label("Số Ngày");
+        colDays.setPrefWidth(80);
+        colDays.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px; -fx-alignment: center;");
+
+        Label colWork = new Label("Số Công");
+        colWork.setPrefWidth(80);
+        colWork.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px; -fx-alignment: center;");
+
+        Label colTemp = new Label("Lương Ngày");
+        colTemp.setPrefWidth(120);
+        colTemp.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colNet = new Label("Thực Nhận");
+        colNet.setPrefWidth(120);
+        colNet.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        Label colAct = new Label("Thao Tác");
+        colAct.setPrefWidth(150);
+        colAct.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+
+        tableHeader.getChildren().addAll(colCode, colName, colPos, colBasic, colDays, colWork, colTemp, colNet, colAct);
+
+        VBox tableRows = new VBox(0);
+        ScrollPane scrollPane = new ScrollPane(tableRows);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+
+        tableContainer.getChildren().addAll(tableHeader, scrollPane);
+        VBox.setVgrow(tableContainer, Priority.ALWAYS);
+
+        Runnable refreshList = () -> {
+            tableRows.getChildren().clear();
+            EmployeeService empService = new EmployeeService();
+            AttendanceService attService = new AttendanceService();
+            PayrollService prService = new PayrollService();
+
+            List<Employee> employees = empService.getAllEmployees();
+            int month = parseIntSafe(cbMonth.getValue());
+            int year = Integer.parseInt(cbYear.getValue());
+            YearMonth ym = YearMonth.of(year, month);
+            int totalDays = ym.lengthOfMonth();
+            String monthStr = String.format("%04d-%02d", year, month);
+
+            for (Employee emp : employees) {
+                double workDays = attService.getActualWorkDays(emp.getId(), monthStr);
+                Payroll savedPr = prService.getPayroll(emp.getId(), monthStr);
+
+                HBox row = new HBox(0);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.setPadding(new Insets(12, 20, 12, 20));
+                row.setStyle("-fx-background-color: white; -fx-border-color: #f1f3f9; -fx-border-width: 0 0 1 0;");
+
+                Label lblCode = new Label(emp.getEmployeeCode());
+                lblCode.setPrefWidth(80);
+                lblCode.setStyle("-fx-font-weight: bold; -fx-text-fill: #1976D2;");
+
+                Label lblName = new Label(emp.getName());
+                lblName.setPrefWidth(160);
+                lblName.setStyle("-fx-font-weight: 500; -fx-text-fill: #212121;");
+
+                Label lblPos = new Label(emp.getPosition());
+                lblPos.setPrefWidth(120);
+                lblPos.setStyle("-fx-text-fill: #424242;");
+
+                Label lblBasic = new Label(String.format("%,.0f đ", emp.getBasicSalary()));
+                lblBasic.setPrefWidth(120);
+                lblBasic.setStyle("-fx-text-fill: #212121;");
+
+                Label lblDays = new Label(String.valueOf(totalDays));
+                lblDays.setPrefWidth(80);
+                lblDays.setStyle("-fx-alignment: center; -fx-text-fill: #616161;");
+
+                Label lblWork = new Label(String.format("%.1f", workDays));
+                lblWork.setPrefWidth(80);
+                lblWork.setStyle("-fx-alignment: center; -fx-text-fill: #2e7d32; -fx-font-weight: bold;");
+
+                double tempWage = (emp.getBasicSalary() / totalDays) * workDays;
+                Label lblTemp = new Label(String.format("%,.0f đ", tempWage));
+                lblTemp.setPrefWidth(120);
+                lblTemp.setStyle("-fx-text-fill: #757575;");
+
+                Label lblNet = new Label(savedPr != null ? String.format("%,.0f đ", savedPr.getNetSalary()) : "-");
+                lblNet.setPrefWidth(120);
+                lblNet.setStyle(savedPr != null ? "-fx-text-fill: #1976D2; -fx-font-weight: bold;" : "-fx-text-fill: #9e9e9e;");
+
+                HBox actions = new HBox(8);
+                actions.setPrefWidth(150);
+                actions.setAlignment(Pos.CENTER_LEFT);
+
+                Button btnCalc = new Button(savedPr != null ? "Sửa Lương" : "Tính Lương");
+                btnCalc.setStyle(savedPr != null ? 
+                    "-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;" :
+                    "-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2; -fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
+                
+                final Payroll savedPrFinal = savedPr;
+                btnCalc.setOnAction(e -> showPayrollCalculationDialog(emp, monthStr, () -> {
+                    cbMonth.setValue(cbMonth.getValue());
+                }));
+
+                actions.getChildren().add(btnCalc);
+
+                if (savedPr != null) {
+                    Button btnPdf = new Button("📄 Phiếu Lương");
+                    btnPdf.setStyle("-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32; -fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
+                    btnPdf.setOnAction(e -> exportPaySlipToPDF(savedPrFinal, emp));
+                    actions.getChildren().add(btnPdf);
+                }
+
+                row.getChildren().addAll(lblCode, lblName, lblPos, lblBasic, lblDays, lblWork, lblTemp, lblNet, actions);
+                
+                row.setOnMouseEntered(e -> row.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #f1f3f9; -fx-border-width: 0 0 1 0;"));
+                row.setOnMouseExited(e -> row.setStyle("-fx-background-color: white; -fx-border-color: #f1f3f9; -fx-border-width: 0 0 1 0;"));
+
+                tableRows.getChildren().add(row);
+            }
+        };
+
+        cbMonth.valueProperty().addListener((obs, old, val) -> refreshList.run());
+        cbYear.valueProperty().addListener((obs, old, val) -> refreshList.run());
+
+        refreshList.run();
+        root.getChildren().addAll(topBar, tableContainer);
+        return root;
+    }
+
+    private void showPayrollCalculationDialog(Employee emp, String payMonth, Runnable onSaved) {
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        dialogStage.setTitle("Tính Lương Nhân Viên - " + emp.getName());
+
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(25));
+        root.setStyle("-fx-background-color: white;");
+
+        Label title = new Label("📊 Tính Toán Chi Tiết Lương Tháng: " + payMonth);
+        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #212121;");
+
+        VBox infoCard = new VBox(8);
+        infoCard.setPadding(new Insets(15));
+        infoCard.setStyle("-fx-background-color: #f8f9fa; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;");
+        
+        Label lblName = new Label("Họ tên: " + emp.getName() + " (" + emp.getEmployeeCode() + ")");
+        lblName.setStyle("-fx-font-weight: bold; -fx-text-fill: #212121; -fx-font-size: 14px;");
+        Label lblPos = new Label("Chức vụ: " + emp.getPosition());
+        lblPos.setStyle("-fx-text-fill: #616161;");
+        Label lblBasicSalaryInfo = new Label("Lương cơ bản: " + String.format("%,.0f đ", emp.getBasicSalary()));
+        lblBasicSalaryInfo.setStyle("-fx-text-fill: #616161;");
+
+        infoCard.getChildren().addAll(lblName, lblPos, lblBasicSalaryInfo);
+
+        PayrollService prService = new PayrollService();
+        AttendanceService attService = new AttendanceService();
+        
+        int year = Integer.parseInt(payMonth.substring(0, 4));
+        int month = Integer.parseInt(payMonth.substring(5, 7));
+        int totalDays = YearMonth.of(year, month).lengthOfMonth();
+        double actualWorkDays = attService.getActualWorkDays(emp.getId(), payMonth);
+        
+        Payroll existing = prService.getPayroll(emp.getId(), payMonth);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(15);
+        grid.setVgap(12);
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(180);
+        col1.setPrefWidth(180);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setMinWidth(250);
+        col2.setPrefWidth(250);
+        col2.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col1, col2);
+
+        Label lblResponsibility = new Label("Phụ cấp trách nhiệm (VNĐ)");
+        lblResponsibility.setStyle("-fx-font-weight: 500;");
+        TextField txtResponsibility = new TextField(existing != null ? String.format("%.0f", existing.getAllowanceResponsibility()) : "0");
+        txtResponsibility.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 8px; -fx-background-radius: 6;");
+
+        Label lblOther = new Label("Phụ cấp khác (VNĐ)");
+        lblOther.setStyle("-fx-font-weight: 500;");
+        TextField txtOther = new TextField(existing != null ? String.format("%.0f", existing.getAllowanceOther()) : "0");
+        txtOther.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 8px; -fx-background-radius: 6;");
+
+        Label lblConsulting = new Label("Hoa hồng tư vấn (VNĐ)");
+        lblConsulting.setStyle("-fx-font-weight: 500;");
+        TextField txtConsulting = new TextField(existing != null ? String.format("%.0f", existing.getCommissionConsulting()) : "0");
+        txtConsulting.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 8px; -fx-background-radius: 6;");
+
+        Label lblServiceComm = new Label("Hoa hồng dịch vụ (VNĐ)");
+        lblServiceComm.setStyle("-fx-font-weight: 500;");
+        TextField txtServiceComm = new TextField(existing != null ? String.format("%.0f", existing.getCommissionService()) : "0");
+        txtServiceComm.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 8px; -fx-background-radius: 6;");
+
+        Label lblOvertime = new Label("Tiền tăng ca (VNĐ)");
+        lblOvertime.setStyle("-fx-font-weight: 500;");
+        TextField txtOvertime = new TextField(existing != null ? String.format("%.0f", existing.getOvertimePay()) : "0");
+        txtOvertime.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 8px; -fx-background-radius: 6;");
+
+        Label lblInsurance = new Label("Bảo hiểm xã hội (-) (VNĐ)");
+        lblInsurance.setStyle("-fx-font-weight: 500;");
+        TextField txtInsurance = new TextField(existing != null ? String.format("%.0f", existing.getSocialInsurance()) : "0");
+        txtInsurance.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 8px; -fx-background-radius: 6;");
+
+        Label lblAdvance = new Label("Tạm ứng (-) (VNĐ)");
+        lblAdvance.setStyle("-fx-font-weight: 500;");
+        TextField txtAdvance = new TextField(existing != null ? String.format("%.0f", existing.getAdvancePayment()) : "0");
+        txtAdvance.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 8px; -fx-background-radius: 6;");
+
+        grid.add(lblResponsibility, 0, 0); grid.add(txtResponsibility, 1, 0);
+        grid.add(lblOther, 0, 1); grid.add(txtOther, 1, 1);
+        grid.add(lblConsulting, 0, 2); grid.add(txtConsulting, 1, 2);
+        grid.add(lblServiceComm, 0, 3); grid.add(txtServiceComm, 1, 3);
+        grid.add(lblOvertime, 0, 4); grid.add(txtOvertime, 1, 4);
+        grid.add(lblInsurance, 0, 5); grid.add(txtInsurance, 1, 5);
+        grid.add(lblAdvance, 0, 6); grid.add(txtAdvance, 1, 6);
+
+        VBox netSalaryBox = new VBox(5);
+        netSalaryBox.setPadding(new Insets(15));
+        netSalaryBox.setStyle("-fx-background-color: #E3F2FD; -fx-background-radius: 8; -fx-alignment: center;");
+        
+        Label lblNetTitle = new Label("LƯƠNG THỰC NHẬN");
+        lblNetTitle.setStyle("-fx-font-size: 11px; -fx-text-fill: #1976D2; -fx-font-weight: bold;");
+        Label lblNetSalaryVal = new Label("0 đ");
+        lblNetSalaryVal.setStyle("-fx-font-size: 22px; -fx-text-fill: #1565C0; -fx-font-weight: bold;");
+        
+        netSalaryBox.getChildren().addAll(lblNetTitle, lblNetSalaryVal);
+
+        Runnable recalculate = () -> {
+            double resp = parseDoubleSafe(txtResponsibility.getText());
+            double oth = parseDoubleSafe(txtOther.getText());
+            double cons = parseDoubleSafe(txtConsulting.getText());
+            double serv = parseDoubleSafe(txtServiceComm.getText());
+            double ot = parseDoubleSafe(txtOvertime.getText());
+            double ins = parseDoubleSafe(txtInsurance.getText());
+            double adv = parseDoubleSafe(txtAdvance.getText());
+
+            double basePortion = (emp.getBasicSalary() / totalDays) * actualWorkDays;
+            double net = basePortion + resp + oth + cons + serv + ot - ins - adv;
+            
+            lblNetSalaryVal.setText(String.format("%,.0f đ", net));
+        };
+
+        txtResponsibility.textProperty().addListener((obs, old, val) -> recalculate.run());
+        txtOther.textProperty().addListener((obs, old, val) -> recalculate.run());
+        txtConsulting.textProperty().addListener((obs, old, val) -> recalculate.run());
+        txtServiceComm.textProperty().addListener((obs, old, val) -> recalculate.run());
+        txtOvertime.textProperty().addListener((obs, old, val) -> recalculate.run());
+        txtInsurance.textProperty().addListener((obs, old, val) -> recalculate.run());
+        txtAdvance.textProperty().addListener((obs, old, val) -> recalculate.run());
+
+        recalculate.run();
+
+        HBox buttons = new HBox(15);
+        buttons.setAlignment(Pos.CENTER_RIGHT);
+
+        Button btnCancel = new Button("Hủy");
+        btnCancel.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #424242; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 8; -fx-cursor: hand;");
+        btnCancel.setOnAction(e -> dialogStage.close());
+
+        Button btnSaveAndExport = new Button("💾 Lưu & Xuất Phiếu Lương");
+        btnSaveAndExport.setStyle("-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 25px; -fx-background-radius: 8; -fx-cursor: hand;");
+        btnSaveAndExport.setOnAction(e -> {
+            double resp = parseDoubleSafe(txtResponsibility.getText());
+            double oth = parseDoubleSafe(txtOther.getText());
+            double cons = parseDoubleSafe(txtConsulting.getText());
+            double serv = parseDoubleSafe(txtServiceComm.getText());
+            double ot = parseDoubleSafe(txtOvertime.getText());
+            double ins = parseDoubleSafe(txtInsurance.getText());
+            double adv = parseDoubleSafe(txtAdvance.getText());
+
+            double basePortion = (emp.getBasicSalary() / totalDays) * actualWorkDays;
+            double net = basePortion + resp + oth + cons + serv + ot - ins - adv;
+
+            Payroll pr = new Payroll();
+            pr.setEmployeeId(emp.getId());
+            pr.setPayMonth(payMonth);
+            pr.setTotalDays(totalDays);
+            pr.setActualWorkDays(actualWorkDays);
+            pr.setBasicSalary(emp.getBasicSalary());
+            pr.setAllowanceResponsibility(resp);
+            pr.setAllowanceOther(oth);
+            pr.setCommissionConsulting(cons);
+            pr.setCommissionService(serv);
+            pr.setOvertimePay(ot);
+            pr.setSocialInsurance(ins);
+            pr.setAdvancePayment(adv);
+            pr.setNetSalary(net);
+
+            boolean success = prService.savePayroll(pr);
+            if (success) {
+                Payroll saved = prService.getPayroll(emp.getId(), payMonth);
+                exportPaySlipToPDF(saved, emp);
+                onSaved.run();
+                dialogStage.close();
+            } else {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Lỗi khi lưu bảng lương!");
+                alert.setHeaderText(null);
+                alert.show();
+            }
+        });
+
+        buttons.getChildren().addAll(btnCancel, btnSaveAndExport);
+        root.getChildren().addAll(title, infoCard, grid, netSalaryBox, buttons);
+
+        Scene scene = new Scene(root);
+        dialogStage.setScene(scene);
+        dialogStage.show();
+    }
+
+    private void exportPaySlipToPDF(Payroll pr, Employee emp) {
+        try {
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Lưu Phiếu Lương PDF");
+            fileChooser.setInitialFileName("PhieuLuong_" + emp.getEmployeeCode() + "_" + pr.getPayMonth() + ".pdf");
+            fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
+            
+            java.io.File file = fileChooser.showSaveDialog(mainLayout.getScene().getWindow());
+            if (file == null) return;
+            
+            com.itextpdf.kernel.pdf.PdfWriter writer = new com.itextpdf.kernel.pdf.PdfWriter(file);
+            com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
+            com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf, com.itextpdf.kernel.geom.PageSize.A4);
+            document.setMargins(40, 40, 40, 40);
+            
+            com.itextpdf.kernel.font.PdfFont font = util.PDFFontHelper.createVietnameseFont();
+            com.itextpdf.kernel.font.PdfFont boldFont = util.PDFFontHelper.createVietnameseFont(true);
+            
+            com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph("PHIẾU THANH TOÁN LƯƠNG")
+                .setFont(boldFont).setFontSize(20).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                .setMarginBottom(10);
+            
+            com.itextpdf.layout.element.Paragraph subtitle = new com.itextpdf.layout.element.Paragraph("Tháng: " + pr.getPayMonth())
+                .setFont(font).setFontSize(14).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                .setMarginBottom(30);
+            
+            document.add(title);
+            document.add(subtitle);
+            
+            float[] infoWidths = {280f, 240f};
+            com.itextpdf.layout.element.Table infoTable = new com.itextpdf.layout.element.Table(infoWidths);
+            infoTable.setMarginBottom(20);
+            
+            infoTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Mã nhân viên: " + emp.getEmployeeCode()).setFont(font)).setBorder(null));
+            infoTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Ngày lập phiếu: " + LocalDate.now().toString()).setFont(font)).setBorder(null));
+            
+            infoTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Họ tên: " + emp.getName()).setFont(boldFont)).setBorder(null));
+            infoTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Số ngày trong tháng: " + pr.getTotalDays()).setFont(font)).setBorder(null));
+            
+            infoTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Chức vụ: " + emp.getPosition()).setFont(font)).setBorder(null));
+            infoTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Số công làm thực tế: " + pr.getActualWorkDays()).setFont(font)).setBorder(null));
+            
+            document.add(infoTable);
+            
+            float[] detailWidths = {30f, 340f, 150f};
+            com.itextpdf.layout.element.Table detailTable = new com.itextpdf.layout.element.Table(detailWidths);
+            detailTable.setMarginBottom(30);
+            
+            detailTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("STT").setFont(boldFont)).setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY));
+            detailTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Khoản mục").setFont(boldFont)).setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY));
+            detailTable.addHeaderCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Số tiền (VNĐ)").setFont(boldFont).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)).setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY));
+            
+            int stt = 1;
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Lương cơ bản").setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", pr.getBasicSalary())).setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)));
+            
+            double calculatedWage = (pr.getBasicSalary() / pr.getTotalDays()) * pr.getActualWorkDays();
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Lương theo ngày công thực tế").setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", calculatedWage)).setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)));
+            
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Phụ cấp trách nhiệm").setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", pr.getAllowanceResponsibility())).setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)));
+            
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Phụ cấp khác").setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", pr.getAllowanceOther())).setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)));
+            
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Hoa hồng tư vấn").setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", pr.getCommissionConsulting())).setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)));
+            
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Hoa hồng dịch vụ").setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", pr.getCommissionService())).setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)));
+            
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Tiền tăng ca").setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", pr.getOvertimePay())).setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)));
+            
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Khấu trừ Bảo hiểm xã hội (-)").setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("-%,.0f", pr.getSocialInsurance())).setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)));
+            
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Khấu trừ Tiền tạm ứng (-)").setFont(font)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("-%,.0f", pr.getAdvancePayment())).setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)));
+            
+            detailTable.addCell(new com.itextpdf.layout.element.Cell(1, 2).add(new com.itextpdf.layout.element.Paragraph("TỔNG LƯƠNG THỰC NHẬN").setFont(boldFont)));
+            detailTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f đ", pr.getNetSalary())).setFont(boldFont).setFontSize(13).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+            
+            document.add(detailTable);
+            
+            float[] sigWidths = {260f, 260f};
+            com.itextpdf.layout.element.Table sigTable = new com.itextpdf.layout.element.Table(sigWidths);
+            sigTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Người Nhận Lương\n(Ký và ghi rõ họ tên)").setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)).setBorder(null));
+            sigTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Người Lập Phiếu\n(Ký và đóng dấu)").setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)).setBorder(null));
+            
+            document.add(sigTable);
+            document.close();
+            
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Đã xuất phiếu lương thành công!");
+            alert.setHeaderText(null);
+            alert.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Lỗi khi xuất PDF: " + e.getMessage());
+            alert.setHeaderText(null);
+            alert.show();
+        }
+    }
+
+    private double parseDoubleSafe(String str) {
+        if (str == null || str.trim().isEmpty()) return 0;
+        try {
+            return Double.parseDouble(str.replaceAll("[^0-9.-]", ""));
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private int parseIntSafe(String str) {
+        if (str == null || str.trim().isEmpty()) return 0;
+        try {
+            return Integer.parseInt(str.replaceAll("[^0-9-]", ""));
+        } catch (Exception e) {
+            return 0;
+        }
     }
 }

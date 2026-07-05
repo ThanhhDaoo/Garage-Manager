@@ -84,3 +84,47 @@ CREATE TABLE IF NOT EXISTS appointments (
     reminded INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now','localtime'))
 );
+
+CREATE TABLE IF NOT EXISTS employees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    phone TEXT,
+    address TEXT,
+    dob TEXT,
+    gender TEXT,
+    start_date TEXT,
+    position TEXT,
+    basic_salary REAL NOT NULL DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now','localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS attendance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    work_month TEXT NOT NULL,
+    work_date TEXT NOT NULL,
+    attendance_val TEXT NOT NULL,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    UNIQUE(employee_id, work_date)
+);
+
+CREATE TABLE IF NOT EXISTS payroll (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    pay_month TEXT NOT NULL,
+    total_days INTEGER NOT NULL,
+    actual_work_days REAL NOT NULL,
+    basic_salary REAL NOT NULL,
+    allowance_responsibility REAL DEFAULT 0,
+    allowance_other REAL DEFAULT 0,
+    commission_consulting REAL DEFAULT 0,
+    commission_service REAL DEFAULT 0,
+    overtime_pay REAL DEFAULT 0,
+    social_insurance REAL DEFAULT 0,
+    advance_payment REAL DEFAULT 0,
+    net_salary REAL NOT NULL,
+    created_at TEXT DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    UNIQUE(employee_id, pay_month)
+);
