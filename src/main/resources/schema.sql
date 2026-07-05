@@ -67,3 +67,20 @@ CREATE TABLE IF NOT EXISTS invoice_items (
     total_price REAL NOT NULL DEFAULT 0,
     FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS appointments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    address TEXT,
+    license_plate TEXT NOT NULL,
+    vehicle_type TEXT NOT NULL,
+    service_name TEXT NOT NULL,
+    appointment_date TEXT NOT NULL,
+    appointment_time TEXT NOT NULL,
+    expected_completion TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'Chờ',
+    reminded INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now','localtime'))
+);

@@ -47,10 +47,33 @@ public class CreateInvoiceForm {
     private List<Map<String, Object>> selectedPackages = new ArrayList<>();
     private List<Map<String, Object>> selectedProducts = new ArrayList<>();
     
+    private String prefilledName;
+    private String prefilledPhone;
+    private String prefilledPlate;
+    private String prefilledVehicleType;
+    private String prefilledAddress;
+    private String prefilledNotes;
+    private String preselectedItemName;
+    private model.Appointment fromAppointment;
+
     public CreateInvoiceForm() {}
     
     public CreateInvoiceForm(Runnable onInvoiceCreated) {
         this.onInvoiceCreated = onInvoiceCreated;
+    }
+
+    public CreateInvoiceForm(Runnable onInvoiceCreated, model.Appointment appointment) {
+        this.onInvoiceCreated = onInvoiceCreated;
+        this.fromAppointment = appointment;
+        if (appointment != null) {
+            this.prefilledName = appointment.getCustomerName();
+            this.prefilledPhone = appointment.getPhone();
+            this.prefilledPlate = appointment.getLicensePlate();
+            this.prefilledVehicleType = appointment.getVehicleType();
+            this.prefilledAddress = appointment.getAddress();
+            this.prefilledNotes = appointment.getNotes();
+            this.preselectedItemName = appointment.getServiceName();
+        }
     }
     
     public void show() {
@@ -102,6 +125,51 @@ public class CreateInvoiceForm {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         stage.setScene(scene);
+        
+        // Tự động chọn dịch vụ hoặc gói dịch vụ nếu có chỉ định từ lịch hẹn
+        if (preselectedItemName != null && !preselectedItemName.isEmpty()) {
+            boolean itemFound = false;
+            // 1. Tìm trong các dịch vụ lẻ
+            service.ServiceService serviceService = new service.ServiceService();
+            List<model.Service> services = serviceService.getAllServices();
+            for (model.Service s : services) {
+                if (s.getName().equalsIgnoreCase(preselectedItemName)) {
+                    double price = 0;
+                    RadioButton selectedRadio = (RadioButton) carTypeGroup.getSelectedToggle();
+                    String vt = selectedRadio != null ? selectedRadio.getText().toLowerCase() : "sedan";
+                    if (vt.contains("mini")) price = s.getPriceMini();
+                    else if (vt.contains("sedan")) price = s.getPriceSedan();
+                    else if (vt.contains("cuv")) price = s.getPriceCuv();
+                    else if (vt.contains("suv")) price = s.getPriceSuv();
+                    else if (vt.contains("mpv")) price = s.getPriceMpv();
+                    else if (vt.contains("pickup")) price = s.getPricePickup();
+                    addSelectedService(s.getName(), String.format("%,.0fđ", price));
+                    itemFound = true;
+                    break;
+                }
+            }
+            // 2. Nếu không tìm thấy, tìm trong các gói dịch vụ
+            if (!itemFound) {
+                service.PackageService packageService = new service.PackageService();
+                List<model.Package> packages = packageService.getAllPackages();
+                for (model.Package p : packages) {
+                    if (p.getName().equalsIgnoreCase(preselectedItemName)) {
+                        double price = 0;
+                        RadioButton selectedRadio = (RadioButton) carTypeGroup.getSelectedToggle();
+                        String vt = selectedRadio != null ? selectedRadio.getText().toLowerCase() : "sedan";
+                        if (vt.contains("mini")) price = p.getPriceMini();
+                        else if (vt.contains("sedan")) price = p.getPriceSedan();
+                        else if (vt.contains("cuv")) price = p.getPriceCuv();
+                        else if (vt.contains("suv")) price = p.getPriceSuv();
+                        else if (vt.contains("mpv")) price = p.getPriceMpv();
+                        else if (vt.contains("pickup")) price = p.getPricePickup();
+                        addSelectedPackage(p.getName(), String.format("%,.0fđ", price));
+                        break;
+                    }
+                }
+            }
+        }
+        
         stage.show();
     }
     
@@ -126,7 +194,7 @@ public class CreateInvoiceForm {
         // Name field - Create completely independent TextField
         Label lblName = new Label("Tên khách hàng *");
         lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
-        txtName = new TextField("");
+        txtName = new TextField(prefilledName != null ? prefilledName : "");
         txtName.setPromptText("Nhập tên khách hàng");
         txtName.setStyle(
             "-fx-background-color: #f5f5f5;" +
@@ -141,7 +209,7 @@ public class CreateInvoiceForm {
         // Phone field - Create completely independent TextField
         Label lblPhone = new Label("Số điện thoại *");
         lblPhone.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
-        txtPhone = new TextField("");
+        txtPhone = new TextField(prefilledPhone != null ? prefilledPhone : "");
         txtPhone.setPromptText("Nhập số điện thoại");
         txtPhone.setStyle(
             "-fx-background-color: #f5f5f5;" +
@@ -166,7 +234,7 @@ public class CreateInvoiceForm {
         // License plate field - Create completely independent TextField
         Label lblPlate = new Label("Biển số xe *");
         lblPlate.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
-        txtPlate = new TextField("");
+        txtPlate = new TextField(prefilledPlate != null ? prefilledPlate : "");
         txtPlate.setPromptText("Nhập biển số xe");
         txtPlate.setStyle(
             "-fx-background-color: #f5f5f5;" +
@@ -189,7 +257,7 @@ public class CreateInvoiceForm {
         // Address field - Create completely independent TextField
         Label lblAddress = new Label("Địa chỉ");
         lblAddress.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
-        txtAddress = new TextField("");
+        txtAddress = new TextField(prefilledAddress != null ? prefilledAddress : "");
         txtAddress.setPromptText("Nhập địa chỉ khách hàng");
         txtAddress.setStyle(
             "-fx-background-color: #f5f5f5;" +
@@ -204,7 +272,7 @@ public class CreateInvoiceForm {
         // Notes field
         Label lblNotes = new Label("Ghi chú");
         lblNotes.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
-        txtNotes = new TextField("");
+        txtNotes = new TextField(prefilledNotes != null ? prefilledNotes : "");
         txtNotes.setPromptText("Nhập ghi chú (ví dụ: Thanh toán trước 50%...)");
         txtNotes.setStyle(
             "-fx-background-color: #f5f5f5;" +
@@ -229,7 +297,6 @@ public class CreateInvoiceForm {
         
         RadioButton rbSedan = new RadioButton("Sedan");
         rbSedan.setToggleGroup(carTypeGroup);
-        rbSedan.setSelected(true);
         rbSedan.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
         
         RadioButton rbCUV = new RadioButton("CUV");
@@ -247,6 +314,19 @@ public class CreateInvoiceForm {
         RadioButton rbPickup = new RadioButton("Pickup");
         rbPickup.setToggleGroup(carTypeGroup);
         rbPickup.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
+
+        if (prefilledVehicleType != null) {
+            String vt = prefilledVehicleType.trim().toLowerCase();
+            if (vt.contains("mini")) rbMini.setSelected(true);
+            else if (vt.contains("sedan")) rbSedan.setSelected(true);
+            else if (vt.contains("cuv")) rbCUV.setSelected(true);
+            else if (vt.contains("suv")) rbSUV.setSelected(true);
+            else if (vt.contains("mpv")) rbMPV.setSelected(true);
+            else if (vt.contains("pickup")) rbPickup.setSelected(true);
+            else rbSedan.setSelected(true);
+        } else {
+            rbSedan.setSelected(true);
+        }
         
         // Add listener to update service prices when car type changes
         carTypeGroup.selectedToggleProperty().addListener((obs, oldToggle, newToggle) -> {
@@ -1186,7 +1266,12 @@ public class CreateInvoiceForm {
                         productService.reduceStock(productId, (Integer) product.get("quantity"));
                     }
                 }
-                
+                // Cập nhật trạng thái lịch hẹn nếu được tạo từ lịch hẹn
+                if (fromAppointment != null) {
+                    fromAppointment.setStatus("Đã hoàn thành");
+                    new service.AppointmentService().updateAppointment(fromAppointment);
+                }
+
                 Alert alert = util.AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công", "Tạo hóa đơn thành công!");
                 alert.showAndWait();
                 

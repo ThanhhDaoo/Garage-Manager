@@ -29,6 +29,7 @@ public class MainUI extends Application {
     private StackPane contentArea;
     private VBox sidebar;
     private VBox invoiceTableRows;
+    private String currentView = "dashboard";
 
     @Override
     public void start(Stage stage) {
@@ -68,6 +69,10 @@ public class MainUI extends Application {
         
         stage.setScene(scene);
         stage.setTitle("🚗 MTProAuto - Quản Lý Chuyên Nghiệp");
+        
+        // Khởi chạy tác vụ kiểm tra lịch hẹn sắp diễn ra (mỗi phút)
+        setupAppointmentNotificationTimeline();
+        
         stage.show();
     }
 
@@ -155,25 +160,23 @@ public class MainUI extends Application {
         );
         sidebar.setPrefWidth(240);
 
-        Label menuLabel = new Label("MENU CHÍNH");
-        menuLabel.setStyle(
-            "-fx-text-fill: #9e9e9e;" +
-            "-fx-font-size: 10px;" +
-            "-fx-font-weight: 600;" +
-            "-fx-padding: 8px 12px 5px 12px;"
-        );
-
-        Button btnDashboard = createModernMenuButton("■", "Trang Chủ", "#2196F3", true);
+        Button btnDashboard = createModernMenuButton("🏠", "Trang Chủ", "#2196F3", true);
+        Button btnAppointment = createModernMenuButton("📅", "Lịch Hẹn", "#2196F3", false);
         Button btnInvoice = createModernMenuButton("📄", "Hóa Đơn", "#2196F3", false);
-        Button btnService = createModernMenuButton("⚙", "Dịch Vụ", "#2196F3", false);
+        Button btnService = createModernMenuButton("🛠", "Dịch Vụ", "#2196F3", false);
         Button btnPackage = createModernMenuButton("📦", "Gói Dịch Vụ", "#2196F3", false);
         Button btnProduct = createModernMenuButton("🛒", "Sản Phẩm", "#2196F3", false);
-        Button btnReport = createModernMenuButton("�", "Báo Cáo", "#2196F3", false);
+        Button btnReport = createModernMenuButton("📈", "Báo Cáo", "#2196F3", false);
 
         btnDashboard.setOnAction(e -> {
             resetMenuButtons();
             setActiveButton(btnDashboard);
             showDashboard();
+        });
+        btnAppointment.setOnAction(e -> {
+            resetMenuButtons();
+            setActiveButton(btnAppointment);
+            showAppointmentManagement();
         });
         btnInvoice.setOnAction(e -> {
             resetMenuButtons();
@@ -204,7 +207,7 @@ public class MainUI extends Application {
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        Button btnLogout = createModernMenuButton("→", "Đăng Xuất", "#2196F3", false);
+        Button btnLogout = createModernMenuButton("🚪", "Đăng Xuất", "#2196F3", false);
         btnLogout.setStyle(
             btnLogout.getStyle() + 
             "-fx-border-color: #e0e0e0;" +
@@ -215,7 +218,7 @@ public class MainUI extends Application {
         btnLogout.setOnAction(e -> handleLogout());
 
         sidebar.getChildren().addAll(
-            menuLabel, btnDashboard, btnInvoice, btnService, 
+            btnDashboard, btnAppointment, btnInvoice, btnService, 
             btnPackage, btnProduct, btnReport, spacer, btnLogout
         );
 
@@ -316,7 +319,74 @@ public class MainUI extends Application {
         return color.replace("67", "76").replace("ea", "4b");
     }
 
+    private boolean matchesTimeFilters(String dateStr, String period, String month, String year) {
+        if (dateStr == null || dateStr.trim().isEmpty()) return false;
+        try {
+            LocalDate date = LocalDate.parse(dateStr.substring(0, 10));
+            LocalDate today = LocalDate.now();
+            
+            if (period != null && !period.contains("Tất cả")) {
+                if (period.equals("Tuần này")) {
+                    LocalDate startOfWeek = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                    LocalDate endOfWeek = today.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY));
+                    return !date.isBefore(startOfWeek) && !date.isAfter(endOfWeek);
+                } else if (period.equals("Tháng này")) {
+                    return date.getYear() == today.getYear() && date.getMonthValue() == today.getMonthValue();
+                } else if (period.equals("Quý này")) {
+                    int currentQuarter = (today.getMonthValue() - 1) / 3 + 1;
+                    int dateQuarter = (date.getMonthValue() - 1) / 3 + 1;
+                    return date.getYear() == today.getYear() && dateQuarter == currentQuarter;
+                } else if (period.equals("Năm nay")) {
+                    return date.getYear() == today.getYear();
+                }
+            }
+            
+            if (year != null && !year.contains("Tất cả")) {
+                int targetYear = Integer.parseInt(year);
+                if (date.getYear() != targetYear) return false;
+            }
+            if (month != null && !month.contains("Tất cả")) {
+                int targetMonth = Integer.parseInt(month.replace("Tháng ", ""));
+                if (date.getMonthValue() != targetMonth) return false;
+            }
+            
+            return true;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    private List<String> getAvailableYears() {
+        java.util.Set<String> years = new java.util.TreeSet<>(java.util.Comparator.reverseOrder());
+        
+        int curYear = LocalDate.now().getYear();
+        for (int y = curYear; y >= 2020; y--) {
+            years.add(String.valueOf(y));
+        }
+        
+        try {
+            List<Invoice> invoices = new InvoiceService().getAllInvoices();
+            for (Invoice inv : invoices) {
+                if (inv.getCreatedAt() != null && inv.getCreatedAt().length() >= 4) {
+                    years.add(inv.getCreatedAt().substring(0, 4));
+                }
+            }
+        } catch (Exception e) {}
+        
+        try {
+            List<model.Appointment> appts = new service.AppointmentService().getAllAppointments();
+            for (model.Appointment appt : appts) {
+                if (appt.getAppointmentDate() != null && appt.getAppointmentDate().length() >= 4) {
+                    years.add(appt.getAppointmentDate().substring(0, 4));
+                }
+            }
+        } catch (Exception e) {}
+        
+        return new java.util.ArrayList<>(years);
+    }
+
     private void showDashboard() {
+        currentView = "dashboard";
         VBox dashboard = new VBox(30);
         dashboard.setPadding(new Insets(30));
 
@@ -377,7 +447,8 @@ public class MainUI extends Application {
 
         quickActions.getChildren().addAll(btnNewInvoice, btnViewServices, btnViewPackages);
 
-        dashboard.getChildren().addAll(title, statsGrid, quickTitle, quickActions);
+        VBox todayApptsSection = createTodayAppointmentsSection();
+        dashboard.getChildren().addAll(title, statsGrid, quickTitle, quickActions, todayApptsSection);
         
         contentArea.getChildren().clear();
         contentArea.getChildren().add(dashboard);
@@ -530,7 +601,9 @@ public class MainUI extends Application {
         
         TextField searchField = new TextField();
         searchField.setPromptText("🔍 Tìm kiếm hóa đơn...");
-        searchField.setPrefWidth(300);
+        searchField.setPrefWidth(200);
+        searchField.setMinWidth(200);
+        searchField.setMaxWidth(200);
         searchField.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-padding: 10px 15px;" +
@@ -539,74 +612,76 @@ public class MainUI extends Application {
             "-fx-font-size: 14px;"
         );
         
-        // Filter buttons
-        HBox filterButtons = new HBox(8);
-        Button btnAll = createFilterButton("Tất cả", true);
-        Button btnPaid = createFilterButton("Đã thanh toán", false);
-        Button btnUnpaid = createFilterButton("Chưa thanh toán", false);
-        
-        // Store current filter
-        final String[] currentStatus = {""};
-        
-        // Date picker for filtering by date
-        DatePicker datePicker = new DatePicker();
-        datePicker.setPromptText("Chọn ngày");
-        datePicker.setStyle(
+        ComboBox<String> cbStatusFilter = new ComboBox<>();
+        cbStatusFilter.getItems().addAll("Tất cả trạng thái", "Đã thanh toán", "Chưa thanh toán");
+        cbStatusFilter.setValue("Tất cả trạng thái");
+        cbStatusFilter.setPrefWidth(150);
+        cbStatusFilter.setMinWidth(150);
+        cbStatusFilter.setMaxWidth(150);
+        cbStatusFilter.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-background-radius: 8;" +
-            "-fx-font-size: 14px;"
+            "-fx-font-size: 13px;"
         );
         
-        Button btnClearDate = new Button("Xóa lọc ngày");
-        btnClearDate.setStyle(
-            "-fx-background-color: #ffebee;" +
-            "-fx-text-fill: #c62828;" +
-            "-fx-font-size: 13px;" +
-            "-fx-padding: 8 12;" +
+        ComboBox<String> cbPeriod = new ComboBox<>();
+        cbPeriod.getItems().addAll("Tất cả mốc thời gian", "Tuần này", "Tháng này", "Quý này", "Năm nay");
+        cbPeriod.setValue("Tất cả mốc thời gian");
+        cbPeriod.setPrefWidth(180);
+        cbPeriod.setMinWidth(180);
+        cbPeriod.setMaxWidth(180);
+        cbPeriod.setStyle(
+            "-fx-background-color: #f5f5f5;" +
             "-fx-background-radius: 8;" +
-            "-fx-cursor: hand;"
+            "-fx-font-size: 13px;"
         );
-        btnClearDate.setVisible(false);
-        btnClearDate.setManaged(false); // Hide completely when not visible
         
-        datePicker.valueProperty().addListener((observable, oldVal, newVal) -> {
-            boolean hasDate = (newVal != null);
-            btnClearDate.setVisible(hasDate);
-            btnClearDate.setManaged(hasDate);
-            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), currentStatus[0], newVal);
-        });
+        ComboBox<String> cbMonth = new ComboBox<>();
+        cbMonth.getItems().add("Tất cả các tháng");
+        for (int m = 1; m <= 12; m++) {
+            cbMonth.getItems().add("Tháng " + m);
+        }
+        cbMonth.setValue("Tất cả các tháng");
+        cbMonth.setPrefWidth(150);
+        cbMonth.setMinWidth(150);
+        cbMonth.setMaxWidth(150);
+        cbMonth.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
         
-        btnClearDate.setOnAction(e -> {
-            datePicker.setValue(null);
-        });
+        ComboBox<String> cbYear = new ComboBox<>();
+        cbYear.getItems().add("Tất cả các năm");
+        cbYear.getItems().addAll(getAvailableYears());
+        cbYear.setValue("Tất cả các năm");
+        cbYear.setPrefWidth(140);
+        cbYear.setMinWidth(140);
+        cbYear.setMaxWidth(140);
+        cbYear.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
         
-        // Add search listener
-        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            refreshInvoiceTableWithFilter(invoiceTableRows, newVal, currentStatus[0], datePicker.getValue());
-        });
+        Runnable triggerFilter = () -> {
+            refreshInvoiceTableWithFilter(
+                invoiceTableRows,
+                searchField.getText(),
+                cbStatusFilter.getValue(),
+                cbPeriod.getValue(),
+                cbMonth.getValue(),
+                cbYear.getValue()
+            );
+        };
         
-        // Add filter button actions
-        btnAll.setOnAction(e -> {
-            currentStatus[0] = "";
-            updateFilterButtonStyles(btnAll, btnPaid, btnUnpaid);
-            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "", datePicker.getValue());
-        });
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> triggerFilter.run());
+        cbStatusFilter.valueProperty().addListener((obs, oldVal, newVal) -> triggerFilter.run());
+        cbPeriod.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
+        cbMonth.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
+        cbYear.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
         
-        btnPaid.setOnAction(e -> {
-            currentStatus[0] = "paid";
-            updateFilterButtonStyles(btnPaid, btnAll, btnUnpaid);
-            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "paid", datePicker.getValue());
-        });
-        
-        btnUnpaid.setOnAction(e -> {
-            currentStatus[0] = "nhap";
-            updateFilterButtonStyles(btnUnpaid, btnAll, btnPaid);
-            refreshInvoiceTableWithFilter(invoiceTableRows, searchField.getText(), "nhap", datePicker.getValue());
-        });
-        
-        filterButtons.getChildren().addAll(btnAll, btnPaid, btnUnpaid);
-        
-        filterBar.getChildren().addAll(searchField, filterButtons, datePicker, btnClearDate);
+        filterBar.getChildren().addAll(searchField, cbStatusFilter, cbPeriod, cbMonth, cbYear);
 
         // Table
         VBox tableContainer = new VBox(0);
@@ -710,10 +785,10 @@ public class MainUI extends Application {
     }
     
     private void refreshInvoiceTable(VBox tableRows) {
-        refreshInvoiceTableWithFilter(tableRows, "", "", null);
+        refreshInvoiceTableWithFilter(tableRows, "", "", "Tất cả", "Tất cả các tháng", "Tất cả các năm");
     }
     
-    private void refreshInvoiceTableWithFilter(VBox tableRows, String searchText, String status, java.time.LocalDate filterDate) {
+    private void refreshInvoiceTableWithFilter(VBox tableRows, String searchText, String status, String period, String month, String year) {
         tableRows.getChildren().clear();
         InvoiceService invoiceService = new InvoiceService();
         List<Invoice> invoices = invoiceService.getAllInvoices();
@@ -725,13 +800,10 @@ public class MainUI extends Application {
                 .collect(java.util.stream.Collectors.toList());
         }
         
-        // Filter by date
-        if (filterDate != null) {
-            String dateStr = filterDate.toString(); // YYYY-MM-DD
-            invoices = invoices.stream()
-                .filter(i -> i.getCreatedAt() != null && i.getCreatedAt().startsWith(dateStr))
-                .collect(java.util.stream.Collectors.toList());
-        }
+        // Filter by time filters
+        invoices = invoices.stream()
+            .filter(i -> matchesTimeFilters(i.getCreatedAt(), period, month, year))
+            .collect(java.util.stream.Collectors.toList());
         
         // Filter by search text
         if (searchText != null && !searchText.trim().isEmpty()) {
@@ -744,9 +816,7 @@ public class MainUI extends Application {
         }
         
         if (invoices.isEmpty()) {
-            Label emptyState = new Label((searchText != null && !searchText.trim().isEmpty()) || 
-                                        (status != null && !status.trim().isEmpty()) ? 
-                "Không tìm thấy hóa đơn nào" : "Chưa có hóa đơn nào");
+            Label emptyState = new Label("Không tìm thấy hóa đơn nào");
             emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
             tableRows.getChildren().add(emptyState);
         } else {
@@ -1819,69 +1889,80 @@ public class MainUI extends Application {
             "-fx-cursor: hand;"
         );
 
-        Label lblFrom = new Label("Từ ngày:");
-        lblFrom.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
-        DatePicker dateFrom = new DatePicker();
-        
-        Label lblTo = new Label("Đến ngày:");
-        lblTo.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
-        DatePicker dateTo = new DatePicker();
-
-        Label lblQuickFilter = new Label("Lọc nhanh:");
-        lblQuickFilter.setStyle("-fx-font-size: 14px; -fx-text-fill: #616161;");
-
-        ComboBox<String> quickFilterCombo = new ComboBox<>();
-        quickFilterCombo.getItems().addAll("Tất cả", "Tháng này", "Tháng trước", "Quý này", "Năm nay");
-        quickFilterCombo.setValue("Tất cả");
-        quickFilterCombo.setStyle(
+        ComboBox<String> cbPeriod = new ComboBox<>();
+        cbPeriod.getItems().addAll("Tất cả", "Tuần này", "Tháng này", "Quý này", "Năm nay");
+        cbPeriod.setValue("Tất cả");
+        cbPeriod.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-background-radius: 8;" +
-            "-fx-border-color: #e0e0e0;" +
-            "-fx-border-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
+        
+        ComboBox<String> cbMonth = new ComboBox<>();
+        cbMonth.getItems().add("Tất cả các tháng");
+        for (int m = 1; m <= 12; m++) {
+            cbMonth.getItems().add("Tháng " + m);
+        }
+        cbMonth.setValue("Tất cả các tháng");
+        cbMonth.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
+        
+        ComboBox<String> cbYear = new ComboBox<>();
+        cbYear.getItems().add("Tất cả các năm");
+        cbYear.getItems().addAll(getAvailableYears());
+        cbYear.setValue("Tất cả các năm");
+        cbYear.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
             "-fx-font-size: 13px;"
         );
 
-        quickFilterCombo.setOnAction(evt -> {
-            String val = quickFilterCombo.getValue();
-            LocalDate today = LocalDate.now();
-            if ("Tất cả".equals(val)) {
-                dateFrom.setValue(null);
-                dateTo.setValue(null);
-            } else if ("Tháng này".equals(val)) {
-                dateFrom.setValue(LocalDate.of(today.getYear(), today.getMonthValue(), 1));
-                dateTo.setValue(LocalDate.of(today.getYear(), today.getMonthValue(), today.lengthOfMonth()));
-            } else if ("Tháng trước".equals(val)) {
-                LocalDate lm = today.minusMonths(1);
-                dateFrom.setValue(LocalDate.of(lm.getYear(), lm.getMonthValue(), 1));
-                dateTo.setValue(LocalDate.of(lm.getYear(), lm.getMonthValue(), lm.lengthOfMonth()));
-            } else if ("Quý này".equals(val)) {
-                int q = (today.getMonthValue() - 1) / 3 + 1;
-                int startMonth = (q - 1) * 3 + 1;
-                int endMonth = q * 3;
-                dateFrom.setValue(LocalDate.of(today.getYear(), startMonth, 1));
-                LocalDate endMonthDate = LocalDate.of(today.getYear(), endMonth, 1);
-                dateTo.setValue(LocalDate.of(today.getYear(), endMonth, endMonthDate.lengthOfMonth()));
-            } else if ("Năm nay".equals(val)) {
-                dateFrom.setValue(LocalDate.of(today.getYear(), 1, 1));
-                dateTo.setValue(LocalDate.of(today.getYear(), 12, 31));
-            }
-            btnFilter.fire();
-        });
-        
         // Filter button action
         btnFilter.setOnAction(e -> {
-            List<Invoice> filtered = ReportHelper.filterInvoicesByDateRange(allInvoices, dateFrom.getValue(), dateTo.getValue());
+            String period = cbPeriod.getValue();
+            String month = cbMonth.getValue();
+            String year = cbYear.getValue();
+            List<Invoice> filtered = allInvoices.stream()
+                .filter(inv -> matchesTimeFilters(inv.getCreatedAt(), period, month, year))
+                .collect(java.util.stream.Collectors.toList());
             updateReportStats(filtered, statsGrid);
         });
         
         // Export button action
         btnExport.setOnAction(e -> {
-            List<Invoice> filtered = ReportHelper.filterInvoicesByDateRange(allInvoices, dateFrom.getValue(), dateTo.getValue());
-            ReportHelper.exportReportToPDF(filtered, dateFrom.getValue(), dateTo.getValue(), mainLayout.getScene().getWindow());
+            String period = cbPeriod.getValue();
+            String month = cbMonth.getValue();
+            String year = cbYear.getValue();
+            List<Invoice> filtered = allInvoices.stream()
+                .filter(inv -> matchesTimeFilters(inv.getCreatedAt(), period, month, year))
+                .collect(java.util.stream.Collectors.toList());
+            
+            LocalDate minDate = null;
+            LocalDate maxDate = null;
+            for (Invoice inv : filtered) {
+                if (inv.getCreatedAt() != null) {
+                    try {
+                        LocalDate d = LocalDate.parse(inv.getCreatedAt().substring(0, 10));
+                        if (minDate == null || d.isBefore(minDate)) minDate = d;
+                        if (maxDate == null || d.isAfter(maxDate)) maxDate = d;
+                    } catch (Exception ex) {}
+                }
+            }
+            if (minDate == null) minDate = LocalDate.now();
+            if (maxDate == null) maxDate = LocalDate.now();
+            
+            ReportHelper.exportReportToPDF(filtered, minDate, maxDate, mainLayout.getScene().getWindow());
         });
         
+        cbPeriod.valueProperty().addListener((obs, old, newVal) -> btnFilter.fire());
+        cbMonth.valueProperty().addListener((obs, old, newVal) -> btnFilter.fire());
+        cbYear.valueProperty().addListener((obs, old, newVal) -> btnFilter.fire());
+        
         dateRange.getChildren().clear();
-        dateRange.getChildren().addAll(lblQuickFilter, quickFilterCombo, lblFrom, dateFrom, lblTo, dateTo, btnFilter, btnExport);
+        dateRange.getChildren().addAll(new Label("Lọc theo:"), cbPeriod, cbMonth, cbYear, btnFilter, btnExport);
 
         VBox stat1 = createReportStatCard("Tổng Doanh Thu", String.format("%,.0fđ", totalRevenue), "");
         VBox stat2 = createReportStatCard("Tổng Hóa Đơn", String.valueOf(totalInvoices), "");
@@ -3604,5 +3685,961 @@ public class MainUI extends Application {
         } catch (Exception e) {}
         dialogStage.setScene(scene);
         dialogStage.showAndWait();
+    }
+
+    // ==========================================
+    // ===== APPOINTMENT MANAGEMENT WORKFLOW =====
+    // ==========================================
+
+    private VBox appointmentTableRows;
+
+    private void setupAppointmentNotificationTimeline() {
+        javafx.animation.Timeline timeline = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(
+                javafx.util.Duration.seconds(60),
+                event -> checkAndShowAppointmentNotifications()
+            )
+        );
+        timeline.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+        timeline.play();
+        
+        // Kiểm tra ngay sau khi khởi động
+        javafx.application.Platform.runLater(() -> checkAndShowAppointmentNotifications());
+    }
+
+    private void checkAndShowAppointmentNotifications() {
+        service.AppointmentService appointmentService = new service.AppointmentService();
+        List<model.Appointment> upcoming = appointmentService.getUpcomingUnremindedAppointments();
+        for (model.Appointment appt : upcoming) {
+            showAppointmentReminderDialog(appt);
+        }
+    }
+
+    private void showAppointmentReminderDialog(model.Appointment appt) {
+        // Đánh dấu đã nhắc ngay lập tức để tránh trùng lặp
+        appt.setReminded(1);
+        new service.AppointmentService().updateAppointment(appt);
+
+        javafx.application.Platform.runLater(() -> {
+            Stage dialogStage = new Stage();
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.setTitle("🔔 Nhắc Nhở Lịch Hẹn Sắp Diễn Ra");
+            
+            VBox content = new VBox(20);
+            content.setPadding(new Insets(25));
+            content.setAlignment(Pos.CENTER);
+            content.setStyle("-fx-background-color: white;");
+            
+            Label titleLabel = new Label("🔔 LỊCH HẸN SẮP DIỄN RA");
+            titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #E65100;");
+            
+            GridPane grid = new GridPane();
+            grid.setHgap(15);
+            grid.setVgap(12);
+            grid.setAlignment(Pos.CENTER);
+            
+            Label lblCust = new Label("Khách hàng:");
+            lblCust.setStyle("-fx-font-weight: bold;");
+            Label txtCust = new Label(appt.getCustomerName() + " (" + appt.getPhone() + ")");
+            
+            Label lblTime = new Label("Thời gian hẹn:");
+            lblTime.setStyle("-fx-font-weight: bold;");
+            Label txtTime = new Label(appt.getAppointmentTime() + " ngày " + appt.getAppointmentDate());
+            
+            Label lblVehicle = new Label("Phương tiện:");
+            lblVehicle.setStyle("-fx-font-weight: bold;");
+            Label txtVehicle = new Label(appt.getLicensePlate() + " (" + appt.getVehicleType() + ")");
+            
+            Label lblService = new Label("Dịch vụ đăng ký:");
+            lblService.setStyle("-fx-font-weight: bold;");
+            Label txtService = new Label(appt.getServiceName());
+            
+            grid.add(lblCust, 0, 0); grid.add(txtCust, 1, 0);
+            grid.add(lblTime, 0, 1); grid.add(txtTime, 1, 1);
+            grid.add(lblVehicle, 0, 2); grid.add(txtVehicle, 1, 2);
+            grid.add(lblService, 0, 3); grid.add(txtService, 1, 3);
+            
+            Button btnAcknowledge = new Button("Xác nhận đã xem");
+            btnAcknowledge.setStyle(
+                "-fx-background-color: #2196F3;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-weight: bold;" +
+                "-fx-padding: 10px 25px;" +
+                "-fx-background-radius: 6;" +
+                "-fx-cursor: hand;"
+            );
+            btnAcknowledge.setOnAction(e -> dialogStage.close());
+            
+            content.getChildren().addAll(titleLabel, grid, btnAcknowledge);
+            Scene scene = new Scene(content, 450, 280);
+            dialogStage.setScene(scene);
+            dialogStage.show();
+        });
+    }
+
+    private VBox createTodayAppointmentsSection() {
+        VBox section = new VBox(15);
+        section.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-padding: 25;"
+        );
+        
+        Label sectionTitle = new Label("📅 Lịch Hẹn Hôm Nay");
+        sectionTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        service.AppointmentService appointmentService = new service.AppointmentService();
+        List<model.Appointment> todayAppts = appointmentService.getAppointmentsByDate(LocalDate.now().toString());
+        
+        VBox listContainer = new VBox(10);
+        if (todayAppts.isEmpty()) {
+            Label emptyLabel = new Label("Không có lịch hẹn nào trong hôm nay.");
+            emptyLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-font-style: italic;");
+            listContainer.getChildren().add(emptyLabel);
+        } else {
+            HBox header = new HBox(10);
+            header.setStyle("-fx-background-color: #F9FAFB; -fx-padding: 10px 12px; -fx-background-radius: 6; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
+            
+            Label lblTimeHeader = new Label("Thời gian");
+            lblTimeHeader.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #374151;");
+            lblTimeHeader.setPrefWidth(100); lblTimeHeader.setMinWidth(100); lblTimeHeader.setMaxWidth(100);
+            
+            Label lblCustomerHeader = new Label("Khách hàng");
+            lblCustomerHeader.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #374151;");
+            lblCustomerHeader.setPrefWidth(160); lblCustomerHeader.setMinWidth(160); lblCustomerHeader.setMaxWidth(160);
+            
+            Label lblVehicleHeader = new Label("Xe");
+            lblVehicleHeader.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #374151;");
+            lblVehicleHeader.setPrefWidth(120); lblVehicleHeader.setMinWidth(120); lblVehicleHeader.setMaxWidth(120);
+            
+            Label lblServiceHeader = new Label("Dịch vụ");
+            lblServiceHeader.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #374151;");
+            lblServiceHeader.setPrefWidth(150); lblServiceHeader.setMinWidth(150); lblServiceHeader.setMaxWidth(Double.MAX_VALUE);
+            
+            Label lblStatusHeader = new Label("Trạng thái");
+            lblStatusHeader.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #374151;");
+            lblStatusHeader.setPrefWidth(100); lblStatusHeader.setMinWidth(100); lblStatusHeader.setMaxWidth(100);
+            lblStatusHeader.setAlignment(Pos.CENTER);
+            
+            header.getChildren().addAll(lblTimeHeader, lblCustomerHeader, lblVehicleHeader, lblServiceHeader, lblStatusHeader);
+            HBox.setHgrow(lblServiceHeader, Priority.ALWAYS);
+            listContainer.getChildren().add(header);
+            
+            for (model.Appointment appt : todayAppts) {
+                HBox row = new HBox(10);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.setStyle("-fx-padding: 10px 12px; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0; -fx-background-color: white;");
+                
+                row.setOnMouseEntered(e -> row.setStyle("-fx-padding: 10px 12px; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0; -fx-background-color: #f9fafb;"));
+                row.setOnMouseExited(e -> row.setStyle("-fx-padding: 10px 12px; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0; -fx-background-color: white;"));
+                
+                Label lblTime = new Label(appt.getAppointmentTime());
+                lblTime.setStyle("-fx-font-size: 13px; -fx-text-fill: #212121; -fx-font-weight: bold;");
+                lblTime.setPrefWidth(100); lblTime.setMinWidth(100); lblTime.setMaxWidth(100);
+                
+                Label lblCustomer = new Label(appt.getCustomerName() + "\n" + appt.getPhone());
+                lblCustomer.setStyle("-fx-font-size: 13px; -fx-text-fill: #212121;");
+                lblCustomer.setPrefWidth(160); lblCustomer.setMinWidth(160); lblCustomer.setMaxWidth(160);
+                
+                Label lblVehicle = new Label(appt.getLicensePlate() + "\n" + appt.getVehicleType());
+                lblVehicle.setStyle("-fx-font-size: 13px; -fx-text-fill: #212121;");
+                lblVehicle.setPrefWidth(120); lblVehicle.setMinWidth(120); lblVehicle.setMaxWidth(120);
+                
+                Label lblService = new Label(appt.getServiceName());
+                lblService.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+                lblService.setPrefWidth(150); lblService.setMinWidth(150); lblService.setMaxWidth(Double.MAX_VALUE);
+                lblService.setWrapText(true);
+                
+                HBox statusBox = new HBox(0);
+                statusBox.setAlignment(Pos.CENTER);
+                statusBox.setPrefWidth(100); statusBox.setMinWidth(100); statusBox.setMaxWidth(100);
+                
+                Label lblStatus = new Label(appt.getStatus());
+                lblStatus.setStyle("-fx-padding: 4px 8px; -fx-background-radius: 4; -fx-text-fill: white; -fx-alignment: center; -fx-font-weight: bold; -fx-font-size: 12px;");
+                if (appt.getStatus().equals("Chờ")) {
+                    lblStatus.setStyle(lblStatus.getStyle() + "-fx-background-color: #ff9800;");
+                } else if (appt.getStatus().equals("Đang thực hiện")) {
+                    lblStatus.setStyle(lblStatus.getStyle() + "-fx-background-color: #2196F3;");
+                } else if (appt.getStatus().equals("Đã hoàn thành")) {
+                    lblStatus.setStyle(lblStatus.getStyle() + "-fx-background-color: #4CAF50;");
+                } else {
+                    lblStatus.setStyle(lblStatus.getStyle() + "-fx-background-color: #9e9e9e;");
+                }
+                statusBox.getChildren().add(lblStatus);
+                
+                row.getChildren().addAll(lblTime, lblCustomer, lblVehicle, lblService, statusBox);
+                HBox.setHgrow(lblService, Priority.ALWAYS);
+                listContainer.getChildren().add(row);
+            }
+        }
+        
+        ScrollPane scrollPane = new ScrollPane(listContainer);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        scrollPane.setMaxHeight(250);
+        
+        section.getChildren().addAll(sectionTitle, scrollPane);
+        return section;
+    }
+
+    private void showAppointmentManagement() {
+        currentView = "appointment";
+        VBox view = new VBox(25);
+        view.setPadding(new Insets(30));
+
+        // Header
+        HBox header = new HBox(20);
+        header.setAlignment(Pos.CENTER_LEFT);
+        
+        Label title = new Label("📅 Quản Lý Lịch Hẹn");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        Button btnNew = new Button("+ Tạo Lịch Hẹn Mới");
+        btnNew.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 24px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnNew.setOnMouseEntered(e -> btnNew.setOpacity(0.9));
+        btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
+        btnNew.setOnAction(e -> showCreateAppointmentDialog(null));
+        
+        header.getChildren().addAll(title, spacer, btnNew);
+
+        // Search and filter bar
+        HBox filterBar = new HBox(15);
+        filterBar.setAlignment(Pos.CENTER_LEFT);
+        filterBar.setPadding(new Insets(20));
+        filterBar.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;"
+        );
+        
+        TextField searchField = new TextField();
+        searchField.setPromptText("🔍 Tìm kiếm lịch hẹn...");
+        searchField.setPrefWidth(200);
+        searchField.setMinWidth(200);
+        searchField.setMaxWidth(200);
+        searchField.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 10px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;"
+        );
+        
+        ComboBox<String> cbStatusFilter = new ComboBox<>();
+        cbStatusFilter.getItems().addAll("Tất cả trạng thái", "Chờ", "Đang thực hiện", "Đã hoàn thành", "Đã hủy");
+        cbStatusFilter.setValue("Tất cả trạng thái");
+        cbStatusFilter.setPrefWidth(150);
+        cbStatusFilter.setMinWidth(150);
+        cbStatusFilter.setMaxWidth(150);
+        cbStatusFilter.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
+        
+        ComboBox<String> cbPeriod = new ComboBox<>();
+        cbPeriod.getItems().addAll("Tất cả mốc thời gian", "Tuần này", "Tháng này", "Quý này", "Năm nay");
+        cbPeriod.setValue("Tất cả mốc thời gian");
+        cbPeriod.setPrefWidth(180);
+        cbPeriod.setMinWidth(180);
+        cbPeriod.setMaxWidth(180);
+        cbPeriod.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
+        
+        ComboBox<String> cbMonth = new ComboBox<>();
+        cbMonth.getItems().add("Tất cả các tháng");
+        for (int m = 1; m <= 12; m++) {
+            cbMonth.getItems().add("Tháng " + m);
+        }
+        cbMonth.setValue("Tất cả các tháng");
+        cbMonth.setPrefWidth(150);
+        cbMonth.setMinWidth(150);
+        cbMonth.setMaxWidth(150);
+        cbMonth.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
+        
+        ComboBox<String> cbYear = new ComboBox<>();
+        cbYear.getItems().add("Tất cả các năm");
+        cbYear.getItems().addAll(getAvailableYears());
+        cbYear.setValue("Tất cả các năm");
+        cbYear.setPrefWidth(140);
+        cbYear.setMinWidth(140);
+        cbYear.setMaxWidth(140);
+        cbYear.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-font-size: 13px;"
+        );
+        
+        Runnable filterAction = () -> {
+            String search = searchField.getText().trim();
+            String status = cbStatusFilter.getValue();
+            refreshAppointmentTableWithFilter(
+                search,
+                status,
+                cbPeriod.getValue(),
+                cbMonth.getValue(),
+                cbYear.getValue()
+            );
+        };
+        
+        searchField.textProperty().addListener((obs, old, newVal) -> filterAction.run());
+        cbStatusFilter.valueProperty().addListener((obs, old, newVal) -> filterAction.run());
+        cbPeriod.valueProperty().addListener((obs, old, newVal) -> filterAction.run());
+        cbMonth.valueProperty().addListener((obs, old, newVal) -> filterAction.run());
+        cbYear.valueProperty().addListener((obs, old, newVal) -> filterAction.run());
+        
+        filterBar.getChildren().addAll(searchField, cbStatusFilter, cbPeriod, cbMonth, cbYear);
+
+        // Appointment List Container
+        VBox tableContainer = new VBox(0);
+        tableContainer.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-padding: 20;"
+        );
+        
+        Label tableTitle = new Label("Danh Sách Lịch Hẹn");
+        tableTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121; -fx-padding: 0 0 15 0;");
+        
+        HBox tableHeader = new HBox(0);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+        tableHeader.setPadding(new Insets(12, 0, 12, 0));
+        tableHeader.setStyle(
+            "-fx-background-color: #F9FAFB;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        );
+        
+        Label colId = new Label("Mã"); colId.setPrefWidth(50); colId.setMinWidth(50); colId.setMaxWidth(50); colId.setPadding(new Insets(0, 5, 0, 5)); colId.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colId.setAlignment(Pos.CENTER_LEFT);
+        Label colDateTime = new Label("Thời Gian"); colDateTime.setPrefWidth(120); colDateTime.setMinWidth(120); colDateTime.setMaxWidth(120); colDateTime.setPadding(new Insets(0, 5, 0, 5)); colDateTime.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colDateTime.setAlignment(Pos.CENTER_LEFT);
+        Label colCustomer = new Label("Khách Hàng"); colCustomer.setPrefWidth(160); colCustomer.setMinWidth(160); colCustomer.setMaxWidth(160); colCustomer.setPadding(new Insets(0, 5, 0, 5)); colCustomer.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colCustomer.setAlignment(Pos.CENTER_LEFT);
+        Label colVehicle = new Label("Xe"); colVehicle.setPrefWidth(110); colVehicle.setMinWidth(110); colVehicle.setMaxWidth(110); colVehicle.setPadding(new Insets(0, 5, 0, 5)); colVehicle.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colVehicle.setAlignment(Pos.CENTER_LEFT);
+        Label colService = new Label("Dịch Vụ"); colService.setPrefWidth(150); colService.setMinWidth(150); colService.setMaxWidth(Double.MAX_VALUE); colService.setPadding(new Insets(0, 5, 0, 5)); colService.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colService.setAlignment(Pos.CENTER_LEFT);
+        Label colStatus = new Label("Trạng Thái"); colStatus.setPrefWidth(110); colStatus.setMinWidth(110); colStatus.setMaxWidth(110); colStatus.setPadding(new Insets(0, 5, 0, 5)); colStatus.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colStatus.setAlignment(Pos.CENTER);
+        Label colActions = new Label("Thao Tác"); colActions.setPrefWidth(170); colActions.setMinWidth(170); colActions.setMaxWidth(170); colActions.setPadding(new Insets(0, 5, 0, 5)); colActions.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colActions.setAlignment(Pos.CENTER);
+        
+        tableHeader.getChildren().addAll(colId, colDateTime, colCustomer, colVehicle, colService, colStatus, colActions);
+        HBox.setHgrow(colService, Priority.ALWAYS);
+        
+        appointmentTableRows = new VBox(0);
+        
+        ScrollPane scrollPane = new ScrollPane(appointmentTableRows);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        
+        tableContainer.getChildren().addAll(tableTitle, tableHeader, scrollPane);
+        VBox.setVgrow(tableContainer, Priority.ALWAYS);
+        
+        view.getChildren().addAll(header, filterBar, tableContainer);
+        
+        contentArea.getChildren().clear();
+        contentArea.getChildren().add(view);
+        
+        refreshAppointmentTableWithFilter("", "Tất cả trạng thái", "Tất cả mốc thời gian", "Tất cả các tháng", "Tất cả các năm");
+    }
+
+    private void refreshAppointmentTableWithFilter(String searchText, String status, String period, String month, String year) {
+        appointmentTableRows.getChildren().clear();
+        service.AppointmentService appointmentService = new service.AppointmentService();
+        List<model.Appointment> list = appointmentService.getAllAppointments();
+        
+        // Filter status
+        if (status != null && !status.trim().isEmpty() && !status.equals("Tất cả trạng thái")) {
+            list = list.stream().filter(a -> a.getStatus().equals(status)).collect(java.util.stream.Collectors.toList());
+        }
+        // Filter by time filters
+        list = list.stream()
+            .filter(a -> matchesTimeFilters(a.getAppointmentDate(), period, month, year))
+            .collect(java.util.stream.Collectors.toList());
+        // Filter search
+        if (searchText != null && !searchText.trim().isEmpty()) {
+            String query = searchText.toLowerCase().trim();
+            list = list.stream().filter(a -> 
+                a.getCustomerName().toLowerCase().contains(query) ||
+                a.getPhone().contains(query) ||
+                a.getLicensePlate().toLowerCase().contains(query) ||
+                a.getServiceName().toLowerCase().contains(query)
+            ).collect(java.util.stream.Collectors.toList());
+        }
+        
+        if (list.isEmpty()) {
+            Label empty = new Label("Không tìm thấy lịch hẹn nào.");
+            empty.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 30px;");
+            appointmentTableRows.getChildren().add(empty);
+        } else {
+            for (model.Appointment appt : list) {
+                appointmentTableRows.getChildren().add(createAppointmentRow(appt));
+            }
+        }
+    }
+
+    private HBox createAppointmentRow(model.Appointment appt) {
+        HBox row = new HBox(0);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(0));
+        row.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        );
+        
+        row.setOnMouseEntered(e -> row.setStyle(
+            "-fx-background-color: #f9fafb;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        ));
+        row.setOnMouseExited(e -> row.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #f3f4f6;" +
+            "-fx-border-width: 0 0 1 0;"
+        ));
+        
+        Label colId = new Label(String.valueOf(appt.getId()));
+        colId.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 500;");
+        colId.setPrefWidth(50);
+        colId.setMinWidth(50);
+        colId.setMaxWidth(50);
+        colId.setPadding(new Insets(12, 5, 12, 5));
+        colId.setAlignment(Pos.CENTER_LEFT);
+        
+        Label colDateTime = new Label(appt.getAppointmentTime() + "\n" + appt.getAppointmentDate());
+        colDateTime.setStyle("-fx-font-size: 13px; -fx-text-fill: #212121; -fx-font-weight: bold;");
+        colDateTime.setPrefWidth(120);
+        colDateTime.setMinWidth(120);
+        colDateTime.setMaxWidth(120);
+        colDateTime.setPadding(new Insets(12, 5, 12, 5));
+        colDateTime.setAlignment(Pos.CENTER_LEFT);
+        
+        Label colCustomer = new Label(appt.getCustomerName() + "\n" + appt.getPhone());
+        colCustomer.setStyle("-fx-font-size: 13px; -fx-text-fill: #212121;");
+        colCustomer.setPrefWidth(160);
+        colCustomer.setMinWidth(160);
+        colCustomer.setMaxWidth(160);
+        colCustomer.setPadding(new Insets(12, 5, 12, 5));
+        colCustomer.setAlignment(Pos.CENTER_LEFT);
+        
+        Label colVehicle = new Label(appt.getLicensePlate() + "\n" + appt.getVehicleType());
+        colVehicle.setStyle("-fx-font-size: 13px; -fx-text-fill: #212121;");
+        colVehicle.setPrefWidth(110);
+        colVehicle.setMinWidth(110);
+        colVehicle.setMaxWidth(110);
+        colVehicle.setPadding(new Insets(12, 5, 12, 5));
+        colVehicle.setAlignment(Pos.CENTER_LEFT);
+        
+        Label colService = new Label(appt.getServiceName());
+        colService.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+        colService.setPrefWidth(150);
+        colService.setMinWidth(150);
+        colService.setMaxWidth(Double.MAX_VALUE);
+        colService.setWrapText(true);
+        colService.setPadding(new Insets(12, 5, 12, 5));
+        colService.setAlignment(Pos.CENTER_LEFT);
+        
+        HBox statusBox = new HBox(0);
+        statusBox.setAlignment(Pos.CENTER);
+        statusBox.setPrefWidth(110);
+        statusBox.setMinWidth(110);
+        statusBox.setMaxWidth(110);
+        statusBox.setPadding(new Insets(12, 5, 12, 5));
+        
+        Label colStatus = new Label(appt.getStatus());
+        colStatus.setStyle("-fx-padding: 4px 8px; -fx-background-radius: 4; -fx-text-fill: white; -fx-alignment: center; -fx-font-weight: bold; -fx-font-size: 12px;");
+        if (appt.getStatus().equals("Chờ")) {
+            colStatus.setStyle(colStatus.getStyle() + "-fx-background-color: #ff9800;");
+        } else if (appt.getStatus().equals("Đang thực hiện")) {
+            colStatus.setStyle(colStatus.getStyle() + "-fx-background-color: #2196F3;");
+        } else if (appt.getStatus().equals("Đã hoàn thành")) {
+            colStatus.setStyle(colStatus.getStyle() + "-fx-background-color: #4CAF50;");
+        } else {
+            colStatus.setStyle(colStatus.getStyle() + "-fx-background-color: #9e9e9e;");
+        }
+        statusBox.getChildren().add(colStatus);
+        
+        HBox actions = new HBox(8);
+        actions.setPrefWidth(170);
+        actions.setMinWidth(170);
+        actions.setMaxWidth(170);
+        actions.setPadding(new Insets(12, 5, 12, 5));
+        actions.setAlignment(Pos.CENTER);
+        
+        if (appt.getStatus().equals("Chờ")) {
+            Button btnStart = new Button("Nhận Xe");
+            btnStart.setStyle(
+                "-fx-background-color: #2196F3;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 12px;" +
+                "-fx-font-weight: bold;" +
+                "-fx-padding: 6px 12px;" +
+                "-fx-background-radius: 6;" +
+                "-fx-cursor: hand;"
+            );
+            btnStart.setOnAction(e -> {
+                appt.setStatus("Đang thực hiện");
+                new service.AppointmentService().updateAppointment(appt);
+                showAppointmentManagement();
+            });
+            
+            Button btnEdit = new Button("✏");
+            btnEdit.setStyle(
+                "-fx-background-color: #E3F2FD;" +
+                "-fx-text-fill: #2196F3;" +
+                "-fx-font-size: 12px;" +
+                "-fx-padding: 8px 10px;" +
+                "-fx-background-radius: 6;" +
+                "-fx-cursor: hand;" +
+                "-fx-min-width: 32;" +
+                "-fx-min-height: 32;"
+            );
+            btnEdit.setOnAction(e -> showCreateAppointmentDialog(appt));
+            
+            Button btnCancel = new Button("🗑");
+            btnCancel.setStyle(
+                "-fx-background-color: #FFEBEE;" +
+                "-fx-text-fill: #f44336;" +
+                "-fx-font-size: 12px;" +
+                "-fx-padding: 8px 10px;" +
+                "-fx-background-radius: 6;" +
+                "-fx-cursor: hand;" +
+                "-fx-min-width: 32;" +
+                "-fx-min-height: 32;"
+            );
+            btnCancel.setOnAction(e -> {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Bạn có chắc chắn muốn hủy lịch hẹn này?", ButtonType.YES, ButtonType.NO);
+                alert.setTitle("Xác nhận hủy");
+                alert.setHeaderText(null);
+                alert.showAndWait().ifPresent(response -> {
+                    if (response == ButtonType.YES) {
+                        appt.setStatus("Đã hủy");
+                        new service.AppointmentService().updateAppointment(appt);
+                        showAppointmentManagement();
+                    }
+                });
+            });
+            
+            actions.getChildren().addAll(btnStart, btnEdit, btnCancel);
+            
+        } else if (appt.getStatus().equals("Đang thực hiện")) {
+            Button btnInvoice = new Button("Lập Hóa Đơn");
+            btnInvoice.setStyle(
+                "-fx-background-color: #2196F3;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 12px;" +
+                "-fx-font-weight: bold;" +
+                "-fx-padding: 6px 12px;" +
+                "-fx-background-radius: 6;" +
+                "-fx-cursor: hand;"
+            );
+            btnInvoice.setOnAction(e -> {
+                CreateInvoiceForm form = new CreateInvoiceForm(() -> {
+                    showAppointmentManagement();
+                }, appt);
+                form.show();
+            });
+            Button btnCancel = new Button("🗑");
+            btnCancel.setStyle(
+                "-fx-background-color: #FFEBEE;" +
+                "-fx-text-fill: #f44336;" +
+                "-fx-font-size: 12px;" +
+                "-fx-padding: 8px 10px;" +
+                "-fx-background-radius: 6;" +
+                "-fx-cursor: hand;" +
+                "-fx-min-width: 32;" +
+                "-fx-min-height: 32;"
+            );
+            btnCancel.setOnAction(e -> {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Bạn có chắc chắn muốn hủy lịch hẹn này?", ButtonType.YES, ButtonType.NO);
+                alert.setTitle("Xác nhận hủy");
+                alert.setHeaderText(null);
+                alert.showAndWait().ifPresent(response -> {
+                    if (response == ButtonType.YES) {
+                        appt.setStatus("Đã hủy");
+                        new service.AppointmentService().updateAppointment(appt);
+                        showAppointmentManagement();
+                    }
+                });
+            });
+            
+            actions.getChildren().addAll(btnInvoice, btnCancel);
+        } else {
+            Label lblDone = new Label(appt.getStatus().equals("Đã hoàn thành") ? "✓ Đã Hoàn Thành" : "✗ Đã Hủy");
+            lblDone.setStyle("-fx-text-fill: #757575; -fx-font-style: italic; -fx-font-size: 13px;");
+            actions.getChildren().add(lblDone);
+        }
+        
+        row.getChildren().addAll(colId, colDateTime, colCustomer, colVehicle, colService, statusBox, actions);
+        HBox.setHgrow(colService, Priority.ALWAYS);
+        return row;
+    }
+
+    private void showCreateAppointmentDialog(model.Appointment existing) {
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        dialogStage.setTitle(existing != null ? "Sửa Lịch Hẹn" : "Tạo Lịch Hẹn Mới");
+        
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(25));
+        root.setStyle("-fx-background-color: white;");
+        
+        Label title = new Label(existing != null ? "📅 Chỉnh Sửa Lịch Hẹn" : "📅 Tạo Lịch Hẹn Mới");
+        title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #212121;");
+        
+        GridPane grid = new GridPane();
+        grid.setHgap(15);
+        grid.setVgap(15);
+        
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(140);
+        col1.setPrefWidth(140);
+        
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setMinWidth(300);
+        col2.setPrefWidth(300);
+        col2.setHgrow(Priority.ALWAYS);
+        
+        grid.getColumnConstraints().addAll(col1, col2);
+        
+        Label lblPhone = new Label("Số điện thoại *");
+        lblPhone.setStyle("-fx-font-weight: 500;");
+        TextField txtPhone = new TextField(existing != null ? existing.getPhone() : "");
+        txtPhone.setPromptText("Nhập số điện thoại...");
+        txtPhone.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 10px; -fx-background-radius: 6;");
+        
+        Label lblName = new Label("Tên khách hàng *");
+        lblName.setStyle("-fx-font-weight: 500;");
+        TextField txtName = new TextField(existing != null ? existing.getCustomerName() : "");
+        txtName.setPromptText("Nhập tên khách hàng...");
+        txtName.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 10px; -fx-background-radius: 6;");
+        
+        Label lblAddress = new Label("Địa chỉ");
+        lblAddress.setStyle("-fx-font-weight: 500;");
+        TextField txtAddress = new TextField(existing != null ? existing.getAddress() : "");
+        txtAddress.setPromptText("Nhập địa chỉ...");
+        txtAddress.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 10px; -fx-background-radius: 6;");
+        
+        Label lblPlate = new Label("Biển số xe *");
+        lblPlate.setStyle("-fx-font-weight: 500;");
+        TextField txtPlate = new TextField(existing != null ? existing.getLicensePlate() : "");
+        txtPlate.setPromptText("Nhập biển số xe...");
+        txtPlate.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 10px; -fx-background-radius: 6;");
+
+        // Autocomplete search suggestions
+        ListView<service.AppointmentService.CustomerInfo> suggestionList = new ListView<>();
+        suggestionList.setPrefHeight(100);
+        suggestionList.setVisible(false);
+        suggestionList.setManaged(false);
+        
+        txtPhone.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal.trim().length() >= 3) {
+                List<service.AppointmentService.CustomerInfo> matches = new service.AppointmentService().searchCustomers(newVal);
+                if (!matches.isEmpty()) {
+                    suggestionList.getItems().setAll(matches);
+                    suggestionList.setVisible(true);
+                    suggestionList.setManaged(true);
+                } else {
+                    suggestionList.setVisible(false);
+                    suggestionList.setManaged(false);
+                }
+            } else {
+                suggestionList.setVisible(false);
+                suggestionList.setManaged(false);
+            }
+        });
+        
+        suggestionList.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(service.AppointmentService.CustomerInfo item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getName() + " - " + item.getPhone() + " (" + item.getLicensePlate() + ")");
+                }
+            }
+        });
+        
+        suggestionList.setOnMouseClicked(event -> {
+            service.AppointmentService.CustomerInfo selected = suggestionList.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                txtName.setText(selected.getName());
+                txtPhone.setText(selected.getPhone());
+                txtAddress.setText(selected.getAddress() != null ? selected.getAddress() : "");
+                txtPlate.setText(selected.getLicensePlate());
+                suggestionList.setVisible(false);
+                suggestionList.setManaged(false);
+            }
+        });
+        
+        Label lblVehicleType = new Label("Loại xe *");
+        lblVehicleType.setStyle("-fx-font-weight: 500;");
+        ComboBox<String> cbVehicleType = new ComboBox<>();
+        cbVehicleType.getItems().addAll("Mini", "Sedan", "CUV", "SUV", "MPV", "Pickup");
+        cbVehicleType.setValue(existing != null ? existing.getVehicleType() : "Sedan");
+        cbVehicleType.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 6;");
+        
+        Label lblService = new Label("Dịch vụ *");
+        lblService.setStyle("-fx-font-weight: 500;");
+        
+        ComboBox<String> cbService = new ComboBox<>();
+        cbService.setMaxWidth(Double.MAX_VALUE);
+        cbService.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 6;");
+        
+        List<String> allServices = new java.util.ArrayList<>();
+        new service.ServiceService().getAllServices().forEach(s -> allServices.add(s.getName()));
+        new service.PackageService().getAllPackages().forEach(p -> allServices.add(p.getName()));
+        cbService.getItems().addAll(allServices);
+        
+        TextField txtSearchService = new TextField();
+        txtSearchService.setPromptText("🔍 Nhập từ khóa để lọc dịch vụ lẻ/gói...");
+        txtSearchService.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 8px; -fx-background-radius: 6;");
+        txtSearchService.textProperty().addListener((obs, oldVal, newVal) -> {
+            String query = newVal.trim().toLowerCase();
+            if (query.isEmpty()) {
+                cbService.getItems().setAll(allServices);
+            } else {
+                List<String> filtered = new java.util.ArrayList<>();
+                for (String s : allServices) {
+                    if (s.toLowerCase().contains(query)) {
+                        filtered.add(s);
+                    }
+                }
+                cbService.getItems().setAll(filtered);
+                if (!filtered.isEmpty()) {
+                    cbService.setValue(filtered.get(0));
+                }
+            }
+        });
+        
+        VBox serviceSelectBox = new VBox(5);
+        serviceSelectBox.getChildren().addAll(txtSearchService, cbService);
+        
+        if (existing != null) {
+            cbService.setValue(existing.getServiceName());
+        } else if (!cbService.getItems().isEmpty()) {
+            cbService.setValue(cbService.getItems().get(0));
+        }
+        
+        Label lblDate = new Label("Ngày hẹn *");
+        lblDate.setStyle("-fx-font-weight: 500;");
+        DatePicker dpDate = new DatePicker(existing != null ? LocalDate.parse(existing.getAppointmentDate()) : LocalDate.now());
+        dpDate.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 6;");
+        
+        Label lblTime = new Label("Giờ hẹn *");
+        lblTime.setStyle("-fx-font-weight: 500;");
+        HBox timeBox = new HBox(5);
+        timeBox.setAlignment(Pos.CENTER_LEFT);
+        ComboBox<String> cbHour = new ComboBox<>();
+        for (int i = 8; i <= 17; i++) {
+            cbHour.getItems().add(String.format("%02d", i));
+        }
+        ComboBox<String> cbMin = new ComboBox<>();
+        cbMin.getItems().addAll("00", "15", "30", "45");
+        
+        if (existing != null) {
+            String[] parts = existing.getAppointmentTime().split(":");
+            cbHour.setValue(parts[0]);
+            cbMin.setValue(parts[1]);
+        } else {
+            cbHour.setValue("09");
+            cbMin.setValue("00");
+        }
+        cbHour.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 6;");
+        cbMin.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 6;");
+        timeBox.getChildren().addAll(cbHour, new Label(":"), cbMin);
+        
+        Label lblDuration = new Label("Dự kiến hoàn thành");
+        lblDuration.setStyle("-fx-font-weight: 500;");
+        TextField txtDuration = new TextField(existing != null ? existing.getExpectedCompletion() : "2 giờ");
+        txtDuration.setStyle("-fx-background-color: #f5f5f5; -fx-padding: 10px; -fx-background-radius: 6;");
+        
+        Label lblNotes = new Label("Ghi chú");
+        lblNotes.setStyle("-fx-font-weight: 500;");
+        TextArea txtNotes = new TextArea(existing != null ? existing.getNotes() : "");
+        txtNotes.setPrefRowCount(3);
+        txtNotes.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 6;");
+        txtNotes.setPromptText("Ghi chú nếu có...");
+        
+        grid.add(lblPhone, 0, 0); grid.add(txtPhone, 1, 0);
+        grid.add(lblName, 0, 1); grid.add(txtName, 1, 1);
+        grid.add(lblAddress, 0, 2); grid.add(txtAddress, 1, 2);
+        grid.add(lblPlate, 0, 3); grid.add(txtPlate, 1, 3);
+        grid.add(lblVehicleType, 0, 4); grid.add(cbVehicleType, 1, 4);
+        grid.add(lblService, 0, 5); grid.add(serviceSelectBox, 1, 5);
+        grid.add(lblDate, 0, 6); grid.add(dpDate, 1, 6);
+        grid.add(lblTime, 0, 7); grid.add(timeBox, 1, 7);
+        grid.add(lblDuration, 0, 8); grid.add(txtDuration, 1, 8);
+        grid.add(lblNotes, 0, 9); grid.add(txtNotes, 1, 9);
+        
+        VBox mainForm = new VBox(10);
+        mainForm.getChildren().addAll(grid, suggestionList);
+
+        HBox btnBox = new HBox(12);
+        btnBox.setAlignment(Pos.CENTER_RIGHT);
+        
+        Button btnCancel = new Button("Hủy");
+        btnCancel.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #424242; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnCancel.setOnAction(e -> dialogStage.close());
+        
+        Button btnSave = new Button("Lưu Lịch Hẹn");
+        btnSave.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 25px; -fx-background-radius: 6; -fx-cursor: hand;");
+        btnSave.setOnAction(e -> {
+            if (txtPhone.getText().trim().isEmpty() || txtName.getText().trim().isEmpty() || txtPlate.getText().trim().isEmpty() || cbService.getValue() == null) {
+                showErrorAlert("Lỗi nhập liệu", "Vui lòng điền đầy đủ các thông tin bắt buộc (*)");
+                return;
+            }
+            
+            String timeStr = cbHour.getValue() + ":" + cbMin.getValue();
+            String dateStr = dpDate.getValue().toString();
+            String plate = txtPlate.getText().trim();
+            int currentId = existing != null ? existing.getId() : -1;
+            
+            service.AppointmentService appointmentService = new service.AppointmentService();
+            String warning = appointmentService.checkConflictOrOverload(dateStr, timeStr, plate, currentId);
+            if (warning != null) {
+                List<String> alternates = appointmentService.suggestAlternativeTimes(dateStr, timeStr, plate, currentId);
+                showConflictWarningDialog(warning, alternates, chosenTime -> {
+                    String[] tParts = chosenTime.split(":");
+                    cbHour.setValue(tParts[0]);
+                    cbMin.setValue(tParts[1]);
+                });
+                return;
+            }
+            
+            model.Appointment appt = existing != null ? existing : new model.Appointment();
+            appt.setPhone(txtPhone.getText().trim());
+            appt.setCustomerName(txtName.getText().trim());
+            appt.setAddress(txtAddress.getText().trim());
+            appt.setLicensePlate(plate);
+            appt.setVehicleType(cbVehicleType.getValue());
+            appt.setServiceName(cbService.getValue());
+            appt.setAppointmentDate(dateStr);
+            appt.setAppointmentTime(timeStr);
+            appt.setExpectedCompletion(txtDuration.getText().trim());
+            appt.setNotes(txtNotes.getText().trim());
+            appt.setStatus(existing != null ? existing.getStatus() : "Chờ");
+            appt.setReminded(existing != null ? existing.getReminded() : 0);
+            
+            boolean ok;
+            if (existing != null) {
+                ok = appointmentService.updateAppointment(appt);
+            } else {
+                ok = appointmentService.addAppointment(appt);
+            }
+            
+            if (ok) {
+                showSuccessAlert("Thành công", "Lưu lịch hẹn thành công!");
+                dialogStage.close();
+                if ("appointment".equals(currentView)) {
+                    showAppointmentManagement();
+                } else {
+                    showDashboard();
+                }
+            } else {
+                showErrorAlert("Lỗi", "Không thể lưu lịch hẹn!");
+            }
+        });
+        
+        btnBox.getChildren().addAll(btnCancel, btnSave);
+        root.getChildren().addAll(title, mainForm, btnBox);
+        
+        ScrollPane sp = new ScrollPane(root);
+        sp.setFitToWidth(true);
+        sp.setPrefHeight(600);
+        Scene scene = new Scene(sp, 600, 660);
+        try {
+            String css = getClass().getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {}
+        dialogStage.setScene(scene);
+        dialogStage.showAndWait();
+    }
+
+    private void showConflictWarningDialog(String warningMsg, List<String> alternates, java.util.function.Consumer<String> onTimeSelected) {
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        dialogStage.setTitle("⚠ Cảnh Báo Trùng / Quá Tải Lịch Hẹn");
+        
+        VBox content = new VBox(20);
+        content.setPadding(new Insets(25));
+        content.setAlignment(Pos.CENTER);
+        content.setStyle("-fx-background-color: white;");
+        
+        Label iconLabel = new Label("⚠");
+        iconLabel.setStyle("-fx-font-size: 40px; -fx-text-fill: #E65100;");
+        
+        Label titleLabel = new Label("Trùng Hoặc Quá Tải Lịch Hẹn");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #212121;");
+        
+        Label msgLabel = new Label(warningMsg);
+        msgLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #555555;");
+        msgLabel.setWrapText(true);
+        msgLabel.setAlignment(Pos.CENTER);
+        
+        Label suggestLabel = new Label("Đề xuất các khung giờ phù hợp khác trong ngày:");
+        suggestLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #757575;");
+        
+        VBox alternatesBox = new VBox(8);
+        alternatesBox.setAlignment(Pos.CENTER);
+        for (String altTime : alternates) {
+            Button btnAlt = new Button(altTime);
+            btnAlt.setStyle(
+                "-fx-background-color: #E3F2FD;" +
+                "-fx-text-fill: #1976D2;" +
+                "-fx-font-size: 14px;" +
+                "-fx-font-weight: bold;" +
+                "-fx-padding: 8px 25px;" +
+                "-fx-background-radius: 6;" +
+                "-fx-cursor: hand;" +
+                "-fx-min-width: 200;"
+            );
+            btnAlt.setOnAction(e -> {
+                String cleanTime = altTime.split(" ")[0];
+                onTimeSelected.accept(cleanTime);
+                dialogStage.close();
+            });
+            alternatesBox.getChildren().add(btnAlt);
+        }
+        
+        Button btnClose = new Button("Đóng để chọn thủ công");
+        btnClose.setStyle(
+            "-fx-background-color: #e0e0e0;" +
+            "-fx-text-fill: #424242;" +
+            "-fx-font-weight: bold;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;"
+        );
+        btnClose.setOnAction(e -> dialogStage.close());
+        
+        content.getChildren().addAll(iconLabel, titleLabel, msgLabel, suggestLabel, alternatesBox, btnClose);
+        Scene scene = new Scene(content, 450, 480);
+        dialogStage.setScene(scene);
+        dialogStage.show();
     }
 }
