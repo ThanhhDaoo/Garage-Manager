@@ -222,9 +222,9 @@ public class EmployeeForm {
             saveEmp.setName(name);
             saveEmp.setPhone(txtPhone.getText().trim());
             saveEmp.setAddress(txtAddress.getText().trim());
-            saveEmp.setDob(dpDob.getValue() != null ? dpDob.getValue().toString() : "");
+            saveEmp.setDob(getDateStringFromDatePicker(dpDob));
             saveEmp.setGender(cbGender.getValue());
-            saveEmp.setStartDate(dpStartDate.getValue() != null ? dpStartDate.getValue().toString() : "");
+            saveEmp.setStartDate(getDateStringFromDatePicker(dpStartDate));
             saveEmp.setPosition(position);
             saveEmp.setBasicSalary(salary);
 
@@ -275,5 +275,29 @@ public class EmployeeForm {
             }
         }
         return String.format("NV%03d", maxNum + 1);
+    }
+
+    private String getDateStringFromDatePicker(DatePicker dp) {
+        if (dp.getValue() != null) {
+            return dp.getValue().toString();
+        }
+        String text = dp.getEditor().getText();
+        if (text != null && !text.trim().isEmpty()) {
+            try {
+                LocalDate date = dp.getConverter().fromString(text);
+                if (date != null) return date.toString();
+            } catch (Exception e) {
+                String cleanText = text.trim();
+                String[] formats = {"dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "d-M-yyyy", "yyyy-MM-dd"};
+                for (String fmt : formats) {
+                    try {
+                        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern(fmt);
+                        LocalDate date = LocalDate.parse(cleanText, dtf);
+                        return date.toString();
+                    } catch (Exception ex) {}
+                }
+            }
+        }
+        return "";
     }
 }

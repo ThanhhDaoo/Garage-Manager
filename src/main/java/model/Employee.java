@@ -11,6 +11,14 @@ public class Employee {
     private String startDate;
     private String position;
     private double basicSalary;
+    private double allowanceResponsibility;
+    private double allowanceOther;
+    private double commissionConsulting;
+    private double commissionService;
+    private double overtimePay;
+    private double socialInsurance;
+    private double advancePayment;
+    private double netSalary;
 
     public Employee() {}
 
@@ -56,4 +64,28 @@ public class Employee {
 
     public double getBasicSalary() { return basicSalary; }
     public void setBasicSalary(double basicSalary) { this.basicSalary = basicSalary; }
+
+    public double getAllowanceResponsibility() { return allowanceResponsibility; }
+    public void setAllowanceResponsibility(double allowanceResponsibility) { this.allowanceResponsibility = allowanceResponsibility; }
+
+    public double getAllowanceOther() { return allowanceOther; }
+    public void setAllowanceOther(double allowanceOther) { this.allowanceOther = allowanceOther; }
+
+    public double getCommissionConsulting() { return commissionConsulting; }
+    public void setCommissionConsulting(double commissionConsulting) { this.commissionConsulting = commissionConsulting; }
+
+    public double getCommissionService() { return commissionService; }
+    public void setCommissionService(double commissionService) { this.commissionService = commissionService; }
+
+    public double getOvertimePay() { return overtimePay; }
+    public void setOvertimePay(double overtimePay) { this.overtimePay = overtimePay; }
+
+    public double getSocialInsurance() { return socialInsurance; }
+    public void setSocialInsurance(double socialInsurance) { this.socialInsurance = socialInsurance; }
+
+    public double getAdvancePayment() { return advancePayment; }
+    public void setAdvancePayment(double advancePayment) { this.advancePayment = advancePayment; }
+
+    public double getNetSalary() { return netSalary; }
+    public void setNetSalary(double netSalary) { this.netSalary = netSalary; }
 }

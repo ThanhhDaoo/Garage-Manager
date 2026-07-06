@@ -20,6 +20,7 @@ public class PayrollDAO {
                     return new Payroll(
                         rs.getInt("id"),
                         rs.getInt("employee_id"),
+                        rs.getString("employee_name"),
                         rs.getString("pay_month"),
                         rs.getInt("total_days"),
                         rs.getDouble("actual_work_days"),
@@ -44,10 +45,10 @@ public class PayrollDAO {
     
     public boolean savePayroll(Payroll pr) {
         String sqlCheck = "SELECT id FROM payroll WHERE employee_id = ? AND pay_month = ?";
-        String sqlInsert = "INSERT INTO payroll (employee_id, pay_month, total_days, actual_work_days, basic_salary, " +
+        String sqlInsert = "INSERT INTO payroll (employee_id, employee_name, pay_month, total_days, actual_work_days, basic_salary, " +
                            "allowance_responsibility, allowance_other, commission_consulting, commission_service, " +
-                           "overtime_pay, social_insurance, advance_payment, net_salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        String sqlUpdate = "UPDATE payroll SET total_days = ?, actual_work_days = ?, basic_salary = ?, " +
+                           "overtime_pay, social_insurance, advance_payment, net_salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sqlUpdate = "UPDATE payroll SET employee_name = ?, total_days = ?, actual_work_days = ?, basic_salary = ?, " +
                            "allowance_responsibility = ?, allowance_other = ?, commission_consulting = ?, commission_service = ?, " +
                            "overtime_pay = ?, social_insurance = ?, advance_payment = ?, net_salary = ? WHERE employee_id = ? AND pay_month = ?";
         
@@ -65,36 +66,38 @@ public class PayrollDAO {
             
             if (exists) {
                 try (PreparedStatement pstmtUpdate = conn.prepareStatement(sqlUpdate)) {
-                    pstmtUpdate.setInt(1, pr.getTotalDays());
-                    pstmtUpdate.setDouble(2, pr.getActualWorkDays());
-                    pstmtUpdate.setDouble(3, pr.getBasicSalary());
-                    pstmtUpdate.setDouble(4, pr.getAllowanceResponsibility());
-                    pstmtUpdate.setDouble(5, pr.getAllowanceOther());
-                    pstmtUpdate.setDouble(6, pr.getCommissionConsulting());
-                    pstmtUpdate.setDouble(7, pr.getCommissionService());
-                    pstmtUpdate.setDouble(8, pr.getOvertimePay());
-                    pstmtUpdate.setDouble(9, pr.getSocialInsurance());
-                    pstmtUpdate.setDouble(10, pr.getAdvancePayment());
-                    pstmtUpdate.setDouble(11, pr.getNetSalary());
-                    pstmtUpdate.setInt(12, pr.getEmployeeId());
-                    pstmtUpdate.setString(13, pr.getPayMonth());
+                    pstmtUpdate.setString(1, pr.getEmployeeName());
+                    pstmtUpdate.setInt(2, pr.getTotalDays());
+                    pstmtUpdate.setDouble(3, pr.getActualWorkDays());
+                    pstmtUpdate.setDouble(4, pr.getBasicSalary());
+                    pstmtUpdate.setDouble(5, pr.getAllowanceResponsibility());
+                    pstmtUpdate.setDouble(6, pr.getAllowanceOther());
+                    pstmtUpdate.setDouble(7, pr.getCommissionConsulting());
+                    pstmtUpdate.setDouble(8, pr.getCommissionService());
+                    pstmtUpdate.setDouble(9, pr.getOvertimePay());
+                    pstmtUpdate.setDouble(10, pr.getSocialInsurance());
+                    pstmtUpdate.setDouble(11, pr.getAdvancePayment());
+                    pstmtUpdate.setDouble(12, pr.getNetSalary());
+                    pstmtUpdate.setInt(13, pr.getEmployeeId());
+                    pstmtUpdate.setString(14, pr.getPayMonth());
                     return pstmtUpdate.executeUpdate() > 0;
                 }
             } else {
                 try (PreparedStatement pstmtInsert = conn.prepareStatement(sqlInsert)) {
                     pstmtInsert.setInt(1, pr.getEmployeeId());
-                    pstmtInsert.setString(2, pr.getPayMonth());
-                    pstmtInsert.setInt(3, pr.getTotalDays());
-                    pstmtInsert.setDouble(4, pr.getActualWorkDays());
-                    pstmtInsert.setDouble(5, pr.getBasicSalary());
-                    pstmtInsert.setDouble(6, pr.getAllowanceResponsibility());
-                    pstmtInsert.setDouble(7, pr.getAllowanceOther());
-                    pstmtInsert.setDouble(8, pr.getCommissionConsulting());
-                    pstmtInsert.setDouble(9, pr.getCommissionService());
-                    pstmtInsert.setDouble(10, pr.getOvertimePay());
-                    pstmtInsert.setDouble(11, pr.getSocialInsurance());
-                    pstmtInsert.setDouble(12, pr.getAdvancePayment());
-                    pstmtInsert.setDouble(13, pr.getNetSalary());
+                    pstmtInsert.setString(2, pr.getEmployeeName());
+                    pstmtInsert.setString(3, pr.getPayMonth());
+                    pstmtInsert.setInt(4, pr.getTotalDays());
+                    pstmtInsert.setDouble(5, pr.getActualWorkDays());
+                    pstmtInsert.setDouble(6, pr.getBasicSalary());
+                    pstmtInsert.setDouble(7, pr.getAllowanceResponsibility());
+                    pstmtInsert.setDouble(8, pr.getAllowanceOther());
+                    pstmtInsert.setDouble(9, pr.getCommissionConsulting());
+                    pstmtInsert.setDouble(10, pr.getCommissionService());
+                    pstmtInsert.setDouble(11, pr.getOvertimePay());
+                    pstmtInsert.setDouble(12, pr.getSocialInsurance());
+                    pstmtInsert.setDouble(13, pr.getAdvancePayment());
+                    pstmtInsert.setDouble(14, pr.getNetSalary());
                     return pstmtInsert.executeUpdate() > 0;
                 }
             }
@@ -116,6 +119,7 @@ public class PayrollDAO {
                     list.add(new Payroll(
                         rs.getInt("id"),
                         rs.getInt("employee_id"),
+                        rs.getString("employee_name"),
                         rs.getString("pay_month"),
                         rs.getInt("total_days"),
                         rs.getDouble("actual_work_days"),

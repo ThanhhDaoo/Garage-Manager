@@ -3,18 +3,18 @@ package model;
 public class Attendance {
     private int id;
     private int employeeId;
+    private String employeeName;
     private String workMonth;
-    private String workDate;
-    private String attendanceVal;
+    private String attendanceData; // Dạng chuỗi: "1,1,0.5,N,..."
 
     public Attendance() {}
 
-    public Attendance(int id, int employeeId, String workMonth, String workDate, String attendanceVal) {
+    public Attendance(int id, int employeeId, String employeeName, String workMonth, String attendanceData) {
         this.id = id;
         this.employeeId = employeeId;
+        this.employeeName = employeeName;
         this.workMonth = workMonth;
-        this.workDate = workDate;
-        this.attendanceVal = attendanceVal;
+        this.attendanceData = attendanceData;
     }
 
     public int getId() { return id; }
@@ -23,12 +23,12 @@ public class Attendance {
     public int getEmployeeId() { return employeeId; }
     public void setEmployeeId(int employeeId) { this.employeeId = employeeId; }
 
+    public String getEmployeeName() { return employeeName; }
+    public void setEmployeeName(String employeeName) { this.employeeName = employeeName; }
+
     public String getWorkMonth() { return workMonth; }
     public void setWorkMonth(String workMonth) { this.workMonth = workMonth; }
 
-    public String getWorkDate() { return workDate; }
-    public void setWorkDate(String workDate) { this.workDate = workDate; }
-
-    public String getAttendanceVal() { return attendanceVal; }
-    public void setAttendanceVal(String attendanceVal) { this.attendanceVal = attendanceVal; }
+    public String getAttendanceData() { return attendanceData; }
+    public void setAttendanceData(String attendanceData) { this.attendanceData = attendanceData; }
 }

@@ -96,17 +96,25 @@ CREATE TABLE IF NOT EXISTS employees (
     start_date TEXT,
     position TEXT,
     basic_salary REAL NOT NULL DEFAULT 0,
+    allowance_responsibility REAL DEFAULT 0,
+    allowance_other REAL DEFAULT 0,
+    commission_consulting REAL DEFAULT 0,
+    commission_service REAL DEFAULT 0,
+    overtime_pay REAL DEFAULT 0,
+    social_insurance REAL DEFAULT 0,
+    advance_payment REAL DEFAULT 0,
+    net_salary REAL DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now','localtime'))
 );
 
 CREATE TABLE IF NOT EXISTS attendance (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     employee_id INTEGER NOT NULL,
+    employee_name TEXT NOT NULL,
     work_month TEXT NOT NULL,
-    work_date TEXT NOT NULL,
-    attendance_val TEXT NOT NULL,
+    attendance_data TEXT NOT NULL,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-    UNIQUE(employee_id, work_date)
+    UNIQUE(employee_id, work_month)
 );
 
 CREATE TABLE IF NOT EXISTS payroll (

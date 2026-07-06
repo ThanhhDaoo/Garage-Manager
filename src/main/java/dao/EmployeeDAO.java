@@ -8,6 +8,22 @@ import java.util.List;
 
 public class EmployeeDAO {
     
+    private Employee mapResultSetToEmployee(ResultSet rs) throws SQLException {
+        Employee emp = new Employee(
+            rs.getInt("id"),
+            rs.getString("employee_code"),
+            rs.getString("name"),
+            rs.getString("phone"),
+            rs.getString("address"),
+            rs.getString("dob"),
+            rs.getString("gender"),
+            rs.getString("start_date"),
+            rs.getString("position"),
+            rs.getDouble("basic_salary")
+        );
+        return emp;
+    }
+
     public List<Employee> getAllEmployees() {
         List<Employee> list = new ArrayList<>();
         String sql = "SELECT * FROM employees ORDER BY id DESC";
@@ -17,18 +33,7 @@ public class EmployeeDAO {
              ResultSet rs = stmt.executeQuery(sql)) {
             
             while (rs.next()) {
-                list.add(new Employee(
-                    rs.getInt("id"),
-                    rs.getString("employee_code"),
-                    rs.getString("name"),
-                    rs.getString("phone"),
-                    rs.getString("address"),
-                    rs.getString("dob"),
-                    rs.getString("gender"),
-                    rs.getString("start_date"),
-                    rs.getString("position"),
-                    rs.getDouble("basic_salary")
-                ));
+                list.add(mapResultSetToEmployee(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -44,18 +49,7 @@ public class EmployeeDAO {
             pstmt.setInt(1, id);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    return new Employee(
-                        rs.getInt("id"),
-                        rs.getString("employee_code"),
-                        rs.getString("name"),
-                        rs.getString("phone"),
-                        rs.getString("address"),
-                        rs.getString("dob"),
-                        rs.getString("gender"),
-                        rs.getString("start_date"),
-                        rs.getString("position"),
-                        rs.getDouble("basic_salary")
-                    );
+                    return mapResultSetToEmployee(rs);
                 }
             }
         } catch (SQLException e) {
@@ -72,18 +66,7 @@ public class EmployeeDAO {
             pstmt.setString(1, code);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    return new Employee(
-                        rs.getInt("id"),
-                        rs.getString("employee_code"),
-                        rs.getString("name"),
-                        rs.getString("phone"),
-                        rs.getString("address"),
-                        rs.getString("dob"),
-                        rs.getString("gender"),
-                        rs.getString("start_date"),
-                        rs.getString("position"),
-                        rs.getDouble("basic_salary")
-                    );
+                    return mapResultSetToEmployee(rs);
                 }
             }
         } catch (SQLException e) {
@@ -93,7 +76,8 @@ public class EmployeeDAO {
     }
     
     public boolean addEmployee(Employee emp) {
-        String sql = "INSERT INTO employees (employee_code, name, phone, address, dob, gender, start_date, position, basic_salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO employees (employee_code, name, phone, address, dob, gender, start_date, position, basic_salary) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
@@ -115,7 +99,8 @@ public class EmployeeDAO {
     }
     
     public boolean updateEmployee(Employee emp) {
-        String sql = "UPDATE employees SET employee_code = ?, name = ?, phone = ?, address = ?, dob = ?, gender = ?, start_date = ?, position = ?, basic_salary = ? WHERE id = ?";
+        String sql = "UPDATE employees SET employee_code = ?, name = ?, phone = ?, address = ?, dob = ?, gender = ?, start_date = ?, position = ?, basic_salary = ? " +
+                     "WHERE id = ?";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             

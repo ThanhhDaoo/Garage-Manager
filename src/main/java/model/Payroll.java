@@ -3,6 +3,7 @@ package model;
 public class Payroll {
     private int id;
     private int employeeId;
+    private String employeeName;
     private String payMonth;
     private int totalDays;
     private double actualWorkDays;
@@ -19,11 +20,12 @@ public class Payroll {
 
     public Payroll() {}
 
-    public Payroll(int id, int employeeId, String payMonth, int totalDays, double actualWorkDays, double basicSalary,
+    public Payroll(int id, int employeeId, String employeeName, String payMonth, int totalDays, double actualWorkDays, double basicSalary,
                    double allowanceResponsibility, double allowanceOther, double commissionConsulting, double commissionService,
                    double overtimePay, double socialInsurance, double advancePayment, double netSalary, String createdAt) {
         this.id = id;
         this.employeeId = employeeId;
+        this.employeeName = employeeName;
         this.payMonth = payMonth;
         this.totalDays = totalDays;
         this.actualWorkDays = actualWorkDays;
@@ -83,4 +85,7 @@ public class Payroll {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+    public String getEmployeeName() { return employeeName; }
+    public void setEmployeeName(String employeeName) { this.employeeName = employeeName; }
 }

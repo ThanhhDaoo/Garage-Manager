@@ -155,7 +155,58 @@ public class PayrollForm {
         Label sectionTitle = new Label("Thông Tin Lương & Phụ Cấp");
         sectionTitle.setStyle("-fx-font-size: 16px; -fx-text-fill: #1976D2; -fx-font-weight: 700; -fx-padding: 0 0 10 0;");
 
-        Payroll existing = new PayrollService().getPayroll(employee.getId(), payMonth);
+        Payroll existing = new service.PayrollService().getPayroll(employee.getId(), payMonth);
+        double respVal, othVal, consVal, servVal, otVal, insVal, advVal;
+        
+        if (existing != null) {
+            respVal = existing.getAllowanceResponsibility();
+            othVal = existing.getAllowanceOther();
+            consVal = existing.getCommissionConsulting();
+            servVal = existing.getCommissionService();
+            otVal = existing.getOvertimePay();
+            insVal = existing.getSocialInsurance();
+            advVal = existing.getAdvancePayment();
+        } else {
+            // Tìm bản ghi tính lương gần đây nhất trong quá khứ của nhân viên để lấy phụ cấp mẫu
+            Payroll lastPayroll = null;
+            String sqlLast = "SELECT * FROM payroll WHERE employee_id = ? ORDER BY pay_month DESC LIMIT 1";
+            try (java.sql.Connection conn = util.DatabaseManager.getConnection();
+                 java.sql.PreparedStatement pstmt = conn.prepareStatement(sqlLast)) {
+                pstmt.setInt(1, employee.getId());
+                try (java.sql.ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        lastPayroll = new Payroll(
+                            rs.getInt("id"),
+                            rs.getInt("employee_id"),
+                            rs.getString("employee_name"),
+                            rs.getString("pay_month"),
+                            rs.getInt("total_days"),
+                            rs.getDouble("actual_work_days"),
+                            rs.getDouble("basic_salary"),
+                            rs.getDouble("allowance_responsibility"),
+                            rs.getDouble("allowance_other"),
+                            rs.getDouble("commission_consulting"),
+                            rs.getDouble("commission_service"),
+                            rs.getDouble("overtime_pay"),
+                            rs.getDouble("social_insurance"),
+                            rs.getDouble("advance_payment"),
+                            rs.getDouble("net_salary"),
+                            rs.getString("created_at")
+                        );
+                    }
+                }
+            } catch (Exception ex) { ex.printStackTrace(); }
+            
+            respVal = lastPayroll != null ? lastPayroll.getAllowanceResponsibility() : 0.0;
+            othVal = lastPayroll != null ? lastPayroll.getAllowanceOther() : 0.0;
+            insVal = lastPayroll != null ? lastPayroll.getSocialInsurance() : 0.0;
+            
+            // Hoa hồng, tăng ca, tạm ứng luôn mặc định bằng 0 ở tháng mới
+            consVal = 0.0;
+            servVal = 0.0;
+            otVal = 0.0;
+            advVal = 0.0;
+        }
 
         GridPane grid = new GridPane();
         grid.setHgap(20);
@@ -166,43 +217,43 @@ public class PayrollForm {
 
         Label lblResponsibility = new Label("Phụ cấp trách nhiệm (VNĐ)");
         lblResponsibility.setStyle(labelStyle);
-        txtResponsibility = new TextField(existing != null ? formatValue(existing.getAllowanceResponsibility()) : "");
+        txtResponsibility = new TextField(formatValue(respVal));
         txtResponsibility.setPrefWidth(300);
         txtResponsibility.setStyle(fieldStyle);
 
         Label lblOther = new Label("Phụ cấp khác (VNĐ)");
         lblOther.setStyle(labelStyle);
-        txtOther = new TextField(existing != null ? formatValue(existing.getAllowanceOther()) : "");
+        txtOther = new TextField(formatValue(othVal));
         txtOther.setPrefWidth(300);
         txtOther.setStyle(fieldStyle);
 
         Label lblConsulting = new Label("Hoa hồng tư vấn (VNĐ)");
         lblConsulting.setStyle(labelStyle);
-        txtConsulting = new TextField(existing != null ? formatValue(existing.getCommissionConsulting()) : "");
+        txtConsulting = new TextField(formatValue(consVal));
         txtConsulting.setPrefWidth(300);
         txtConsulting.setStyle(fieldStyle);
 
         Label lblServiceComm = new Label("Hoa hồng dịch vụ (VNĐ)");
         lblServiceComm.setStyle(labelStyle);
-        txtServiceComm = new TextField(existing != null ? formatValue(existing.getCommissionService()) : "");
+        txtServiceComm = new TextField(formatValue(servVal));
         txtServiceComm.setPrefWidth(300);
         txtServiceComm.setStyle(fieldStyle);
 
         Label lblOvertime = new Label("Tiền tăng ca (VNĐ)");
         lblOvertime.setStyle(labelStyle);
-        txtOvertime = new TextField(existing != null ? formatValue(existing.getOvertimePay()) : "");
+        txtOvertime = new TextField(formatValue(otVal));
         txtOvertime.setPrefWidth(300);
         txtOvertime.setStyle(fieldStyle);
 
         Label lblInsurance = new Label("Bảo hiểm xã hội (-) (VNĐ)");
         lblInsurance.setStyle(labelStyle);
-        txtInsurance = new TextField(existing != null ? formatValue(existing.getSocialInsurance()) : "");
+        txtInsurance = new TextField(formatValue(insVal));
         txtInsurance.setPrefWidth(300);
         txtInsurance.setStyle(fieldStyle);
 
         Label lblAdvance = new Label("Tạm ứng (-) (VNĐ)");
         lblAdvance.setStyle(labelStyle);
-        txtAdvance = new TextField(existing != null ? formatValue(existing.getAdvancePayment()) : "");
+        txtAdvance = new TextField(formatValue(advVal));
         txtAdvance.setPrefWidth(300);
         txtAdvance.setStyle(fieldStyle);
 
@@ -258,25 +309,13 @@ public class PayrollForm {
             double basePortion = (employee.getBasicSalary() / totalDays) * actualWorkDays;
             double net = basePortion + resp + oth + cons + serv + ot - ins - adv;
 
-            Payroll pr = new Payroll();
-            pr.setEmployeeId(employee.getId());
-            pr.setPayMonth(payMonth);
-            pr.setTotalDays(totalDays);
-            pr.setActualWorkDays(actualWorkDays);
-            pr.setBasicSalary(employee.getBasicSalary());
-            pr.setAllowanceResponsibility(resp);
-            pr.setAllowanceOther(oth);
-            pr.setCommissionConsulting(cons);
-            pr.setCommissionService(serv);
-            pr.setOvertimePay(ot);
-            pr.setSocialInsurance(ins);
-            pr.setAdvancePayment(adv);
-            pr.setNetSalary(net);
-
-            boolean success = new PayrollService().savePayroll(pr);
+            // 1. Lưu vào bảng payroll (lịch sử tính lương của tháng)
+            Payroll pr = new Payroll(0, employee.getId(), employee.getName(), payMonth, totalDays, actualWorkDays, employee.getBasicSalary(),
+                resp, oth, cons, serv, ot, ins, adv, net, "");
+            
+            boolean success = new service.PayrollService().savePayroll(pr);
             if (success) {
-                Payroll saved = new PayrollService().getPayroll(employee.getId(), payMonth);
-                HRHelper.exportPaySlipToPDF(stage, saved, employee);
+                HRHelper.exportPaySlipToPDF(stage, pr, employee);
                 if (onSave != null) onSave.run();
                 stage.close();
             } else {

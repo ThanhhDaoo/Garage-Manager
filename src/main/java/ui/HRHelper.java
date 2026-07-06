@@ -363,13 +363,13 @@ public class HRHelper {
                 java.util.Map<Integer, Button> empButtons = new java.util.HashMap<>();
                 attendanceInputs.put(emp.getId(), empButtons);
 
-                List<Attendance> currentAtts = attService.getAttendanceByMonth(emp.getId(), monthStr);
+                Attendance currentAtt = attService.getAttendanceByMonth(emp.getId(), monthStr);
                 java.util.Map<Integer, String> dayToVal = new java.util.HashMap<>();
-                for (Attendance a : currentAtts) {
-                    try {
-                        int day = Integer.parseInt(a.getWorkDate().substring(8, 10));
-                        dayToVal.put(day, a.getAttendanceVal());
-                    } catch (Exception ex) {}
+                if (currentAtt != null && currentAtt.getAttendanceData() != null) {
+                    String[] days = currentAtt.getAttendanceData().split(",");
+                    for (int i = 0; i < days.length; i++) {
+                        dayToVal.put(i + 1, days[i]);
+                    }
                 }
 
                 Label lblTotal = new Label("0.0");
@@ -429,20 +429,28 @@ public class HRHelper {
             int year = Integer.parseInt(cbYear.getValue());
             String monthStr = String.format("%04d-%02d", year, month);
             AttendanceService attService = new AttendanceService();
+            EmployeeService empService = new EmployeeService();
+            java.util.List<Employee> employees = empService.getAllEmployees();
+            java.util.Map<Integer, String> empNames = new java.util.HashMap<>();
+            for (Employee emp : employees) {
+                empNames.put(emp.getId(), emp.getName());
+            }
 
             boolean ok = true;
             for (var entry : attendanceInputs.entrySet()) {
                 int empId = entry.getKey();
                 var empButtons = entry.getValue();
-                for (var btnEntry : empButtons.entrySet()) {
-                    int day = btnEntry.getKey();
-                    Button btn = btnEntry.getValue();
-                    String val = btn.getText();
-                    String workDate = String.format("%s-%02d", monthStr, day);
-                    
-                    Attendance att = new Attendance(0, empId, monthStr, workDate, val);
-                    ok = ok && attService.saveAttendance(att);
+                String empName = empNames.getOrDefault(empId, "Nhân viên " + empId);
+                
+                java.util.List<String> vals = new java.util.ArrayList<>();
+                int numDays = empButtons.size();
+                for (int d = 1; d <= numDays; d++) {
+                    vals.add(empButtons.get(d).getText());
                 }
+                String csvData = String.join(",", vals);
+                
+                Attendance att = new Attendance(0, empId, empName, monthStr, csvData);
+                ok = ok && attService.saveAttendance(att);
             }
 
             if (ok) {
@@ -576,6 +584,22 @@ public class HRHelper {
             for (Employee emp : employees) {
                 double workDays = attService.getActualWorkDays(emp.getId(), monthStr);
                 Payroll savedPr = prService.getPayroll(emp.getId(), monthStr);
+                
+                double basicSalary = emp.getBasicSalary();
+                double tempWage = (basicSalary / totalDays) * workDays;
+                
+                Payroll displayPr;
+                if (savedPr != null) {
+                    displayPr = savedPr;
+                } else {
+                    double resp = emp.getAllowanceResponsibility();
+                    double oth = emp.getAllowanceOther();
+                    double ins = emp.getSocialInsurance();
+                    double netSalary = tempWage + resp + oth - ins;
+                    
+                    displayPr = new Payroll(0, emp.getId(), emp.getName(), monthStr, totalDays, workDays, basicSalary,
+                        resp, oth, 0, 0, 0, ins, 0, netSalary, "");
+                }
 
                 HBox row = new HBox(0);
                 row.setAlignment(Pos.CENTER_LEFT);
@@ -589,7 +613,6 @@ public class HRHelper {
                 Label lblDays = createLabel(String.valueOf(totalDays), 60, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
                 Label lblWork = createLabel(String.format("%.1f", workDays), 60, Pos.CENTER, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
 
-                double tempWage = (emp.getBasicSalary() / totalDays) * workDays;
                 Label lblTemp = createLabel(String.format("%,.0f đ", tempWage), 110, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
                 Label lblNet = createLabel(savedPr != null ? String.format("%,.0f đ", savedPr.getNetSalary()) : "-", 110, Pos.CENTER_LEFT, savedPr != null ? "-fx-text-fill: #1976D2; -fx-font-weight: bold; -fx-font-size: 13px;" : "-fx-text-fill: #9e9e9e; -fx-font-size: 13px;");
 
@@ -963,16 +986,26 @@ public class HRHelper {
                 double basicSalary = emp.getBasicSalary();
                 double baseWage = (basicSalary / totalDaysInMonth) * workDays;
                 
-                double resp = pr != null ? pr.getAllowanceResponsibility() : 0;
-                double oth = pr != null ? pr.getAllowanceOther() : 0;
-                double cons = pr != null ? pr.getCommissionConsulting() : 0;
-                double serv = pr != null ? pr.getCommissionService() : 0;
-                double ot = pr != null ? pr.getOvertimePay() : 0;
+                double resp, oth, cons, serv, ot, ins, adv;
+                if (pr != null) {
+                    resp = pr.getAllowanceResponsibility();
+                    oth = pr.getAllowanceOther();
+                    cons = pr.getCommissionConsulting();
+                    serv = pr.getCommissionService();
+                    ot = pr.getOvertimePay();
+                    ins = pr.getSocialInsurance();
+                    adv = pr.getAdvancePayment();
+                } else {
+                    resp = emp.getAllowanceResponsibility();
+                    oth = emp.getAllowanceOther();
+                    cons = 0;
+                    serv = 0;
+                    ot = 0;
+                    ins = emp.getSocialInsurance();
+                    adv = 0;
+                }
                 
                 double totalEarn = baseWage + resp + oth + cons + serv + ot;
-                
-                double ins = pr != null ? pr.getSocialInsurance() : 0;
-                double adv = pr != null ? pr.getAdvancePayment() : 0;
                 double net = totalEarn - ins - adv;
                 
                 // Add to sums

@@ -7,7 +7,7 @@ import java.util.List;
 public class AttendanceService {
     private final AttendanceDAO attendanceDAO = new AttendanceDAO();
     
-    public List<Attendance> getAttendanceByMonth(int employeeId, String workMonth) {
+    public Attendance getAttendanceByMonth(int employeeId, String workMonth) {
         return attendanceDAO.getAttendanceByMonth(employeeId, workMonth);
     }
     
