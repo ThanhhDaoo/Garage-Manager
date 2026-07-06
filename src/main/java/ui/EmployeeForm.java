@@ -92,10 +92,10 @@ public class EmployeeForm {
         String fieldStyle = "-fx-background-color: #f5f5f5; -fx-padding: 12px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;";
         String comboStyle = "-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-pref-height: 44px; -fx-pref-width: 300px;";
 
-        Label lblCode = new Label("Mã nhân viên *");
+        Label lblCode = new Label("Mã nhân viên (Tự động)");
         lblCode.setStyle(labelStyle);
-        txtCode = new TextField(isEdit ? employee.getEmployeeCode() : "");
-        txtCode.setPromptText("Ví dụ: NV001");
+        txtCode = new TextField(isEdit ? employee.getEmployeeCode() : generateNextEmployeeCode());
+        txtCode.setEditable(false);
         txtCode.setPrefWidth(300);
         txtCode.setStyle(fieldStyle);
 
@@ -211,8 +211,7 @@ public class EmployeeForm {
             double salary = parseDoubleSafe(txtSalary.getText());
 
             if (code.isEmpty() || name.isEmpty() || position.isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING, "Vui lòng nhập đầy đủ Mã NV, Họ Tên và Chức Vụ!");
-                alert.setHeaderText(null);
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng nhập đầy đủ Họ Tên và Chức Vụ!");
                 alert.show();
                 return;
             }
@@ -240,8 +239,7 @@ public class EmployeeForm {
                 if (onSave != null) onSave.run();
                 stage.close();
             } else {
-                Alert alert = new Alert(Alert.AlertType.ERROR, "Mã nhân viên đã tồn tại hoặc có lỗi xảy ra!");
-                alert.setHeaderText(null);
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Mã nhân viên đã tồn tại hoặc có lỗi xảy ra!");
                 alert.show();
             }
         });
@@ -257,5 +255,25 @@ public class EmployeeForm {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    private String generateNextEmployeeCode() {
+        EmployeeService empService = new EmployeeService();
+        java.util.List<Employee> list = empService.getAllEmployees();
+        int maxNum = 0;
+        for (Employee emp : list) {
+            String code = emp.getEmployeeCode();
+            if (code != null && code.startsWith("NV")) {
+                try {
+                    int num = Integer.parseInt(code.substring(2));
+                    if (num > maxNum) {
+                        maxNum = num;
+                    }
+                } catch (Exception e) {
+                    // Ignore non-numeric suffix
+                }
+            }
+        }
+        return String.format("NV%03d", maxNum + 1);
     }
 }

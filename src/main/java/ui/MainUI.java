@@ -178,8 +178,8 @@ public class MainUI extends Application {
         Button btnService = createModernMenuButton("🛠", "Dịch Vụ", "#2196F3", false);
         Button btnPackage = createModernMenuButton("📦", "Gói Dịch Vụ", "#2196F3", false);
         Button btnProduct = createModernMenuButton("🛒", "Sản Phẩm", "#2196F3", false);
-        Button btnReport = createModernMenuButton("📈", "Báo Cáo", "#2196F3", false);
         Button btnHR = createModernMenuButton("👥", "Nhân Sự", "#2196F3", false);
+        Button btnReport = createModernMenuButton("📈", "Báo Cáo", "#2196F3", false);
 
         btnDashboard.setOnAction(e -> {
             resetMenuButtons();
@@ -237,7 +237,7 @@ public class MainUI extends Application {
 
         sidebar.getChildren().addAll(
             btnDashboard, btnAppointment, btnInvoice, btnService, 
-            btnPackage, btnProduct, btnReport, btnHR, spacer, btnLogout
+            btnPackage, btnProduct, btnHR, btnReport, spacer, btnLogout
         );
 
         return sidebar;
@@ -4663,32 +4663,7 @@ public class MainUI extends Application {
 
     private void showHRManagement() {
         currentView = "hr";
-        VBox view = new VBox(25);
-        view.setPadding(new Insets(30));
-
-        Label title = new Label("👥 Quản Lý Nhân Sự & Tính Lương");
-        title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
-
-        TabPane tabPane = new TabPane();
-        tabPane.setStyle("-fx-background-color: transparent;");
-        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-
-        Tab tabEmployee = new Tab("Hồ Sơ Nhân Viên");
-        tabEmployee.setContent(createEmployeeTab());
-
-        Tab tabAttendance = new Tab("Chấm Công Tháng");
-        tabAttendance.setContent(createAttendanceTab());
-
-        Tab tabPayroll = new Tab("Tính Lương & Phiếu Lương");
-        tabPayroll.setContent(createPayrollTab());
-
-        tabPane.getTabs().addAll(tabEmployee, tabAttendance, tabPayroll);
-        VBox.setVgrow(tabPane, Priority.ALWAYS);
-
-        view.getChildren().addAll(title, tabPane);
-
-        contentArea.getChildren().clear();
-        contentArea.getChildren().add(view);
+        HRHelper.showHRManagement(this, contentArea);
     }
 
     private VBox createEmployeeTab() {

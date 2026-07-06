@@ -166,43 +166,43 @@ public class PayrollForm {
 
         Label lblResponsibility = new Label("Phụ cấp trách nhiệm (VNĐ)");
         lblResponsibility.setStyle(labelStyle);
-        txtResponsibility = new TextField(existing != null ? String.format("%.0f", existing.getAllowanceResponsibility()) : "0");
+        txtResponsibility = new TextField(existing != null ? formatValue(existing.getAllowanceResponsibility()) : "");
         txtResponsibility.setPrefWidth(300);
         txtResponsibility.setStyle(fieldStyle);
 
         Label lblOther = new Label("Phụ cấp khác (VNĐ)");
         lblOther.setStyle(labelStyle);
-        txtOther = new TextField(existing != null ? String.format("%.0f", existing.getAllowanceOther()) : "0");
+        txtOther = new TextField(existing != null ? formatValue(existing.getAllowanceOther()) : "");
         txtOther.setPrefWidth(300);
         txtOther.setStyle(fieldStyle);
 
         Label lblConsulting = new Label("Hoa hồng tư vấn (VNĐ)");
         lblConsulting.setStyle(labelStyle);
-        txtConsulting = new TextField(existing != null ? String.format("%.0f", existing.getCommissionConsulting()) : "0");
+        txtConsulting = new TextField(existing != null ? formatValue(existing.getCommissionConsulting()) : "");
         txtConsulting.setPrefWidth(300);
         txtConsulting.setStyle(fieldStyle);
 
         Label lblServiceComm = new Label("Hoa hồng dịch vụ (VNĐ)");
         lblServiceComm.setStyle(labelStyle);
-        txtServiceComm = new TextField(existing != null ? String.format("%.0f", existing.getCommissionService()) : "0");
+        txtServiceComm = new TextField(existing != null ? formatValue(existing.getCommissionService()) : "");
         txtServiceComm.setPrefWidth(300);
         txtServiceComm.setStyle(fieldStyle);
 
         Label lblOvertime = new Label("Tiền tăng ca (VNĐ)");
         lblOvertime.setStyle(labelStyle);
-        txtOvertime = new TextField(existing != null ? String.format("%.0f", existing.getOvertimePay()) : "0");
+        txtOvertime = new TextField(existing != null ? formatValue(existing.getOvertimePay()) : "");
         txtOvertime.setPrefWidth(300);
         txtOvertime.setStyle(fieldStyle);
 
         Label lblInsurance = new Label("Bảo hiểm xã hội (-) (VNĐ)");
         lblInsurance.setStyle(labelStyle);
-        txtInsurance = new TextField(existing != null ? String.format("%.0f", existing.getSocialInsurance()) : "0");
+        txtInsurance = new TextField(existing != null ? formatValue(existing.getSocialInsurance()) : "");
         txtInsurance.setPrefWidth(300);
         txtInsurance.setStyle(fieldStyle);
 
         Label lblAdvance = new Label("Tạm ứng (-) (VNĐ)");
         lblAdvance.setStyle(labelStyle);
-        txtAdvance = new TextField(existing != null ? String.format("%.0f", existing.getAdvancePayment()) : "0");
+        txtAdvance = new TextField(existing != null ? formatValue(existing.getAdvancePayment()) : "");
         txtAdvance.setPrefWidth(300);
         txtAdvance.setStyle(fieldStyle);
 
@@ -234,7 +234,7 @@ public class PayrollForm {
         );
         btnCancel.setOnAction(e -> stage.close());
 
-        Button btnSaveAndExport = new Button("Lưu & Xuất Phiếu Lương");
+        Button btnSaveAndExport = new Button("💾 Lưu & Xuất Phiếu Lương");
         btnSaveAndExport.setStyle(
             "-fx-background-color: #2196F3;" +
             "-fx-text-fill: white;" +
@@ -280,14 +280,18 @@ public class PayrollForm {
                 if (onSave != null) onSave.run();
                 stage.close();
             } else {
-                Alert alert = new Alert(Alert.AlertType.ERROR, "Lỗi khi lưu bảng lương!");
-                alert.setHeaderText(null);
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi khi lưu bảng lương!");
                 alert.show();
             }
         });
 
         buttons.getChildren().addAll(btnCancel, btnSaveAndExport);
         return buttons;
+    }
+
+    private String formatValue(double val) {
+        if (val == 0.0) return "";
+        return String.format("%.0f", val);
     }
 
     private double parseDoubleSafe(String str) {
