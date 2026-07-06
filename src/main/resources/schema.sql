@@ -136,3 +136,13 @@ CREATE TABLE IF NOT EXISTS payroll (
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
     UNIQUE(employee_id, pay_month)
 );
+
+CREATE TABLE IF NOT EXISTS fixed_expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    expense_name TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'cố định',
+    amount REAL NOT NULL DEFAULT 0,
+    expense_month TEXT NOT NULL,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now','localtime'))
+);

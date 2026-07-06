@@ -179,6 +179,7 @@ public class MainUI extends Application {
         Button btnPackage = createModernMenuButton("📦", "Gói Dịch Vụ", "#2196F3", false);
         Button btnProduct = createModernMenuButton("🛒", "Sản Phẩm", "#2196F3", false);
         Button btnHR = createModernMenuButton("👥", "Nhân Sự", "#2196F3", false);
+        Button btnExpense = createModernMenuButton("💰", "Chi Phí Cố Định", "#2196F3", false);
         Button btnReport = createModernMenuButton("📈", "Báo Cáo", "#2196F3", false);
 
         btnDashboard.setOnAction(e -> {
@@ -221,6 +222,11 @@ public class MainUI extends Application {
             setActiveButton(btnHR);
             showHRManagement();
         });
+        btnExpense.setOnAction(e -> {
+            resetMenuButtons();
+            setActiveButton(btnExpense);
+            showExpenseManagement();
+        });
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
@@ -237,7 +243,7 @@ public class MainUI extends Application {
 
         sidebar.getChildren().addAll(
             btnDashboard, btnAppointment, btnInvoice, btnService, 
-            btnPackage, btnProduct, btnHR, btnReport, spacer, btnLogout
+            btnPackage, btnProduct, btnHR, btnExpense, btnReport, spacer, btnLogout
         );
 
         return sidebar;
@@ -4664,6 +4670,11 @@ public class MainUI extends Application {
     private void showHRManagement() {
         currentView = "hr";
         HRHelper.showHRManagement(this, contentArea);
+    }
+
+    private void showExpenseManagement() {
+        currentView = "expense";
+        ExpenseHelper.showExpenseManagement(this, contentArea);
     }
 
     private VBox createEmployeeTab() {
