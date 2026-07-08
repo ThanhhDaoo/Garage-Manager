@@ -12,6 +12,8 @@ public class Package {
     private double pricePickup;
     private double savings;
     private String status;
+    private String category;
+    private double costPrice;
     
     // Keep old field for backward compatibility
     @Deprecated
@@ -19,9 +21,15 @@ public class Package {
 
     public Package() {}
 
-    // New constructor with 6 vehicle types
+    // Constructor with 6 vehicle types (calls the main constructor with defaults)
     public Package(int id, String name, String description, double priceMini, double priceSedan,
                    double priceCuv, double priceSuv, double priceMpv, double pricePickup, double savings, String status) {
+        this(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, savings, status, "chăm sóc", 0.0);
+    }
+
+    // Main constructor with all fields
+    public Package(int id, String name, String description, double priceMini, double priceSedan,
+                   double priceCuv, double priceSuv, double priceMpv, double pricePickup, double savings, String status, String category, double costPrice) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -33,6 +41,8 @@ public class Package {
         this.pricePickup = pricePickup;
         this.savings = savings;
         this.status = status;
+        this.category = category;
+        this.costPrice = costPrice;
     }
 
     // Old constructor for backward compatibility
@@ -104,5 +114,19 @@ public class Package {
             case "PICKUP": return pricePickup;
             default: return priceSedan;
         }
+    }
+
+    public String getCategory() {
+        return category != null ? category : "chăm sóc";
+    }
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public double getCostPrice() {
+        return costPrice;
+    }
+    public void setCostPrice(double costPrice) {
+        this.costPrice = costPrice;
     }
 }

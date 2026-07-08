@@ -13,11 +13,19 @@ public class Invoice {
     private String notes;
     private String status;
     private String createdAt;
+    private String paymentMethod;
 
     public Invoice() {}
 
+    // Constructor with defaults (calls main constructor with null)
     public Invoice(int id, String customerName, String phone, String licensePlate, String vehicleType, String address,
                    double totalBeforeDiscount, double discount, double totalAmount, String notes, String status, String createdAt) {
+        this(id, customerName, phone, licensePlate, vehicleType, address, totalBeforeDiscount, discount, totalAmount, notes, status, createdAt, null);
+    }
+
+    // Main constructor with paymentMethod
+    public Invoice(int id, String customerName, String phone, String licensePlate, String vehicleType, String address,
+                   double totalBeforeDiscount, double discount, double totalAmount, String notes, String status, String createdAt, String paymentMethod) {
         this.id = id;
         this.customerName = customerName;
         this.phone = phone;
@@ -30,6 +38,7 @@ public class Invoice {
         this.notes = notes;
         this.status = status;
         this.createdAt = createdAt;
+        this.paymentMethod = paymentMethod;
     }
 
     public int getId() { return id; }
@@ -67,4 +76,7 @@ public class Invoice {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 }

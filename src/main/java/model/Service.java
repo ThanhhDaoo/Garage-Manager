@@ -10,6 +10,9 @@ public class Service {
     private double priceSuv;
     private double priceMpv;
     private double pricePickup;
+    private String category;
+    private double costPrice;
+    private Integer linkedProductId;
     
     // Keep old fields for backward compatibility
     @Deprecated
@@ -19,9 +22,21 @@ public class Service {
 
     public Service() {}
 
-    // New constructor with 6 vehicle types
+    // Constructor with 6 vehicle types
     public Service(int id, String name, String description, double priceMini, double priceSedan, 
                    double priceCuv, double priceSuv, double priceMpv, double pricePickup) {
+        this(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, "rửa xe", 0.0, null);
+    }
+
+    // Constructor with 6 vehicle types + category + costPrice
+    public Service(int id, String name, String description, double priceMini, double priceSedan, 
+                   double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice) {
+        this(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, null);
+    }
+
+    // Main constructor with all fields
+    public Service(int id, String name, String description, double priceMini, double priceSedan, 
+                   double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice, Integer linkedProductId) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -31,7 +46,11 @@ public class Service {
         this.priceSuv = priceSuv;
         this.priceMpv = priceMpv;
         this.pricePickup = pricePickup;
+        this.category = category;
+        this.costPrice = costPrice;
+        this.linkedProductId = linkedProductId;
     }
+
 
     // Old constructor for backward compatibility
     @Deprecated
@@ -100,5 +119,26 @@ public class Service {
             case "PICKUP": return pricePickup;
             default: return priceSedan;
         }
+    }
+
+    public String getCategory() {
+        return category != null ? category : "rửa xe";
+    }
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public double getCostPrice() {
+        return costPrice;
+    }
+    public void setCostPrice(double costPrice) {
+        this.costPrice = costPrice;
+    }
+
+    public Integer getLinkedProductId() {
+        return linkedProductId;
+    }
+    public void setLinkedProductId(Integer linkedProductId) {
+        this.linkedProductId = linkedProductId;
     }
 }

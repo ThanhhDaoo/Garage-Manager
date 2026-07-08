@@ -364,6 +364,137 @@ public class DatabaseManager {
                 }
             }
 
+            // Tự động kiểm tra và thêm các cột category, cost_price, linked_product_id vào bảng services nếu chưa tồn tại
+            boolean hasServiceCategory = false;
+            boolean hasServiceCostPrice = false;
+            boolean hasLinkedProduct = false;
+            try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(services)")) {
+                while (rs.next()) {
+                    String columnName = rs.getString("name");
+                    if ("category".equals(columnName)) {
+                        hasServiceCategory = true;
+                    } else if ("cost_price".equals(columnName)) {
+                        hasServiceCostPrice = true;
+                    } else if ("linked_product_id".equals(columnName)) {
+                        hasLinkedProduct = true;
+                    }
+                }
+            }
+            if (!hasServiceCategory) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE services ADD COLUMN category TEXT NOT NULL DEFAULT 'rửa xe';");
+                    System.out.println("✓ Đã thêm cột category vào bảng services.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột category: " + e.getMessage());
+                }
+            }
+            if (!hasServiceCostPrice) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE services ADD COLUMN cost_price REAL NOT NULL DEFAULT 0;");
+                    System.out.println("✓ Đã thêm cột cost_price vào bảng services.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột cost_price: " + e.getMessage());
+                }
+            }
+            if (!hasLinkedProduct) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE services ADD COLUMN linked_product_id INTEGER;");
+                    System.out.println("✓ Đã thêm cột linked_product_id vào bảng services.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột linked_product_id: " + e.getMessage());
+                }
+            }
+
+            // Tự động di trú bảng packages
+            boolean hasPackageCategory = false;
+            boolean hasPackageCostPrice = false;
+            try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(packages)")) {
+                while (rs.next()) {
+                    String columnName = rs.getString("name");
+                    if ("category".equals(columnName)) {
+                        hasPackageCategory = true;
+                    } else if ("cost_price".equals(columnName)) {
+                        hasPackageCostPrice = true;
+                    }
+                }
+            }
+            if (!hasPackageCategory) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE packages ADD COLUMN category TEXT NOT NULL DEFAULT 'chăm sóc';");
+                    System.out.println("✓ Đã thêm cột category vào bảng packages.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột category vào packages: " + e.getMessage());
+                }
+            }
+            if (!hasPackageCostPrice) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE packages ADD COLUMN cost_price REAL NOT NULL DEFAULT 0;");
+                    System.out.println("✓ Đã thêm cột cost_price vào bảng packages.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột cost_price vào packages: " + e.getMessage());
+                }
+            }
+
+            // Tự động di trú bảng invoices
+            boolean hasInvoicePaymentMethod = false;
+            try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(invoices)")) {
+                while (rs.next()) {
+                    String columnName = rs.getString("name");
+                    if ("payment_method".equals(columnName)) {
+                        hasInvoicePaymentMethod = true;
+                    }
+                }
+            }
+            if (!hasInvoicePaymentMethod) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE invoices ADD COLUMN payment_method TEXT;");
+                    System.out.println("✓ Đã thêm cột payment_method vào bảng invoices.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột payment_method vào invoices: " + e.getMessage());
+                }
+            }
+
+            // Tự động di trú bảng invoice_items
+            boolean hasItemId = false;
+            boolean hasItemCategory = false;
+            boolean hasItemCostPrice = false;
+            try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(invoice_items)")) {
+                while (rs.next()) {
+                    String columnName = rs.getString("name");
+                    if ("item_id".equals(columnName)) {
+                        hasItemId = true;
+                    } else if ("category".equals(columnName)) {
+                        hasItemCategory = true;
+                    } else if ("cost_price".equals(columnName)) {
+                        hasItemCostPrice = true;
+                    }
+                }
+            }
+            if (!hasItemId) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE invoice_items ADD COLUMN item_id INTEGER;");
+                    System.out.println("✓ Đã thêm cột item_id vào bảng invoice_items.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột item_id vào invoice_items: " + e.getMessage());
+                }
+            }
+            if (!hasItemCategory) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE invoice_items ADD COLUMN category TEXT;");
+                    System.out.println("✓ Đã thêm cột category vào bảng invoice_items.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột category vào invoice_items: " + e.getMessage());
+                }
+            }
+            if (!hasItemCostPrice) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE invoice_items ADD COLUMN cost_price REAL DEFAULT 0;");
+                    System.out.println("✓ Đã thêm cột cost_price vào bảng invoice_items.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột cost_price vào invoice_items: " + e.getMessage());
+                }
+            }
+
             // Tự động kiểm tra và thêm các cột cho bảng payroll nếu CSDL cũ đã tồn tại bảng này nhưng chưa có các cột mới
             boolean payrollTableExists = false;
             try (ResultSet rs = stmt.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='payroll'")) {

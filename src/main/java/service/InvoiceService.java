@@ -17,21 +17,31 @@ public class InvoiceService {
     
     public int addInvoice(String customerName, String phone, String licensePlate, String vehicleType, String address,
                               double totalBeforeDiscount, double discount, double totalAmount, String notes) {
+        return addInvoice(customerName, phone, licensePlate, vehicleType, address, totalBeforeDiscount, discount, totalAmount, notes, "nhap", null);
+    }
+
+    public int addInvoice(String customerName, String phone, String licensePlate, String vehicleType, String address,
+                              double totalBeforeDiscount, double discount, double totalAmount, String notes, String status, String paymentMethod) {
         if (customerName == null || customerName.trim().isEmpty()) {
             return -1;
         }
         Invoice invoice = new Invoice(0, customerName, phone, licensePlate, vehicleType, address,
-                                     totalBeforeDiscount, discount, totalAmount, notes, "nhap", null);
+                                     totalBeforeDiscount, discount, totalAmount, notes, status, null, paymentMethod);
         return invoiceDAO.addInvoice(invoice);
     }
     
     public boolean updateInvoice(int id, String customerName, String phone, String licensePlate, String vehicleType, String address,
                                  double totalBeforeDiscount, double discount, double totalAmount, String notes, String status) {
+        return updateInvoice(id, customerName, phone, licensePlate, vehicleType, address, totalBeforeDiscount, discount, totalAmount, notes, status, null);
+    }
+
+    public boolean updateInvoice(int id, String customerName, String phone, String licensePlate, String vehicleType, String address,
+                                 double totalBeforeDiscount, double discount, double totalAmount, String notes, String status, String paymentMethod) {
         if (customerName == null || customerName.trim().isEmpty()) {
             return false;
         }
         Invoice invoice = new Invoice(id, customerName, phone, licensePlate, vehicleType, address,
-                                     totalBeforeDiscount, discount, totalAmount, notes, status, null);
+                                     totalBeforeDiscount, discount, totalAmount, notes, status, null, paymentMethod);
         return invoiceDAO.updateInvoice(invoice);
     }
     

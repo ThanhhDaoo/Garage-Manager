@@ -99,7 +99,7 @@ public class ExpenseForm {
         Label lblCategory = new Label("Phân loại chi phí *");
         lblCategory.setStyle(labelStyle);
         cbCategory = new ComboBox<>();
-        cbCategory.getItems().addAll("cố định");
+        cbCategory.getItems().addAll("cố định", "biến thiên");
         cbCategory.setValue(isEdit && expense.getCategory() != null ? expense.getCategory() : "cố định");
         cbCategory.setEditable(false);
         cbCategory.setStyle(comboStyle);

@@ -33,6 +33,8 @@ public class PackageForm {
     private TextField txtPriceSuv;
     private TextField txtPriceMpv;
     private TextField txtPricePickup;
+    private ComboBox<String> cbCategory;
+    private TextField txtCostPrice;
     private Runnable onSave;
     
     public PackageForm() {
@@ -138,6 +140,54 @@ public class PackageForm {
             txtDesc.setText(existingPackage.getDescription());
         }
         UIUtils.setupIMEFix(txtDesc);
+        
+        // Category Selection
+        Label lblCategory = new Label("Phân loại gói dịch vụ *");
+        lblCategory.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-font-family: 'Times New Roman';");
+        cbCategory = new ComboBox<>();
+        cbCategory.getItems().addAll("rửa xe", "chăm sóc", "phụ kiện", "sơn");
+        cbCategory.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;" +
+            "-fx-pref-height: 44px;" +
+            "-fx-pref-width: 500px;" +
+            "-fx-font-family: 'Times New Roman';"
+        );
+        cbCategory.setValue(isEdit && existingPackage != null && existingPackage.getCategory() != null ? existingPackage.getCategory() : "chăm sóc");
+        
+        // Cost Price
+        Label lblCostPrice = new Label("Chi phí/Giá vốn ước tính (Vật tư) *");
+        lblCostPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-font-family: 'Times New Roman';");
+        txtCostPrice = new TextField();
+        txtCostPrice.setPromptText("Nhập chi phí vật tư bỏ ra của gói (VD: 200000)");
+        txtCostPrice.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-padding: 12px 15px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-family: 'Times New Roman';"
+        );
+        txtCostPrice.setPrefWidth(500);
+        if (isEdit && existingPackage != null) {
+            txtCostPrice.setText(String.format("%.0f", existingPackage.getCostPrice()));
+        } else {
+            txtCostPrice.setText("0");
+        }
+        txtCostPrice.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostPrice.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostPrice.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostPrice);
         
         // Price section header
         Label lblPriceHeader = new Label("💰 Giá Gói Theo Loại Xe (Tích chọn để nhập giá)");
@@ -358,6 +408,10 @@ public class PackageForm {
         grid.add(txtName, 0, row++);
         grid.add(lblDesc, 0, row++);
         grid.add(txtDesc, 0, row++);
+        grid.add(lblCategory, 0, row++);
+        grid.add(cbCategory, 0, row++);
+        grid.add(lblCostPrice, 0, row++);
+        grid.add(txtCostPrice, 0, row++);
         grid.add(lblPriceHeader, 0, row++);
         grid.add(priceListContainer, 0, row++);
         grid.add(lblStatus, 0, row++);
@@ -512,13 +566,25 @@ public class PackageForm {
                 
                 String status = rbActive.isSelected() ? "Đang bán" : "Tạm dừng";
                 
+                String category = cbCategory.getValue();
+                double costPrice = 0;
+                String costVal = txtCostPrice.getText().trim();
+                if (!costVal.isEmpty()) {
+                    try {
+                        costPrice = Double.parseDouble(costVal);
+                    } catch (NumberFormatException ex) {
+                        showAlert("Lỗi", "Chi phí vật tư của gói phải là số hợp lệ!", Alert.AlertType.ERROR);
+                        return;
+                    }
+                }
+                
                 PackageService packageService = new PackageService();
                 boolean success;
                 
                 if (isEdit) {
-                    success = packageService.updatePackage(packageId, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, avgSavings, status);
+                    success = packageService.updatePackage(packageId, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, avgSavings, status, category, costPrice);
                 } else {
-                    success = packageService.addPackage(name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, avgSavings, status);
+                    success = packageService.addPackage(name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, avgSavings, status, category, costPrice);
                 }
                 
                 if (success) {

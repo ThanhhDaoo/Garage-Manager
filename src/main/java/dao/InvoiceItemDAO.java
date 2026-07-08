@@ -19,6 +19,8 @@ public class InvoiceItemDAO {
             ResultSet rs = pstmt.executeQuery();
             
             while (rs.next()) {
+                int itemIdVal = rs.getInt("item_id");
+                Integer itemId = rs.wasNull() ? null : itemIdVal;
                 InvoiceItem item = new InvoiceItem(
                     rs.getInt("id"),
                     rs.getInt("invoice_id"),
@@ -26,7 +28,10 @@ public class InvoiceItemDAO {
                     rs.getString("item_name"),
                     rs.getInt("quantity"),
                     rs.getDouble("unit_price"),
-                    rs.getDouble("total_price")
+                    rs.getDouble("total_price"),
+                    itemId,
+                    rs.getString("category"),
+                    rs.getDouble("cost_price")
                 );
                 items.add(item);
             }
@@ -37,8 +42,8 @@ public class InvoiceItemDAO {
     }
     
     public boolean addInvoiceItem(InvoiceItem item) {
-        String sql = "INSERT INTO invoice_items (invoice_id, item_type, item_name, quantity, unit_price, total_price) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO invoice_items (invoice_id, item_type, item_name, quantity, unit_price, total_price, item_id, category, cost_price) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -49,6 +54,13 @@ public class InvoiceItemDAO {
             pstmt.setInt(4, item.getQuantity());
             pstmt.setDouble(5, item.getUnitPrice());
             pstmt.setDouble(6, item.getTotalPrice());
+            if (item.getItemId() != null && item.getItemId() > 0) {
+                pstmt.setInt(7, item.getItemId());
+            } else {
+                pstmt.setNull(7, java.sql.Types.INTEGER);
+            }
+            pstmt.setString(8, item.getCategory());
+            pstmt.setDouble(9, item.getCostPrice());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

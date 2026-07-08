@@ -42,6 +42,8 @@ public class MainUI extends Application {
     private VBox sidebar;
     private VBox invoiceTableRows;
     private String currentView = "dashboard";
+    private String selectedServiceCategoryFilter = "Tất cả";
+    private String selectedPackageCategoryFilter = "Tất cả";
 
     @Override
     public void start(Stage stage) {
@@ -179,7 +181,7 @@ public class MainUI extends Application {
         Button btnPackage = createModernMenuButton("📦", "Gói Dịch Vụ", "#2196F3", false);
         Button btnProduct = createModernMenuButton("🛒", "Sản Phẩm", "#2196F3", false);
         Button btnHR = createModernMenuButton("👥", "Nhân Sự", "#2196F3", false);
-        Button btnExpense = createModernMenuButton("💰", "Chi Phí Cố Định", "#2196F3", false);
+        Button btnExpense = createModernMenuButton("💰", "Quản Lý Chi Phí", "#2196F3", false);
         Button btnReport = createModernMenuButton("📈", "Báo Cáo", "#2196F3", false);
 
         btnDashboard.setOnAction(e -> {
@@ -1066,7 +1068,46 @@ public class MainUI extends Application {
             refreshServiceTableWithSearch(tableRows, newVal);
         });
         
-        searchBar.getChildren().add(searchField);
+        selectedServiceCategoryFilter = "Tất cả"; // Reset bộ lọc khi hiển thị màn hình quản lý
+
+        Region searchSpacer = new Region();
+        HBox.setHgrow(searchSpacer, Priority.ALWAYS);
+        
+        HBox filterButtonsBox = new HBox(10);
+        filterButtonsBox.setAlignment(Pos.CENTER_LEFT);
+        
+        String[] categories = {"Tất cả", "rửa xe", "chăm sóc", "phụ kiện", "sơn"};
+        java.util.List<Button> btnList = new java.util.ArrayList<>();
+        
+        for (String cat : categories) {
+            String btnText = cat.equals("Tất cả") ? "Tất cả" : cat.substring(0, 1).toUpperCase() + cat.substring(1);
+            Button btnCat = new Button(btnText);
+            
+            if (cat.equals(selectedServiceCategoryFilter)) {
+                btnCat.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8px 16px; -fx-font-weight: bold; -fx-cursor: hand;");
+            } else {
+                btnCat.setStyle("-fx-background-color: #f1f3f4; -fx-text-fill: #5f6368; -fx-background-radius: 20; -fx-padding: 8px 16px; -fx-font-weight: 500; -fx-cursor: hand;");
+            }
+            
+            btnCat.setOnAction(ev -> {
+                selectedServiceCategoryFilter = cat;
+                for (Button b : btnList) {
+                    String bText = b.getText().toLowerCase();
+                    if (bText.equals("tất cả")) bText = "Tất cả";
+                    if (bText.equals(selectedServiceCategoryFilter)) {
+                        b.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8px 16px; -fx-font-weight: bold; -fx-cursor: hand;");
+                    } else {
+                        b.setStyle("-fx-background-color: #f1f3f4; -fx-text-fill: #5f6368; -fx-background-radius: 20; -fx-padding: 8px 16px; -fx-font-weight: 500; -fx-cursor: hand;");
+                    }
+                }
+                refreshServiceTableWithSearch(tableRows, searchField.getText());
+            });
+            
+            btnList.add(btnCat);
+            filterButtonsBox.getChildren().add(btnCat);
+        }
+        
+        searchBar.getChildren().addAll(searchField, searchSpacer, filterButtonsBox);
 
         // Table container
         VBox tableContainer = new VBox(0);
@@ -1202,6 +1243,14 @@ public class MainUI extends Application {
                 .collect(java.util.stream.Collectors.toList());
         }
         
+        // Filter by selected category
+        if (selectedServiceCategoryFilter != null && !"Tất cả".equalsIgnoreCase(selectedServiceCategoryFilter)) {
+            String catFilter = selectedServiceCategoryFilter.toLowerCase().trim();
+            services = services.stream()
+                .filter(s -> s.getCategory() != null && s.getCategory().toLowerCase().trim().equals(catFilter))
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
         if (services.isEmpty()) {
             Label emptyState = new Label(searchText != null && !searchText.trim().isEmpty() ? 
                 "Không tìm thấy dịch vụ nào" : "Chưa có dịch vụ nào");
@@ -1235,13 +1284,29 @@ public class MainUI extends Application {
             "-fx-border-width: 0 0 1 0;"
         ));
         
-        // Name cell
+        // Name cell with category badge
         Label lblName = new Label(service.getName());
         lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 500;");
-        lblName.setPrefWidth(150);
-        lblName.setMinWidth(120);
-        lblName.setPadding(new Insets(12, 10, 12, 15));
         lblName.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblBadge = new Label(service.getCategory() != null ? service.getCategory().toUpperCase() : "RỬA XE");
+        String badgeStyle = "-fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2px 7px; -fx-background-radius: 10;";
+        if ("chăm sóc".equalsIgnoreCase(service.getCategory())) {
+            lblBadge.setStyle(badgeStyle + "-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32;");
+        } else if ("phụ kiện".equalsIgnoreCase(service.getCategory())) {
+            lblBadge.setStyle(badgeStyle + "-fx-background-color: #F3E5F5; -fx-text-fill: #7B1FA2;");
+        } else if ("sơn".equalsIgnoreCase(service.getCategory())) {
+            lblBadge.setStyle(badgeStyle + "-fx-background-color: #FFF3E0; -fx-text-fill: #E65100;");
+        } else {
+            lblBadge.setStyle(badgeStyle + "-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2;");
+        }
+        
+        VBox nameCell = new VBox(4);
+        nameCell.setAlignment(Pos.CENTER_LEFT);
+        nameCell.setPrefWidth(150);
+        nameCell.setMinWidth(120);
+        nameCell.setPadding(new Insets(12, 10, 12, 15));
+        nameCell.getChildren().addAll(lblName, lblBadge);
         
         // Description cell
         Label lblDesc = new Label(service.getDescription());
@@ -1350,7 +1415,7 @@ public class MainUI extends Application {
         
         actions.getChildren().addAll(btnEdit, btnDelete);
         
-        row.getChildren().addAll(lblName, lblDesc, lblPriceMini, lblPriceSedan, lblPriceCuv, lblPriceSuv, lblPriceMpv, lblPricePickup, actions);
+        row.getChildren().addAll(nameCell, lblDesc, lblPriceMini, lblPriceSedan, lblPriceCuv, lblPriceSuv, lblPriceMpv, lblPricePickup, actions);
         HBox.setHgrow(lblDesc, Priority.ALWAYS);
         return row;
     }
@@ -1419,7 +1484,46 @@ public class MainUI extends Application {
             refreshPackageTableWithSearch(tableRows, newVal);
         });
         
-        searchBar.getChildren().add(searchField);
+        selectedPackageCategoryFilter = "Tất cả"; // Reset bộ lọc gói khi hiển thị màn hình
+
+        Region searchSpacer = new Region();
+        HBox.setHgrow(searchSpacer, Priority.ALWAYS);
+        
+        HBox filterButtonsBox = new HBox(10);
+        filterButtonsBox.setAlignment(Pos.CENTER_LEFT);
+        
+        String[] categories = {"Tất cả", "rửa xe", "chăm sóc", "phụ kiện", "sơn"};
+        java.util.List<Button> btnList = new java.util.ArrayList<>();
+        
+        for (String cat : categories) {
+            String btnText = cat.equals("Tất cả") ? "Tất cả" : cat.substring(0, 1).toUpperCase() + cat.substring(1);
+            Button btnCat = new Button(btnText);
+            
+            if (cat.equals(selectedPackageCategoryFilter)) {
+                btnCat.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8px 16px; -fx-font-weight: bold; -fx-cursor: hand;");
+            } else {
+                btnCat.setStyle("-fx-background-color: #f1f3f4; -fx-text-fill: #5f6368; -fx-background-radius: 20; -fx-padding: 8px 16px; -fx-font-weight: 500; -fx-cursor: hand;");
+            }
+            
+            btnCat.setOnAction(ev -> {
+                selectedPackageCategoryFilter = cat;
+                for (Button b : btnList) {
+                    String bText = b.getText().toLowerCase();
+                    if (bText.equals("tất cả")) bText = "Tất cả";
+                    if (bText.equals(selectedPackageCategoryFilter)) {
+                        b.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8px 16px; -fx-font-weight: bold; -fx-cursor: hand;");
+                    } else {
+                        b.setStyle("-fx-background-color: #f1f3f4; -fx-text-fill: #5f6368; -fx-background-radius: 20; -fx-padding: 8px 16px; -fx-font-weight: 500; -fx-cursor: hand;");
+                    }
+                }
+                refreshPackageTableWithSearch(tableRows, searchField.getText());
+            });
+            
+            btnList.add(btnCat);
+            filterButtonsBox.getChildren().add(btnCat);
+        }
+        
+        searchBar.getChildren().addAll(searchField, searchSpacer, filterButtonsBox);
 
         // Table container
         VBox tableContainer = new VBox(0);
@@ -1524,6 +1628,14 @@ public class MainUI extends Application {
             packages = packages.stream()
                 .filter(p -> p.getName().toLowerCase().contains(search) || 
                             (p.getDescription() != null && p.getDescription().toLowerCase().contains(search)))
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
+        // Filter by selected category
+        if (selectedPackageCategoryFilter != null && !"Tất cả".equalsIgnoreCase(selectedPackageCategoryFilter)) {
+            String catFilter = selectedPackageCategoryFilter.toLowerCase().trim();
+            packages = packages.stream()
+                .filter(p -> p.getCategory() != null && p.getCategory().toLowerCase().trim().equals(catFilter))
                 .collect(java.util.stream.Collectors.toList());
         }
         
@@ -1850,6 +1962,34 @@ public class MainUI extends Application {
         }
     }
 
+    private void formatCurrencyColumn(TableColumn<model.DailyReportRow, Double> column) {
+        column.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0fđ", item));
+                }
+            }
+        });
+    }
+
+    private void formatCurrencyColumnYearly(TableColumn<model.YearlyReportRow, Double> column) {
+        column.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0fđ", item));
+                }
+            }
+        });
+    }
+
     private void showReport() {
         VBox view = new VBox(25);
         view.setPadding(new Insets(30));
@@ -1875,7 +2015,7 @@ public class MainUI extends Application {
             .distinct()
             .count();
 
-        // Date range selector
+        // Date range selector for Tab 1
         HBox dateRange = new HBox(15);
         dateRange.setAlignment(Pos.CENTER_LEFT);
         dateRange.setPadding(new Insets(20));
@@ -1944,6 +2084,63 @@ public class MainUI extends Application {
             "-fx-font-size: 13px;"
         );
 
+        // Revenue chart container
+        VBox chartContainer = new VBox(15);
+        chartContainer.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-padding: 25;"
+        );
+        chartContainer.setPrefHeight(400);
+        
+        Label chartTitle = new Label("📊 So Sánh Doanh Thu Theo Hạng Mục Dịch Vụ");
+        chartTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        // 1. BarChart axes & instance
+        javafx.scene.chart.CategoryAxis xAxisBar = new javafx.scene.chart.CategoryAxis();
+        xAxisBar.setLabel("Hạng mục dịch vụ");
+        xAxisBar.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
+        
+        javafx.scene.chart.NumberAxis yAxisBar = new javafx.scene.chart.NumberAxis();
+        yAxisBar.setLabel("Doanh Thu (VNĐ)");
+        yAxisBar.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
+        
+        javafx.scene.chart.BarChart<String, Number> barChart = new javafx.scene.chart.BarChart<>(xAxisBar, yAxisBar);
+        barChart.setTitle("");
+        barChart.setLegendVisible(false);
+        barChart.setPrefHeight(280);
+        barChart.setStyle("-fx-background-color: transparent;");
+        
+        // 2. LineChart axes & instance (to overlay on top of BarChart)
+        javafx.scene.chart.CategoryAxis xAxisLine = new javafx.scene.chart.CategoryAxis();
+        javafx.scene.chart.NumberAxis yAxisLine = new javafx.scene.chart.NumberAxis();
+        
+        javafx.scene.chart.LineChart<String, Number> lineChart = new javafx.scene.chart.LineChart<>(xAxisLine, yAxisLine);
+        lineChart.setTitle("");
+        lineChart.setLegendVisible(false);
+        lineChart.setCreateSymbols(true);
+        lineChart.setPrefHeight(280);
+        lineChart.setStyle("-fx-background-color: transparent;");
+        
+        // Make LineChart layout elements invisible so they overlay perfectly
+        xAxisLine.setOpacity(0);
+        yAxisLine.setOpacity(0);
+        xAxisLine.setTickLabelsVisible(false);
+        yAxisLine.setTickLabelsVisible(false);
+        xAxisLine.setTickMarkVisible(false);
+        yAxisLine.setTickMarkVisible(false);
+        lineChart.setHorizontalGridLinesVisible(false);
+        lineChart.setVerticalGridLinesVisible(false);
+        lineChart.setAlternativeColumnFillVisible(false);
+        lineChart.setAlternativeRowFillVisible(false);
+        
+        // Combine in StackPane
+        StackPane chartStack = new StackPane(barChart, lineChart);
+        chartContainer.getChildren().addAll(chartTitle, chartStack);
+
         // Filter button action
         btnFilter.setOnAction(e -> {
             String period = cbPeriod.getValue();
@@ -1952,9 +2149,9 @@ public class MainUI extends Application {
             List<Invoice> filtered = allInvoices.stream()
                 .filter(inv -> matchesTimeFilters(inv.getCreatedAt(), period, month, year))
                 .collect(java.util.stream.Collectors.toList());
-            updateReportStats(filtered, statsGrid);
+            updateReportStatsAndChart(filtered, statsGrid, barChart, lineChart, period, month, year);
         });
-        
+
         // Export button action
         btnExport.setOnAction(e -> {
             String period = cbPeriod.getValue();
@@ -1988,109 +2185,604 @@ public class MainUI extends Application {
         dateRange.getChildren().clear();
         dateRange.getChildren().addAll(new Label("Lọc theo:"), cbPeriod, cbMonth, cbYear, btnFilter, btnExport);
 
-        VBox stat1 = createReportStatCard("Tổng Doanh Thu", String.format("%,.0fđ", totalRevenue), "");
-        VBox stat2 = createReportStatCard("Tổng Hóa Đơn", String.valueOf(totalInvoices), "");
-        VBox stat3 = createReportStatCard("Khách Hàng", String.valueOf(uniqueCustomers), "");
-        VBox stat4 = createReportStatCard("Đã Thanh Toán", 
-            String.valueOf(allInvoices.stream().filter(inv -> inv.getStatus().equals("paid")).count()), "");
+        // Initial loading of stats and hybrid chart
+        btnFilter.fire();
 
-        statsGrid.add(stat1, 0, 0);
-        statsGrid.add(stat2, 1, 0);
-        statsGrid.add(stat3, 2, 0);
-        statsGrid.add(stat4, 3, 0);
+        // --- TAB 1 content layout ---
+        VBox tab1Content = new VBox(20);
+        tab1Content.setPadding(new Insets(20));
+        tab1Content.getChildren().addAll(dateRange, statsGrid, chartContainer);
 
-        // Revenue chart by month
-        VBox chartContainer = new VBox(15);
-        chartContainer.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 12;" +
+        // --- TAB 2: Báo Số Hằng Ngày ---
+        VBox tab2Content = new VBox(20);
+        tab2Content.setPadding(new Insets(20));
+
+        // Date range filters for Daily Report
+        HBox dailyFilters = new HBox(15);
+        dailyFilters.setAlignment(Pos.CENTER_LEFT);
+        dailyFilters.setPadding(new Insets(15));
+        dailyFilters.setStyle(
+            "-fx-background-color: #f9fafb;" +
+            "-fx-background-radius: 10;" +
             "-fx-border-color: #e0e0e0;" +
             "-fx-border-width: 1;" +
-            "-fx-border-radius: 12;" +
-            "-fx-padding: 25;"
+            "-fx-border-radius: 10;"
         );
-        chartContainer.setPrefHeight(450);
-        
-        Label chartTitle = new Label("📊 Biểu Đồ Doanh Thu Theo Tháng");
-        chartTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
-        
-        // Create bar chart
-        javafx.scene.chart.CategoryAxis xAxis = new javafx.scene.chart.CategoryAxis();
-        xAxis.setLabel("Tháng");
-        xAxis.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
-        
-        javafx.scene.chart.NumberAxis yAxis = new javafx.scene.chart.NumberAxis();
-        yAxis.setLabel("Doanh Thu (VNĐ)");
-        yAxis.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
-        
-        javafx.scene.chart.BarChart<String, Number> barChart = new javafx.scene.chart.BarChart<>(xAxis, yAxis);
-        barChart.setTitle("");
-        barChart.setLegendVisible(false);
-        barChart.setPrefHeight(320);
-        barChart.setStyle(
-            "-fx-background-color: transparent;" +
-            "CHART_COLOR_1: #2196F3;"
-        );
-        
-        javafx.scene.chart.XYChart.Series<String, Number> series = new javafx.scene.chart.XYChart.Series<>();
-        
-        // Calculate revenue by month
-        java.util.Map<String, Double> revenueByMonth = new java.util.HashMap<>();
-        for (Invoice invoice : allInvoices) {
-            if (invoice.getStatus().equals("paid") && invoice.getCreatedAt() != null) {
-                try {
-                    String month = invoice.getCreatedAt().substring(0, 7); // YYYY-MM
-                    revenueByMonth.put(month, revenueByMonth.getOrDefault(month, 0.0) + invoice.getTotalAmount());
-                } catch (Exception e) {
-                    // Skip invalid dates
-                }
-            }
-        }
-        
-        // Add data to chart (last 6 months)
-        java.util.List<String> sortedMonths = new java.util.ArrayList<>(revenueByMonth.keySet());
-        java.util.Collections.sort(sortedMonths);
-        java.util.Collections.reverse(sortedMonths);
-        
-        int count = 0;
-        for (String month : sortedMonths) {
-            if (count >= 6) break;
-            series.getData().add(new javafx.scene.chart.XYChart.Data<>(month, revenueByMonth.get(month)));
-            count++;
-        }
-        
-        // If no data, show sample months
-        if (series.getData().isEmpty()) {
-            series.getData().add(new javafx.scene.chart.XYChart.Data<>("2026-04", 0));
-            series.getData().add(new javafx.scene.chart.XYChart.Data<>("2026-03", 0));
-            series.getData().add(new javafx.scene.chart.XYChart.Data<>("2026-02", 0));
-        }
-        
-        barChart.getData().add(series);
-        
-        // Apply CSS styling
-        try {
-            String css = getClass().getResource("/chart-styles.css").toExternalForm();
-            barChart.getStylesheets().add(css);
-        } catch (Exception e) {
-            // If CSS not found, apply inline styles
-            barChart.setStyle(
-                ".chart-bar { -fx-background-color: #2196F3; -fx-background-radius: 4px; }"
-            );
-        }
-        
-        chartContainer.getChildren().addAll(chartTitle, barChart);
 
-        view.getChildren().addAll(title, dateRange, statsGrid, chartContainer);
+        Label lblMonth = new Label("Tháng:");
+        lblMonth.setStyle("-fx-font-size: 14px; -fx-font-weight: 500;");
+        ComboBox<Integer> cbDailyMonth = new ComboBox<>();
+        for (int m = 1; m <= 12; m++) cbDailyMonth.getItems().add(m);
+        cbDailyMonth.setValue(LocalDate.now().getMonthValue());
+        cbDailyMonth.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 6;" +
+            "-fx-border-color: #dcdcdc;" +
+            "-fx-border-radius: 6;" +
+            "-fx-pref-height: 36px;" +
+            "-fx-font-size: 13px;"
+        );
+        
+        Label lblYear = new Label("Năm:");
+        lblYear.setStyle("-fx-font-size: 14px; -fx-font-weight: 500;");
+        ComboBox<String> cbDailyYear = new ComboBox<>();
+        cbDailyYear.getItems().addAll(getAvailableYears());
+        String currentYearStr = String.valueOf(LocalDate.now().getYear());
+        if (!cbDailyYear.getItems().contains(currentYearStr)) {
+            cbDailyYear.getItems().add(currentYearStr);
+        }
+        cbDailyYear.setValue(currentYearStr);
+        cbDailyYear.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 6;" +
+            "-fx-border-color: #dcdcdc;" +
+            "-fx-border-radius: 6;" +
+            "-fx-pref-height: 36px;" +
+            "-fx-font-size: 13px;"
+        );
+
+        Button btnFilterDaily = new Button("🔍 Lọc Báo Số");
+        btnFilterDaily.setStyle(
+            "-fx-background-color: #4CAF50;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        Region dailySpacer = new Region();
+        HBox.setHgrow(dailySpacer, Priority.ALWAYS);
+
+        Button btnExcelExport = new Button("📥 Xuất Excel");
+        btnExcelExport.setStyle(
+            "-fx-background-color: #4CAF50;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        Button btnPdfExport = new Button("📥 Xuất PDF");
+        btnPdfExport.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        dailyFilters.getChildren().addAll(lblMonth, cbDailyMonth, lblYear, cbDailyYear, btnFilterDaily, dailySpacer, btnExcelExport, btnPdfExport);
+
+        // Daily Report TableView
+        TableView<model.DailyReportRow> tableReport = new TableView<>();
+        tableReport.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        tableReport.setStyle("-fx-font-size: 12px;");
+        VBox.setVgrow(tableReport, Priority.ALWAYS);
+
+        // Define Columns
+        TableColumn<model.DailyReportRow, Integer> colStt = new TableColumn<>("STT");
+        colStt.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("stt"));
+        colStt.setMaxWidth(40);
+        colStt.setMinWidth(40);
+
+        TableColumn<model.DailyReportRow, String> colDate = new TableColumn<>("Ngày/Tháng");
+        colDate.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("date"));
+        colDate.setPrefWidth(90);
+
+        TableColumn<model.DailyReportRow, String> colPlate = new TableColumn<>("Biển số xe");
+        colPlate.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("licensePlate"));
+        colPlate.setPrefWidth(95);
+
+        TableColumn<model.DailyReportRow, String> colServices = new TableColumn<>("Hạng mục dịch vụ");
+        colServices.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("services"));
+        colServices.setPrefWidth(180);
+
+        // Doanh Thu (Sub-columns)
+        TableColumn<model.DailyReportRow, Double> dtParent = new TableColumn<>("DOANH THU (VNĐ)");
+        
+        TableColumn<model.DailyReportRow, Double> dtWash = new TableColumn<>("Rửa xe");
+        dtWash.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("revenueWash"));
+        dtWash.setPrefWidth(75);
+        formatCurrencyColumn(dtWash);
+
+        TableColumn<model.DailyReportRow, Double> dtCare = new TableColumn<>("Chăm sóc");
+        dtCare.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("revenueCare"));
+        dtCare.setPrefWidth(85);
+        formatCurrencyColumn(dtCare);
+
+        TableColumn<model.DailyReportRow, Double> dtAcc = new TableColumn<>("Phụ kiện");
+        dtAcc.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("revenueAccessory"));
+        dtAcc.setPrefWidth(85);
+        formatCurrencyColumn(dtAcc);
+
+        TableColumn<model.DailyReportRow, Double> dtPaint = new TableColumn<>("Sơn");
+        dtPaint.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("revenuePaint"));
+        dtPaint.setPrefWidth(75);
+        formatCurrencyColumn(dtPaint);
+
+        dtParent.getColumns().addAll(dtWash, dtCare, dtAcc, dtPaint);
+
+        TableColumn<model.DailyReportRow, Double> colTotal = new TableColumn<>("Tổng DT Nhận");
+        colTotal.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalRevenue"));
+        colTotal.setPrefWidth(110);
+        formatCurrencyColumn(colTotal);
+
+        TableColumn<model.DailyReportRow, String> colMethod = new TableColumn<>("PTTT");
+        colMethod.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("paymentMethod"));
+        colMethod.setPrefWidth(50);
+
+        // Chi Phí (Sub-columns)
+        TableColumn<model.DailyReportRow, Double> cpParent = new TableColumn<>("CHI PHÍ (VNĐ)");
+
+        TableColumn<model.DailyReportRow, Double> cpCare = new TableColumn<>("Phí chăm sóc");
+        cpCare.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("costCare"));
+        cpCare.setPrefWidth(85);
+        formatCurrencyColumn(cpCare);
+
+        TableColumn<model.DailyReportRow, Double> cpAcc = new TableColumn<>("Phí phụ kiện");
+        cpAcc.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("costAccessory"));
+        cpAcc.setPrefWidth(85);
+        formatCurrencyColumn(cpAcc);
+
+        TableColumn<model.DailyReportRow, Double> cpPaint = new TableColumn<>("Phí sơn");
+        cpPaint.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("costPaint"));
+        cpPaint.setPrefWidth(75);
+        formatCurrencyColumn(cpPaint);
+
+        cpParent.getColumns().addAll(cpCare, cpAcc, cpPaint);
+
+        // Lợi Nhuận (Sub-columns)
+        TableColumn<model.DailyReportRow, Double> lnParent = new TableColumn<>("LỢI NHUẬN (VNĐ)");
+
+        TableColumn<model.DailyReportRow, Double> lnCare = new TableColumn<>("LN chăm sóc");
+        lnCare.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("profitCare"));
+        lnCare.setPrefWidth(85);
+        formatCurrencyColumn(lnCare);
+
+        TableColumn<model.DailyReportRow, Double> lnAcc = new TableColumn<>("LN phụ kiện");
+        lnAcc.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("profitAccessory"));
+        lnAcc.setPrefWidth(85);
+        formatCurrencyColumn(lnAcc);
+
+        TableColumn<model.DailyReportRow, Double> lnPaint = new TableColumn<>("LN sơn");
+        lnPaint.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("profitPaint"));
+        lnPaint.setPrefWidth(75);
+        formatCurrencyColumn(lnPaint);
+
+        lnParent.getColumns().addAll(lnCare, lnAcc, lnPaint);
+
+        TableColumn<model.DailyReportRow, String> colNotes = new TableColumn<>("Ghi chú");
+        colNotes.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("notes"));
+        colNotes.setPrefWidth(120);
+
+        tableReport.getColumns().addAll(colStt, colDate, colPlate, colServices, dtParent, colTotal, colMethod, cpParent, lnParent, colNotes);
+
+        // Action to load data
+        Runnable loadDailyData = () -> {
+            int targetMonth = cbDailyMonth.getValue();
+            String targetYearStr = cbDailyYear.getValue();
+            List<Invoice> invoices = new InvoiceService().getAllInvoices();
+            
+            List<Invoice> filtered = invoices.stream()
+                .filter(inv -> {
+                    if (inv.getCreatedAt() == null || inv.getCreatedAt().length() < 10) return false;
+                    try {
+                        LocalDate d = LocalDate.parse(inv.getCreatedAt().substring(0, 10));
+                        boolean monthMatch = d.getMonthValue() == targetMonth;
+                        boolean yearMatch = String.valueOf(d.getYear()).equals(targetYearStr);
+                        return monthMatch && yearMatch;
+                    } catch (Exception ex) {
+                        return false;
+                    }
+                })
+                .collect(java.util.stream.Collectors.toList());
+                
+            List<model.DailyReportRow> reportRows = ReportHelper.generateDailyReportRows(filtered);
+            tableReport.getItems().clear();
+            tableReport.getItems().addAll(reportRows);
+        };
+
+        btnFilterDaily.setOnAction(e -> loadDailyData.run());
+        
+        btnExcelExport.setOnAction(e -> {
+            int targetMonth = cbDailyMonth.getValue();
+            int targetYear = Integer.parseInt(cbDailyYear.getValue());
+            LocalDate fromDate = LocalDate.of(targetYear, targetMonth, 1);
+            LocalDate toDate = fromDate.withDayOfMonth(fromDate.lengthOfMonth());
+            ReportHelper.exportToExcel(new java.util.ArrayList<>(tableReport.getItems()), fromDate, toDate, mainLayout.getScene().getWindow());
+        });
+        
+        btnPdfExport.setOnAction(e -> {
+            int targetMonth = cbDailyMonth.getValue();
+            int targetYear = Integer.parseInt(cbDailyYear.getValue());
+            LocalDate fromDate = LocalDate.of(targetYear, targetMonth, 1);
+            LocalDate toDate = fromDate.withDayOfMonth(fromDate.lengthOfMonth());
+            ReportHelper.exportDailyReportToPDF(new java.util.ArrayList<>(tableReport.getItems()), fromDate, toDate, mainLayout.getScene().getWindow());
+        });
+
+        // Load initially
+        loadDailyData.run();
+
+        tab2Content.getChildren().addAll(dailyFilters, tableReport);
+
+        // --- TAB 3: Thống Kê Năm ---
+        VBox tab3Content = new VBox(20);
+        tab3Content.setPadding(new Insets(20));
+
+        // Filters for Yearly Report
+        HBox yearlyFilters = new HBox(15);
+        yearlyFilters.setAlignment(Pos.CENTER_LEFT);
+        yearlyFilters.setPadding(new Insets(15));
+        yearlyFilters.setStyle(
+            "-fx-background-color: #f9fafb;" +
+            "-fx-background-radius: 10;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 10;"
+        );
+
+        Label lblYearlyReportYear = new Label("Năm:");
+        lblYearlyReportYear.setStyle("-fx-font-size: 14px; -fx-font-weight: 500;");
+        ComboBox<String> cbYearlyReportYear = new ComboBox<>();
+        cbYearlyReportYear.getItems().addAll(getAvailableYears());
+        String curYearStr = String.valueOf(LocalDate.now().getYear());
+        if (!cbYearlyReportYear.getItems().contains(curYearStr)) {
+            cbYearlyReportYear.getItems().add(curYearStr);
+        }
+        cbYearlyReportYear.setValue(curYearStr);
+        cbYearlyReportYear.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 6;" +
+            "-fx-border-color: #dcdcdc;" +
+            "-fx-border-radius: 6;" +
+            "-fx-pref-height: 36px;" +
+            "-fx-font-size: 13px;"
+        );
+
+        Button btnFilterYearly = new Button("🔍 Lọc Thống Kê Năm");
+        btnFilterYearly.setStyle(
+            "-fx-background-color: #4CAF50;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        Region yearlySpacer = new Region();
+        HBox.setHgrow(yearlySpacer, Priority.ALWAYS);
+
+        Button btnExcelExportYearly = new Button("📥 Xuất Excel Năm");
+        btnExcelExportYearly.setStyle(
+            "-fx-background-color: #4CAF50;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        Button btnPdfExportYearly = new Button("📥 Xuất PDF Năm");
+        btnPdfExportYearly.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        yearlyFilters.getChildren().addAll(lblYearlyReportYear, cbYearlyReportYear, btnFilterYearly, yearlySpacer, btnExcelExportYearly, btnPdfExportYearly);
+
+        // Yearly TableView
+        TableView<model.YearlyReportRow> tableYearly = new TableView<>();
+        tableYearly.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        tableYearly.setStyle("-fx-font-size: 12px;");
+        VBox.setVgrow(tableYearly, Priority.ALWAYS);
+
+        // Define Columns
+        TableColumn<model.YearlyReportRow, String> colYearlyMonth = new TableColumn<>("Tháng");
+        colYearlyMonth.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("month"));
+        colYearlyMonth.setPrefWidth(90);
+
+        // Doanh thu (Sub-columns)
+        TableColumn<model.YearlyReportRow, Double> dtParentY = new TableColumn<>("DOANH THU (VNĐ)");
+
+        TableColumn<model.YearlyReportRow, Double> dtWashY = new TableColumn<>("Rửa xe");
+        dtWashY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("revenueWash"));
+        dtWashY.setPrefWidth(100);
+        formatCurrencyColumnYearly(dtWashY);
+
+        TableColumn<model.DailyReportRow, Double> dtCareY_raw = new TableColumn<>("Chăm sóc");
+        TableColumn<model.YearlyReportRow, Double> dtCareY = (TableColumn<model.YearlyReportRow, Double>)(Object)dtCareY_raw;
+        dtCareY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("revenueCare"));
+        dtCareY.setPrefWidth(110);
+        formatCurrencyColumnYearly(dtCareY);
+
+        TableColumn<model.DailyReportRow, Double> dtAccY_raw = new TableColumn<>("Phụ kiện");
+        TableColumn<model.YearlyReportRow, Double> dtAccY = (TableColumn<model.YearlyReportRow, Double>)(Object)dtAccY_raw;
+        dtAccY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("revenueAccessory"));
+        dtAccY.setPrefWidth(110);
+        formatCurrencyColumnYearly(dtAccY);
+
+        TableColumn<model.DailyReportRow, Double> dtPaintY_raw = new TableColumn<>("Sơn xe");
+        TableColumn<model.YearlyReportRow, Double> dtPaintY = (TableColumn<model.YearlyReportRow, Double>)(Object)dtPaintY_raw;
+        dtPaintY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("revenuePaint"));
+        dtPaintY.setPrefWidth(100);
+        formatCurrencyColumnYearly(dtPaintY);
+
+        dtParentY.getColumns().addAll(dtWashY, dtCareY, dtAccY, dtPaintY);
+
+        TableColumn<model.DailyReportRow, Double> colTotalY_raw = new TableColumn<>("Tổng doanh thu");
+        TableColumn<model.YearlyReportRow, Double> colTotalY = (TableColumn<model.YearlyReportRow, Double>)(Object)colTotalY_raw;
+        colTotalY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalRevenue"));
+        colTotalY.setPrefWidth(120);
+        formatCurrencyColumnYearly(colTotalY);
+
+        // Lợi nhuận (Sub-columns)
+        TableColumn<model.YearlyReportRow, Double> lnParentY = new TableColumn<>("LỢI NHUẬN (VNĐ)");
+
+        TableColumn<model.DailyReportRow, Double> lnCareY_raw = new TableColumn<>("LN chăm sóc");
+        TableColumn<model.YearlyReportRow, Double> lnCareY = (TableColumn<model.YearlyReportRow, Double>)(Object)lnCareY_raw;
+        lnCareY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("profitCare"));
+        lnCareY.setPrefWidth(110);
+        formatCurrencyColumnYearly(lnCareY);
+
+        TableColumn<model.DailyReportRow, Double> lnAccY_raw = new TableColumn<>("LN phụ kiện");
+        TableColumn<model.YearlyReportRow, Double> lnAccY = (TableColumn<model.YearlyReportRow, Double>)(Object)lnAccY_raw;
+        lnAccY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("profitAccessory"));
+        lnAccY.setPrefWidth(110);
+        formatCurrencyColumnYearly(lnAccY);
+
+        TableColumn<model.DailyReportRow, Double> lnPaintY_raw = new TableColumn<>("LN sơn");
+        TableColumn<model.YearlyReportRow, Double> lnPaintY = (TableColumn<model.YearlyReportRow, Double>)(Object)lnPaintY_raw;
+        lnPaintY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("profitPaint"));
+        lnPaintY.setPrefWidth(100);
+        formatCurrencyColumnYearly(lnPaintY);
+
+        lnParentY.getColumns().addAll(lnCareY, lnAccY, lnPaintY);
+
+        // Chi phí & Lợi nhuận ròng
+        TableColumn<model.DailyReportRow, Double> colVarCostY_raw = new TableColumn<>("Chi phí biến thiên");
+        TableColumn<model.YearlyReportRow, Double> colVarCostY = (TableColumn<model.YearlyReportRow, Double>)(Object)colVarCostY_raw;
+        colVarCostY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("variableCost"));
+        colVarCostY.setPrefWidth(110);
+        formatCurrencyColumnYearly(colVarCostY);
+
+        TableColumn<model.DailyReportRow, Double> colFixedCostY_raw = new TableColumn<>("Chi phí cố định");
+        TableColumn<model.YearlyReportRow, Double> colFixedCostY = (TableColumn<model.YearlyReportRow, Double>)(Object)colFixedCostY_raw;
+        colFixedCostY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("fixedCost"));
+        colFixedCostY.setPrefWidth(110);
+        formatCurrencyColumnYearly(colFixedCostY);
+
+        TableColumn<model.DailyReportRow, Double> colNetProfitY_raw = new TableColumn<>("TỔNG LỢI NHUẬN");
+        TableColumn<model.YearlyReportRow, Double> colNetProfitY = (TableColumn<model.YearlyReportRow, Double>)(Object)colNetProfitY_raw;
+        colNetProfitY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalNetProfit"));
+        colNetProfitY.setPrefWidth(130);
+        formatCurrencyColumnYearly(colNetProfitY);
+
+        tableYearly.getColumns().addAll(colYearlyMonth, dtParentY, colTotalY, lnParentY, colVarCostY, colFixedCostY, colNetProfitY);
+
+        // Action to load yearly data
+        Runnable loadYearlyData = () -> {
+            String targetYearStr = cbYearlyReportYear.getValue();
+            List<Invoice> invoicesList = new InvoiceService().getAllInvoices();
+            service.FixedExpenseService expenseService = new service.FixedExpenseService();
+            dao.PayrollDAO payrollDAO = new dao.PayrollDAO();
+            dao.InvoiceItemDAO yearlyItemDAO = new dao.InvoiceItemDAO();
+
+            java.util.List<model.YearlyReportRow> rows = new java.util.ArrayList<>();
+            
+            double totalWashAll = 0, totalCareAll = 0, totalAccAll = 0, totalPaintAll = 0, totalRevenueAll = 0;
+            double profitCareAll = 0, profitAccAll = 0, profitPaintAll = 0;
+            double varCostAll = 0, fixedCostAll = 0, netProfitAll = 0;
+
+            for (int m = 1; m <= 12; m++) {
+                String monthKey = String.format("%02d", m);
+                String periodStr = targetYearStr + "-" + monthKey;
+                
+                List<Invoice> monthInvoices = invoicesList.stream()
+                    .filter(inv -> inv.getStatus().equals("paid") && inv.getCreatedAt() != null && inv.getCreatedAt().startsWith(periodStr))
+                    .collect(java.util.stream.Collectors.toList());
+                
+                double mWash = 0, mCare = 0, mAcc = 0, mPaint = 0;
+                double profitCare = 0, profitAccessory = 0, profitPaint = 0;
+
+                for (Invoice inv : monthInvoices) {
+                    List<model.InvoiceItem> items = yearlyItemDAO.getItemsByInvoiceId(inv.getId());
+                    for (model.InvoiceItem item : items) {
+                        String cat = item.getCategory() != null ? item.getCategory().toLowerCase().trim() : "";
+                        double price = item.getTotalPrice();
+                        double cost = item.getCostPrice();
+                        double itemProfit = price - cost;
+
+                        if (cat.contains("rửa") || cat.contains("rua")) {
+                            mWash += price;
+                        } else if (cat.contains("chăm sóc") || cat.contains("cham soc")) {
+                            mCare += price;
+                            profitCare += itemProfit;
+                        } else if (cat.contains("phụ kiện") || cat.contains("phu kien")) {
+                            mAcc += price;
+                            profitAccessory += itemProfit;
+                        } else if (cat.contains("sơn") || cat.contains("son")) {
+                            mPaint += price;
+                            profitPaint += itemProfit;
+                        } else {
+                            if ("product".equals(item.getItemType())) {
+                                mAcc += price;
+                                profitAccessory += itemProfit;
+                            } else if ("package".equals(item.getItemType())) {
+                                mCare += price;
+                                profitCare += itemProfit;
+                            } else {
+                                mWash += price;
+                            }
+                        }
+                    }
+                }
+                
+                double mTotal = mWash + mCare + mAcc + mPaint;
+
+                List<model.FixedExpense> expenses = expenseService.getAllExpensesByMonth(periodStr);
+                double varCost = expenses.stream()
+                    .filter(exp -> "biến thiên".equalsIgnoreCase(exp.getCategory()))
+                    .mapToDouble(model.FixedExpense::getAmount)
+                    .sum();
+                double fixedCost = expenses.stream()
+                    .filter(exp -> "cố định".equalsIgnoreCase(exp.getCategory()) || exp.getCategory() == null)
+                    .mapToDouble(model.FixedExpense::getAmount)
+                    .sum();
+
+                List<model.Payroll> payrolls = payrollDAO.getAllPayrollsByMonth(periodStr);
+                double totalPayrollCost = payrolls.stream()
+                    .mapToDouble(model.Payroll::getNetSalary)
+                    .sum();
+
+                double totalNetProfit = (mWash + profitCare + profitAccessory + profitPaint) - varCost - fixedCost - totalPayrollCost;
+
+                rows.add(new model.YearlyReportRow(
+                    "Tháng " + m, mWash, mCare, mAcc, mPaint,
+                    mTotal, profitCare, profitAccessory, profitPaint,
+                    varCost, fixedCost, totalNetProfit
+                ));
+
+                totalWashAll += mWash;
+                totalCareAll += mCare;
+                totalAccAll += mAcc;
+                totalPaintAll += mPaint;
+                totalRevenueAll += mTotal;
+                profitCareAll += profitCare;
+                profitAccAll += profitAccessory;
+                profitPaintAll += profitPaint;
+                varCostAll += varCost;
+                fixedCostAll += fixedCost;
+                netProfitAll += totalNetProfit;
+            }
+
+            rows.add(new model.YearlyReportRow(
+                "TỔNG CỘNG", totalWashAll, totalCareAll, totalAccAll, totalPaintAll,
+                totalRevenueAll, profitCareAll, profitAccAll, profitPaintAll,
+                varCostAll, fixedCostAll, netProfitAll
+            ));
+
+            tableYearly.getItems().clear();
+            tableYearly.getItems().addAll(rows);
+        };
+
+        btnFilterYearly.setOnAction(e -> loadYearlyData.run());
+        
+        btnExcelExportYearly.setOnAction(e -> {
+            String targetYearStr = cbYearlyReportYear.getValue();
+            ReportHelper.exportYearlyToExcel(new java.util.ArrayList<>(tableYearly.getItems()), Integer.parseInt(targetYearStr), mainLayout.getScene().getWindow());
+        });
+        
+        btnPdfExportYearly.setOnAction(e -> {
+            String targetYearStr = cbYearlyReportYear.getValue();
+            ReportHelper.exportYearlyToPDF(new java.util.ArrayList<>(tableYearly.getItems()), Integer.parseInt(targetYearStr), mainLayout.getScene().getWindow());
+        });
+
+        // Load initially
+        loadYearlyData.run();
+
+        tab3Content.getChildren().addAll(yearlyFilters, tableYearly);
+
+        // Custom Tab Bar using Rounded Flat Buttons (matching HR module)
+        HBox navBar = new HBox(12);
+        navBar.setAlignment(Pos.CENTER_LEFT);
+
+        Button btnTabSummary = new Button("📊 Tổng Quan & Biểu Đồ");
+        Button btnTabDaily = new Button("📋 Báo Số Hằng Ngày");
+        Button btnTabYearly = new Button("📅 Thống Kê Năm");
+
+        navBar.getChildren().addAll(btnTabSummary, btnTabDaily, btnTabYearly);
+
+        StackPane tabContentArea = new StackPane();
+        VBox.setVgrow(tabContentArea, Priority.ALWAYS);
+
+        // Tab Switching logic
+        btnTabSummary.setOnAction(e -> {
+            setTabActive(btnTabSummary, btnTabDaily, btnTabYearly);
+            tabContentArea.getChildren().setAll(tab1Content);
+        });
+        btnTabDaily.setOnAction(e -> {
+            setTabActive(btnTabDaily, btnTabSummary, btnTabYearly);
+            tabContentArea.getChildren().setAll(tab2Content);
+        });
+        btnTabYearly.setOnAction(e -> {
+            setTabActive(btnTabYearly, btnTabSummary, btnTabDaily);
+            tabContentArea.getChildren().setAll(tab3Content);
+        });
+
+        // Initialize with Summary Tab
+        setTabActive(btnTabSummary, btnTabDaily, btnTabYearly);
+        tabContentArea.getChildren().setAll(tab1Content);
+
+        view.getChildren().addAll(title, navBar, tabContentArea);
         
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);
     }
+
+    private void setTabActive(Button activeBtn, Button... inactiveBtns) {
+        activeBtn.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 8px 16px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;" +
+            "-fx-border-color: transparent;"
+        );
+        for (Button btn : inactiveBtns) {
+            btn.setStyle(
+                "-fx-background-color: #f5f5f5;" +
+                "-fx-text-fill: #616161;" +
+                "-fx-font-size: 13px;" +
+                "-fx-font-weight: 600;" +
+                "-fx-padding: 8px 16px;" +
+                "-fx-background-radius: 8;" +
+                "-fx-cursor: hand;" +
+                "-fx-border-color: transparent;"
+            );
+        }
+    }
     
-    private void updateReportStats(List<Invoice> filteredInvoices, GridPane statsGrid) {
-        // Calculate stats
+    private void updateReportStatsAndChart(List<Invoice> filteredInvoices, GridPane statsGrid, 
+                                           javafx.scene.chart.BarChart<String, Number> barChart, 
+                                           javafx.scene.chart.LineChart<String, Number> lineChart, 
+                                           String period, String monthFilter, String yearFilter) {
+        // Calculate stats (includes all statuses paid, unpaid, pending!)
         double totalRevenue = filteredInvoices.stream()
-            .filter(inv -> inv.getStatus().equals("paid"))
             .mapToDouble(Invoice::getTotalAmount)
             .sum();
         
@@ -2117,6 +2809,73 @@ public class MainUI extends Application {
         statsGrid.add(stat2, 1, 0);
         statsGrid.add(stat3, 2, 0);
         statsGrid.add(stat4, 3, 0);
+
+        // Calculate category-wise revenue
+        double revWash = 0;
+        double revCare = 0;
+        double revAccessory = 0;
+        double revPaint = 0;
+        
+        dao.InvoiceItemDAO itemDAO = new dao.InvoiceItemDAO();
+        for (Invoice inv : filteredInvoices) {
+            List<model.InvoiceItem> items = itemDAO.getItemsByInvoiceId(inv.getId());
+            for (model.InvoiceItem item : items) {
+                String cat = item.getCategory() != null ? item.getCategory().toLowerCase().trim() : "";
+                double price = item.getTotalPrice();
+                if (cat.contains("rửa") || cat.contains("rua")) {
+                    revWash += price;
+                } else if (cat.contains("chăm sóc") || cat.contains("cham soc")) {
+                    revCare += price;
+                } else if (cat.contains("phụ kiện") || cat.contains("phu kien")) {
+                    revAccessory += price;
+                } else if (cat.contains("sơn") || cat.contains("son")) {
+                    revPaint += price;
+                } else {
+                    if ("product".equals(item.getItemType())) {
+                        revAccessory += price;
+                    } else if ("package".equals(item.getItemType())) {
+                        revCare += price;
+                    } else {
+                        revWash += price;
+                    }
+                }
+            }
+        }
+
+        // Update Bar Chart
+        barChart.getData().clear();
+        javafx.scene.chart.XYChart.Series<String, Number> barSeries = new javafx.scene.chart.XYChart.Series<>();
+        barSeries.getData().add(new javafx.scene.chart.XYChart.Data<>("Rửa xe", revWash));
+        barSeries.getData().add(new javafx.scene.chart.XYChart.Data<>("Chăm sóc", revCare));
+        barSeries.getData().add(new javafx.scene.chart.XYChart.Data<>("Phụ kiện", revAccessory));
+        barSeries.getData().add(new javafx.scene.chart.XYChart.Data<>("Sơn", revPaint));
+        barChart.getData().add(barSeries);
+
+        // Update Line Chart
+        lineChart.getData().clear();
+        javafx.scene.chart.XYChart.Series<String, Number> lineSeries = new javafx.scene.chart.XYChart.Series<>();
+        
+        String[] cats = {"Rửa xe", "Chăm sóc", "Phụ kiện", "Sơn"};
+        double[] vals = {revWash, revCare, revAccessory, revPaint};
+        
+        for (int i = 0; i < 4; i++) {
+            javafx.scene.chart.XYChart.Data<String, Number> data = new javafx.scene.chart.XYChart.Data<>(cats[i], vals[i]);
+            double val = vals[i];
+            
+            // Create a custom symbol containing a dot and a text label displaying the value
+            StackPane symbol = new StackPane();
+            symbol.setPrefSize(8, 8);
+            symbol.setStyle("-fx-background-color: #E91E63; -fx-background-radius: 4px;");
+            
+            Label valLabel = new Label(String.format("%,.0fđ", val));
+            valLabel.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #E91E63; -fx-translate-y: -15;");
+            
+            symbol.getChildren().add(valLabel);
+            data.setNode(symbol);
+            
+            lineSeries.getData().add(data);
+        }
+        lineChart.getData().add(lineSeries);
     }
 
     private VBox createModernView(String title, String subtitle) {
@@ -2553,13 +3312,29 @@ public class MainUI extends Application {
             "-fx-border-width: 0 0 1 0;"
         ));
         
-        // Name
+        // Name cell with category badge
         Label lblName = new Label(pkg.getName());
         lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #212121; -fx-font-weight: 600;");
-        lblName.setPrefWidth(150);
-        lblName.setMinWidth(150);
-        lblName.setPadding(new Insets(12, 10, 12, 15));
         lblName.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblBadge = new Label(pkg.getCategory() != null ? pkg.getCategory().toUpperCase() : "CHĂM SÓC");
+        String badgeStyle = "-fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2px 7px; -fx-background-radius: 10;";
+        if ("rửa xe".equalsIgnoreCase(pkg.getCategory())) {
+            lblBadge.setStyle(badgeStyle + "-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2;");
+        } else if ("phụ kiện".equalsIgnoreCase(pkg.getCategory())) {
+            lblBadge.setStyle(badgeStyle + "-fx-background-color: #F3E5F5; -fx-text-fill: #7B1FA2;");
+        } else if ("sơn".equalsIgnoreCase(pkg.getCategory())) {
+            lblBadge.setStyle(badgeStyle + "-fx-background-color: #FFF3E0; -fx-text-fill: #E65100;");
+        } else {
+            lblBadge.setStyle(badgeStyle + "-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32;"); // Mặc định: Chăm sóc
+        }
+        
+        VBox nameCell = new VBox(4);
+        nameCell.setAlignment(Pos.CENTER_LEFT);
+        nameCell.setPrefWidth(150);
+        nameCell.setMinWidth(150);
+        nameCell.setPadding(new Insets(12, 10, 12, 15));
+        nameCell.getChildren().addAll(lblName, lblBadge);
         
         // Description
         Label lblDesc = new Label(pkg.getDescription());
@@ -2667,7 +3442,7 @@ public class MainUI extends Application {
         
         actions.getChildren().addAll(btnView, btnEdit, btnDelete);
         
-        row.getChildren().addAll(lblName, lblDesc, lblPriceRange, lblSavings, statusContainer, actions);
+        row.getChildren().addAll(nameCell, lblDesc, lblPriceRange, lblSavings, statusContainer, actions);
         HBox.setHgrow(lblDesc, Priority.ALWAYS);
         return row;
     }

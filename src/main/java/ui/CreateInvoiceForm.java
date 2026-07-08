@@ -40,6 +40,7 @@ public class CreateInvoiceForm {
     private TextField txtPlate;
     private TextField txtAddress;
     private TextField txtNotes;
+    private ComboBox<String> cbPaymentMethod;
     private Runnable onInvoiceCreated;
     
     // Track selected items for saving to database
@@ -337,6 +338,21 @@ public class CreateInvoiceForm {
         
         carTypeBox.getChildren().addAll(rbMini, rbSedan, rbCUV, rbSUV, rbMPV, rbPickup);
         
+        // Payment method selection
+        Label lblPaymentMethod = new Label("Hình thức thanh toán *");
+        lblPaymentMethod.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
+        cbPaymentMethod = new ComboBox<>();
+        cbPaymentMethod.getItems().addAll("Tiền mặt (TM)", "Chuyển khoản (CK)", "Ghi nợ (N)");
+        cbPaymentMethod.setValue("Tiền mặt (TM)"); // Default to Tiền mặt
+        cbPaymentMethod.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: transparent;" +
+            "-fx-font-size: 14px;" +
+            "-fx-pref-height: 44px;" +
+            "-fx-pref-width: 300px;"
+        );
+
         grid.add(lblName, 0, 0);
         grid.add(txtName, 1, 0);
         grid.add(lblPhone, 0, 1);
@@ -349,6 +365,8 @@ public class CreateInvoiceForm {
         grid.add(carTypeBox, 1, 4);
         grid.add(lblNotes, 0, 5);
         grid.add(txtNotes, 1, 5);
+        grid.add(lblPaymentMethod, 0, 6);
+        grid.add(cbPaymentMethod, 1, 6);
         
         section.getChildren().addAll(sectionTitle, grid);
         return section;
@@ -574,7 +592,7 @@ public class CreateInvoiceForm {
         return section;
     }
     
-    private HBox createServiceItem(String name, String priceMini, String priceSedan, String priceCuv, String priceSuv, String priceMpv, String pricePickup) {
+    private HBox createServiceItem(int id, String name, String priceMini, String priceSedan, String priceCuv, String priceSuv, String priceMpv, String pricePickup) {
         HBox item = new HBox(15);
         item.setAlignment(Pos.CENTER_LEFT);
         item.setPadding(new Insets(12));
@@ -611,7 +629,7 @@ public class CreateInvoiceForm {
         
         btnAdd.setOnAction(e -> {
             String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
-            addSelectedService(name, currentPrice);
+            addSelectedService(id, name, currentPrice);
         });
         
         item.getChildren().addAll(info, spacer, btnAdd);
@@ -718,7 +736,7 @@ public class CreateInvoiceForm {
         return priceSedan; // Default
     }
     
-    private HBox createPackageItem(String name, String description, String priceMini, String priceSedan, String priceCuv, String priceSuv, String priceMpv, String pricePickup) {
+    private HBox createPackageItem(int id, String name, String description, String priceMini, String priceSedan, String priceCuv, String priceSuv, String priceMpv, String pricePickup) {
         HBox item = new HBox(15);
         item.setAlignment(Pos.CENTER_LEFT);
         item.setPadding(new Insets(12));
@@ -758,7 +776,7 @@ public class CreateInvoiceForm {
         
         btnAdd.setOnAction(e -> {
             String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
-            addSelectedPackage(name, currentPrice);
+            addSelectedPackage(id, name, currentPrice);
         });
         
         item.getChildren().addAll(info, spacer, btnAdd);
@@ -833,6 +851,20 @@ public class CreateInvoiceForm {
     }
     
     private void addSelectedService(String name, String price) {
+        int serviceId = 0;
+        try {
+            service.ServiceService ss = new service.ServiceService();
+            for (model.Service s : ss.getAllServices()) {
+                if (s.getName().equalsIgnoreCase(name)) {
+                    serviceId = s.getId();
+                    break;
+                }
+            }
+        } catch (Exception e) {}
+        addSelectedService(serviceId, name, price);
+    }
+
+    private void addSelectedService(int serviceId, String name, String price) {
         if (selectedServicesBox.getChildren().get(0) instanceof Label) {
             selectedServicesBox.getChildren().clear();
         }
@@ -843,6 +875,7 @@ public class CreateInvoiceForm {
         
         // Track for database
         Map<String, Object> item = new HashMap<>();
+        item.put("id", serviceId);
         item.put("name", name);
         item.put("price", unitPrice);
         item.put("hbox", selectedItem);
@@ -852,6 +885,20 @@ public class CreateInvoiceForm {
     }
     
     private void addSelectedPackage(String name, String price) {
+        int packageId = 0;
+        try {
+            service.PackageService ps = new service.PackageService();
+            for (model.Package p : ps.getAllPackages()) {
+                if (p.getName().equalsIgnoreCase(name)) {
+                    packageId = p.getId();
+                    break;
+                }
+            }
+        } catch (Exception e) {}
+        addSelectedPackage(packageId, name, price);
+    }
+
+    private void addSelectedPackage(int packageId, String name, String price) {
         if (selectedPackagesBox.getChildren().get(0) instanceof Label) {
             selectedPackagesBox.getChildren().clear();
         }
@@ -862,6 +909,7 @@ public class CreateInvoiceForm {
         
         // Track for database
         Map<String, Object> item = new HashMap<>();
+        item.put("id", packageId);
         item.put("name", name);
         item.put("price", unitPrice);
         item.put("hbox", selectedItem);
@@ -1197,6 +1245,14 @@ public class CreateInvoiceForm {
                 totalFinalAmount += ad + vt;
             }
             
+            // Resolve payment method value
+            String paymentMethodVal = "TM";
+            String cbVal = cbPaymentMethod.getValue();
+            if (cbVal != null) {
+                if (cbVal.contains("CK")) paymentMethodVal = "CK";
+                else if (cbVal.contains("N")) paymentMethodVal = "N";
+            }
+
             // Save invoice to database
             InvoiceService invoiceService = new InvoiceService();
             int invoiceId = invoiceService.addInvoice(
@@ -1208,7 +1264,9 @@ public class CreateInvoiceForm {
                 totalSubtotal,
                 totalDiscountAmount,
                 totalFinalAmount,
-                txtNotes.getText().trim()
+                txtNotes.getText().trim(),
+                "nhap",
+                paymentMethodVal
             );
             
             if (invoiceId > 0) {
@@ -1220,13 +1278,31 @@ public class CreateInvoiceForm {
                     double bp = (Double) service.get("price");
                     double da = getItemDiscountAmount(service, bp);
                     double afterDisc = bp - da;
+                    
+                    int sId = 0;
+                    String category = "rửa xe";
+                    double costPrice = 0.0;
+                    if (service.containsKey("id")) {
+                        sId = (Integer) service.get("id");
+                        try {
+                            model.Service svcObj = new service.ServiceService().getServiceById(sId);
+                            if (svcObj != null) {
+                                if (svcObj.getCategory() != null) category = svcObj.getCategory();
+                                costPrice = svcObj.getCostPrice();
+                            }
+                        } catch (Exception ex) {}
+                    }
+                    
                     itemService.addInvoiceItem(
                         invoiceId,
                         "service",
                         (String) service.get("name"),
                         1,
                         bp,
-                        afterDisc
+                        afterDisc,
+                        sId > 0 ? sId : null,
+                        category,
+                        costPrice
                     );
                 }
                 
@@ -1235,13 +1311,31 @@ public class CreateInvoiceForm {
                     double bp = (Double) pkg.get("price");
                     double da = getItemDiscountAmount(pkg, bp);
                     double afterDisc = bp - da;
+                    
+                    int pId = 0;
+                    String category = "chăm sóc";
+                    double costPrice = 0.0;
+                    if (pkg.containsKey("id")) {
+                        pId = (Integer) pkg.get("id");
+                        try {
+                            model.Package pkgObj = new service.PackageService().getPackageById(pId);
+                            if (pkgObj != null) {
+                                if (pkgObj.getCategory() != null) category = pkgObj.getCategory();
+                                costPrice = pkgObj.getCostPrice();
+                            }
+                        } catch (Exception ex) {}
+                    }
+                    
                     itemService.addInvoiceItem(
                         invoiceId,
                         "package",
                         (String) pkg.get("name"),
                         1,
                         bp,
-                        afterDisc
+                        afterDisc,
+                        pId > 0 ? pId : null,
+                        category,
+                        costPrice
                     );
                 }
                 
@@ -1250,20 +1344,37 @@ public class CreateInvoiceForm {
                     double bp = (Double) product.get("totalPrice");
                     double da = getItemDiscountAmount(product, bp);
                     double afterDisc = bp - da;
+                    
+                    int prId = 0;
+                    String category = "phụ kiện";
+                    double costPrice = 0.0;
+                    if (product.containsKey("id")) {
+                        prId = (Integer) product.get("id");
+                        try {
+                            model.Product prodObj = new dao.ProductDAO().getProductById(prId);
+                            if (prodObj != null) {
+                                if (prodObj.getCategory() != null) category = prodObj.getCategory();
+                                costPrice = prodObj.getCostPrice();
+                            }
+                        } catch (Exception ex) {}
+                    }
+                    
                     itemService.addInvoiceItem(
                         invoiceId,
                         "product",
                         (String) product.get("name"),
                         (Integer) product.get("quantity"),
                         (Double) product.get("unitPrice"),
-                        afterDisc
+                        afterDisc,
+                        prId > 0 ? prId : null,
+                        category,
+                        costPrice
                     );
                     
                     // Reduce stock for this product
                     ProductService productService = new ProductService();
-                    if (product.containsKey("id")) {
-                        int productId = (Integer) product.get("id");
-                        productService.reduceStock(productId, (Integer) product.get("quantity"));
+                    if (prId > 0) {
+                        productService.reduceStock(prId, (Integer) product.get("quantity"));
                     }
                 }
                 // Cập nhật trạng thái lịch hẹn nếu được tạo từ lịch hẹn
@@ -1310,7 +1421,7 @@ public class CreateInvoiceForm {
                 String priceMpv = String.format("%,.0fđ", service.getPriceMpv());
                 String pricePickup = String.format("%,.0fđ", service.getPricePickup());
                 servicesList.getChildren().add(
-                    createServiceItem(service.getName(), priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup)
+                    createServiceItem(service.getId(), service.getName(), priceMini, priceSedan, priceCuv, service.getPriceSuv() > 0 ? priceSuv : priceSedan, priceMpv, pricePickup)
                 );
             }
             
@@ -1342,7 +1453,7 @@ public class CreateInvoiceForm {
                 String priceMpv = String.format("%,.0fđ", pkg.getPriceMpv());
                 String pricePickup = String.format("%,.0fđ", pkg.getPricePickup());
                 packagesList.getChildren().add(
-                    createPackageItem(pkg.getName(), pkg.getDescription(), priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup)
+                    createPackageItem(pkg.getId(), pkg.getName(), pkg.getDescription(), priceMini, priceSedan, priceCuv, pkg.getPriceSuv() > 0 ? priceSuv : priceSedan, priceMpv, pricePickup)
                 );
             }
             

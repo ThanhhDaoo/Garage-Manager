@@ -76,7 +76,7 @@ public class ExpenseHelper {
         VBox tableContainer = new VBox(0);
         tableContainer.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e0e0e0; -fx-border-width: 1; -fx-border-radius: 12;");
         
-        Label tableTitle = new Label("Danh Sách Chi Phí Cố Định");
+        Label tableTitle = new Label("Danh Sách Chi Phí");
         tableTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121; -fx-padding: 20 20 15 20;");
 
         HBox tableHeader = new HBox(0);

@@ -10,7 +10,10 @@ CREATE TABLE IF NOT EXISTS services (
     price_cuv REAL NOT NULL DEFAULT 0,
     price_suv REAL NOT NULL DEFAULT 0,
     price_pickup REAL NOT NULL DEFAULT 0,
-    price_mpv REAL NOT NULL DEFAULT 0
+    price_mpv REAL NOT NULL DEFAULT 0,
+    category TEXT NOT NULL DEFAULT 'rửa xe',
+    cost_price REAL NOT NULL DEFAULT 0,
+    linked_product_id INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS packages (
@@ -26,7 +29,9 @@ CREATE TABLE IF NOT EXISTS packages (
     price_cuv REAL NOT NULL DEFAULT 0,
     price_suv REAL NOT NULL DEFAULT 0,
     price_pickup REAL NOT NULL DEFAULT 0,
-    price_mpv REAL NOT NULL DEFAULT 0
+    price_mpv REAL NOT NULL DEFAULT 0,
+    category TEXT NOT NULL DEFAULT 'chăm sóc',
+    cost_price REAL NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS products (
@@ -54,7 +59,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     notes TEXT,
     status TEXT DEFAULT 'nhap',
     created_at TEXT DEFAULT (datetime('now','localtime')),
-    address TEXT
+    address TEXT,
+    payment_method TEXT
 );
 
 CREATE TABLE IF NOT EXISTS invoice_items (
@@ -65,6 +71,9 @@ CREATE TABLE IF NOT EXISTS invoice_items (
     quantity INTEGER DEFAULT 1,
     unit_price REAL NOT NULL DEFAULT 0,
     total_price REAL NOT NULL DEFAULT 0,
+    item_id INTEGER,
+    category TEXT,
+    cost_price REAL DEFAULT 0,
     FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
 );
 

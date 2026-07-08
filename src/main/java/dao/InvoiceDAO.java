@@ -29,7 +29,8 @@ public class InvoiceDAO {
                     rs.getDouble("total_amount"),
                     rs.getString("notes"),
                     rs.getString("status"),
-                    rs.getString("created_at")
+                    rs.getString("created_at"),
+                    rs.getString("payment_method")
                 );
                 invoices.add(invoice);
             }
@@ -61,7 +62,8 @@ public class InvoiceDAO {
                     rs.getDouble("total_amount"),
                     rs.getString("notes"),
                     rs.getString("status"),
-                    rs.getString("created_at")
+                    rs.getString("created_at"),
+                    rs.getString("payment_method")
                 );
             }
         } catch (SQLException e) {
@@ -71,8 +73,8 @@ public class InvoiceDAO {
     }
     
     public int addInvoice(Invoice invoice) {
-        String sql = "INSERT INTO invoices (customer_name, phone, license_plate, vehicle_type, address, total_before_discount, discount, total_amount, notes, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO invoices (customer_name, phone, license_plate, vehicle_type, address, total_before_discount, discount, total_amount, notes, status, payment_method) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -86,7 +88,8 @@ public class InvoiceDAO {
             pstmt.setDouble(7, invoice.getDiscount());
             pstmt.setDouble(8, invoice.getTotalAmount());
             pstmt.setString(9, invoice.getNotes());
-            pstmt.setString(10, "nhap");
+            pstmt.setString(10, invoice.getStatus() != null ? invoice.getStatus() : "nhap");
+            pstmt.setString(11, invoice.getPaymentMethod());
             
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
@@ -103,7 +106,7 @@ public class InvoiceDAO {
     
     public boolean updateInvoice(Invoice invoice) {
         String sql = "UPDATE invoices SET customer_name = ?, phone = ?, license_plate = ?, vehicle_type = ?, address = ?, " +
-                     "total_before_discount = ?, discount = ?, total_amount = ?, notes = ?, status = ? WHERE id = ?";
+                     "total_before_discount = ?, discount = ?, total_amount = ?, notes = ?, status = ?, payment_method = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -118,7 +121,8 @@ public class InvoiceDAO {
             pstmt.setDouble(8, invoice.getTotalAmount());
             pstmt.setString(9, invoice.getNotes());
             pstmt.setString(10, invoice.getStatus());
-            pstmt.setInt(11, invoice.getId());
+            pstmt.setString(11, invoice.getPaymentMethod());
+            pstmt.setInt(12, invoice.getId());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
