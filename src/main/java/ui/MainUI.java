@@ -1898,7 +1898,7 @@ public class MainUI extends Application {
             products = products.stream()
                 .filter(p -> {
                     String status = p.getStatus();
-                    int stock = p.getStock();
+                    double stock = p.getStock();
                     int minStock = p.getMinStock();
 
                     if ("Đang bán".equals(statusFilter)) {
@@ -2099,7 +2099,7 @@ public class MainUI extends Application {
         Label chartTitle = new Label("📊 So Sánh Doanh Thu Theo Hạng Mục Dịch Vụ");
         chartTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121;");
         
-        // 1. BarChart axes & instance
+        // BarChart axes & instance
         javafx.scene.chart.CategoryAxis xAxisBar = new javafx.scene.chart.CategoryAxis();
         xAxisBar.setLabel("Hạng mục dịch vụ");
         xAxisBar.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
@@ -2112,34 +2112,11 @@ public class MainUI extends Application {
         barChart.setTitle("");
         barChart.setLegendVisible(false);
         barChart.setPrefHeight(280);
-        barChart.setStyle("-fx-background-color: transparent;");
-        
-        // 2. LineChart axes & instance (to overlay on top of BarChart)
-        javafx.scene.chart.CategoryAxis xAxisLine = new javafx.scene.chart.CategoryAxis();
-        javafx.scene.chart.NumberAxis yAxisLine = new javafx.scene.chart.NumberAxis();
-        
-        javafx.scene.chart.LineChart<String, Number> lineChart = new javafx.scene.chart.LineChart<>(xAxisLine, yAxisLine);
-        lineChart.setTitle("");
-        lineChart.setLegendVisible(false);
-        lineChart.setCreateSymbols(true);
-        lineChart.setPrefHeight(280);
-        lineChart.setStyle("-fx-background-color: transparent;");
-        
-        // Make LineChart layout elements invisible so they overlay perfectly
-        xAxisLine.setOpacity(0);
-        yAxisLine.setOpacity(0);
-        xAxisLine.setTickLabelsVisible(false);
-        yAxisLine.setTickLabelsVisible(false);
-        xAxisLine.setTickMarkVisible(false);
-        yAxisLine.setTickMarkVisible(false);
-        lineChart.setHorizontalGridLinesVisible(false);
-        lineChart.setVerticalGridLinesVisible(false);
-        lineChart.setAlternativeColumnFillVisible(false);
-        lineChart.setAlternativeRowFillVisible(false);
-        
-        // Combine in StackPane
-        StackPane chartStack = new StackPane(barChart, lineChart);
-        chartContainer.getChildren().addAll(chartTitle, chartStack);
+        barChart.setStyle(
+            "-fx-background-color: transparent;" +
+            "CHART_COLOR_1: #2196F3;"
+        );
+        chartContainer.getChildren().addAll(chartTitle, barChart);
 
         // Filter button action
         btnFilter.setOnAction(e -> {
@@ -2149,7 +2126,7 @@ public class MainUI extends Application {
             List<Invoice> filtered = allInvoices.stream()
                 .filter(inv -> matchesTimeFilters(inv.getCreatedAt(), period, month, year))
                 .collect(java.util.stream.Collectors.toList());
-            updateReportStatsAndChart(filtered, statsGrid, barChart, lineChart, period, month, year);
+            updateReportStatsAndChart(filtered, statsGrid, barChart, period, month, year);
         });
 
         // Export button action
@@ -2779,7 +2756,6 @@ public class MainUI extends Application {
     
     private void updateReportStatsAndChart(List<Invoice> filteredInvoices, GridPane statsGrid, 
                                            javafx.scene.chart.BarChart<String, Number> barChart, 
-                                           javafx.scene.chart.LineChart<String, Number> lineChart, 
                                            String period, String monthFilter, String yearFilter) {
         // Calculate stats (includes all statuses paid, unpaid, pending!)
         double totalRevenue = filteredInvoices.stream()
@@ -2850,32 +2826,6 @@ public class MainUI extends Application {
         barSeries.getData().add(new javafx.scene.chart.XYChart.Data<>("Phụ kiện", revAccessory));
         barSeries.getData().add(new javafx.scene.chart.XYChart.Data<>("Sơn", revPaint));
         barChart.getData().add(barSeries);
-
-        // Update Line Chart
-        lineChart.getData().clear();
-        javafx.scene.chart.XYChart.Series<String, Number> lineSeries = new javafx.scene.chart.XYChart.Series<>();
-        
-        String[] cats = {"Rửa xe", "Chăm sóc", "Phụ kiện", "Sơn"};
-        double[] vals = {revWash, revCare, revAccessory, revPaint};
-        
-        for (int i = 0; i < 4; i++) {
-            javafx.scene.chart.XYChart.Data<String, Number> data = new javafx.scene.chart.XYChart.Data<>(cats[i], vals[i]);
-            double val = vals[i];
-            
-            // Create a custom symbol containing a dot and a text label displaying the value
-            StackPane symbol = new StackPane();
-            symbol.setPrefSize(8, 8);
-            symbol.setStyle("-fx-background-color: #E91E63; -fx-background-radius: 4px;");
-            
-            Label valLabel = new Label(String.format("%,.0fđ", val));
-            valLabel.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #E91E63; -fx-translate-y: -15;");
-            
-            symbol.getChildren().add(valLabel);
-            data.setNode(symbol);
-            
-            lineSeries.getData().add(data);
-        }
-        lineChart.getData().add(lineSeries);
     }
 
     private VBox createModernView(String title, String subtitle) {
@@ -3130,7 +3080,7 @@ public class MainUI extends Application {
         String name = product.getName();
         String category = product.getCategory();
         String price = String.format("%.0f đ", product.getPrice());
-        String stock = String.valueOf(product.getStock());
+        String stock = new java.text.DecimalFormat("#.##").format(product.getStock());
         if (product.getUnit() != null && !product.getUnit().trim().isEmpty()) {
             stock += " " + product.getUnit().trim();
         }
@@ -3194,7 +3144,7 @@ public class MainUI extends Application {
         lblStatus.setAlignment(Pos.CENTER);
         
         // Cảnh báo trực quan dựa trên tồn kho tối thiểu
-        int stockVal = product.getStock();
+        double stockVal = product.getStock();
         int minStockVal = product.getMinStock();
         
         if ("Tạm dừng".equals(status)) {
@@ -3740,7 +3690,7 @@ public class MainUI extends Application {
                 lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
                 lblName.setPrefWidth(280); // Slightly increased width
                 
-                Label lblQty = new Label("x" + item.getQuantity());
+                Label lblQty = new Label("x" + new java.text.DecimalFormat("#.##").format(item.getQuantity()));
                 lblQty.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
                 lblQty.setPrefWidth(40);
                 
@@ -3757,7 +3707,7 @@ public class MainUI extends Application {
                 double originalTotal = item.getUnitPrice() * item.getQuantity();
                 double itemDiscount = originalTotal - item.getTotalPrice();
                 
-                String detailStr = String.format("Đơn giá: %,.0f đ | Số lượng: %d", item.getUnitPrice(), item.getQuantity());
+                String detailStr = String.format("Đơn giá: %,.0f đ | Số lượng: %s", item.getUnitPrice(), new java.text.DecimalFormat("#.##").format(item.getQuantity()));
                 if (itemDiscount > 0 && originalTotal > 0) {
                     double pct = (itemDiscount / originalTotal) * 100.0;
                     if (Math.abs(pct - Math.round(pct)) < 0.01 && Math.round(pct) % 5 == 0) {
@@ -4089,7 +4039,7 @@ public class MainUI extends Application {
                     model.InvoiceItem item = items.get(i);
                     serviceName = item.getItemName();
                     if (item.getQuantity() > 1) {
-                        serviceName += " (x" + item.getQuantity() + ")";
+                        serviceName += " (x" + new java.text.DecimalFormat("#.##").format(item.getQuantity()) + ")";
                     }
                     unitPrice = String.format("%,.0f", item.getUnitPrice());
                     

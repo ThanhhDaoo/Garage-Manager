@@ -23,7 +23,7 @@ public class ProductDAO {
                     rs.getString("category"),
                     rs.getDouble("price"),
                     rs.getDouble("cost_price"),
-                    rs.getInt("stock"),
+                    rs.getDouble("stock"),
                     rs.getString("unit"),
                     rs.getString("status"),
                     rs.getInt("min_stock")
@@ -52,7 +52,7 @@ public class ProductDAO {
                     rs.getString("category"),
                     rs.getDouble("price"),
                     rs.getDouble("cost_price"),
-                    rs.getInt("stock"),
+                    rs.getDouble("stock"),
                     rs.getString("unit"),
                     rs.getString("status"),
                     rs.getInt("min_stock")
@@ -74,7 +74,7 @@ public class ProductDAO {
             pstmt.setString(2, product.getCategory());
             pstmt.setDouble(3, product.getPrice());
             pstmt.setDouble(4, product.getCostPrice());
-            pstmt.setInt(5, product.getStock());
+            pstmt.setDouble(5, product.getStock());
             pstmt.setString(6, product.getUnit());
             pstmt.setString(7, product.getStatus());
             pstmt.setInt(8, product.getMinStock());
@@ -96,7 +96,7 @@ public class ProductDAO {
             pstmt.setString(2, product.getCategory());
             pstmt.setDouble(3, product.getPrice());
             pstmt.setDouble(4, product.getCostPrice());
-            pstmt.setInt(5, product.getStock());
+            pstmt.setDouble(5, product.getStock());
             pstmt.setString(6, product.getUnit());
             pstmt.setString(7, product.getStatus());
             pstmt.setInt(8, product.getMinStock());
@@ -109,15 +109,15 @@ public class ProductDAO {
         return false;
     }
     
-    public boolean reduceStock(int productId, int quantity) {
+    public boolean reduceStock(int productId, double quantity) {
         String sql = "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
-            pstmt.setInt(1, quantity);
+            pstmt.setDouble(1, quantity);
             pstmt.setInt(2, productId);
-            pstmt.setInt(3, quantity);
+            pstmt.setDouble(3, quantity);
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

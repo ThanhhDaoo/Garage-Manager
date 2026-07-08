@@ -247,9 +247,8 @@ public class ProductForm {
             if (!newValue) { // Lost focus
                 String text = txtStock.getText().trim();
                 if (!text.isEmpty()) {
-                    String clean = text.replaceAll("[^\\d]", "");
-                    if (!text.equals(clean)) {
-                        txtStock.setText(clean);
+                    if (!text.matches("\\d*(\\.\\d*)?")) {
+                        txtStock.setText(text.replaceAll("[^\\d\\.]", ""));
                     }
                 }
             }
@@ -424,7 +423,7 @@ public class ProductForm {
                     return;
                 }
                 
-                int stock = Integer.parseInt(txtStock.getText().trim());
+                double stock = Double.parseDouble(txtStock.getText().trim());
                 if (stock < 0) {
                     Alert alert = new Alert(Alert.AlertType.WARNING);
                     alert.setTitle("Cảnh báo");

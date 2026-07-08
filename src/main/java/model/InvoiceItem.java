@@ -5,7 +5,7 @@ public class InvoiceItem {
     private int invoiceId;
     private String itemType;  // 'service', 'package', 'product'
     private String itemName;
-    private int quantity;
+    private double quantity;
     private double unitPrice;
     private double totalPrice;
     private Integer itemId;
@@ -16,13 +16,13 @@ public class InvoiceItem {
 
     // Constructor with defaults
     public InvoiceItem(int id, int invoiceId, String itemType, String itemName, 
-                       int quantity, double unitPrice, double totalPrice) {
+                       double quantity, double unitPrice, double totalPrice) {
         this(id, invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, null, null, 0.0);
     }
 
     // Main constructor
     public InvoiceItem(int id, int invoiceId, String itemType, String itemName, 
-                       int quantity, double unitPrice, double totalPrice, Integer itemId, String category, double costPrice) {
+                       double quantity, double unitPrice, double totalPrice, Integer itemId, String category, double costPrice) {
         this.id = id;
         this.invoiceId = invoiceId;
         this.itemType = itemType;
@@ -47,8 +47,8 @@ public class InvoiceItem {
     public String getItemName() { return itemName; }
     public void setItemName(String itemName) { this.itemName = itemName; }
 
-    public int getQuantity() { return quantity; }
-    public void setQuantity(int quantity) { this.quantity = quantity; }
+    public double getQuantity() { return quantity; }
+    public void setQuantity(double quantity) { this.quantity = quantity; }
 
     public double getUnitPrice() { return unitPrice; }
     public void setUnitPrice(double unitPrice) { this.unitPrice = unitPrice; }

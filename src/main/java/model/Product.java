@@ -6,14 +6,14 @@ public class Product {
     private String category;
     private double price;
     private double costPrice;
-    private int stock;
+    private double stock;
     private String unit;
     private String status;
     private int minStock;
 
     public Product() {}
 
-    public Product(int id, String name, String category, double price, double costPrice, int stock, String unit, String status, int minStock) {
+    public Product(int id, String name, String category, double price, double costPrice, double stock, String unit, String status, int minStock) {
         this.id = id;
         this.name = name;
         this.category = category;
@@ -40,8 +40,8 @@ public class Product {
     public double getCostPrice() { return costPrice; }
     public void setCostPrice(double costPrice) { this.costPrice = costPrice; }
 
-    public int getStock() { return stock; }
-    public void setStock(int stock) { this.stock = stock; }
+    public double getStock() { return stock; }
+    public void setStock(double stock) { this.stock = stock; }
 
     public String getUnit() { return unit; }
     public void setUnit(String unit) { this.unit = unit; }

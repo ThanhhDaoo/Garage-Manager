@@ -811,10 +811,15 @@ public class CreateInvoiceForm {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         
-        int maxStock = product.getStock();
-        Spinner<Integer> spinner = new Spinner<>(1, Math.max(1, maxStock), 1);
-        spinner.setPrefWidth(80);
-        spinner.setStyle("-fx-font-size: 13px;");
+        double maxStock = product.getStock();
+        TextField txtProductQty = new TextField("1");
+        txtProductQty.setPrefWidth(60);
+        txtProductQty.setStyle("-fx-font-size: 13px;");
+        txtProductQty.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.matches("\\d*(\\.\\d*)?")) {
+                txtProductQty.setText(oldValue);
+            }
+        });
         
         Button btnAdd = new Button("+ Thêm");
         btnAdd.setStyle(
@@ -838,15 +843,29 @@ public class CreateInvoiceForm {
                 "-fx-padding: 8px 16px;" +
                 "-fx-background-radius: 6;"
             );
-            spinner.setDisable(true);
+            txtProductQty.setDisable(true);
         }
         
         btnAdd.setOnAction(e -> {
-            int quantity = spinner.getValue();
-            addSelectedProduct(product.getId(), name, price, quantity);
+            double qty = 1.0;
+            try {
+                qty = Double.parseDouble(txtProductQty.getText().trim());
+            } catch (Exception ex) {}
+            
+            if (qty <= 0) {
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng nhập số lượng hợp lệ lớn hơn 0!");
+                alert.showAndWait();
+                return;
+            }
+            if (maxStock < qty) {
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Sản phẩm \"" + name + "\" không đủ hàng trong kho (Còn lại: " + new java.text.DecimalFormat("#.##").format(maxStock) + ")");
+                alert.showAndWait();
+                return;
+            }
+            addSelectedProduct(product.getId(), name, price, qty);
         });
         
-        item.getChildren().addAll(info, spacer, spinner, btnAdd);
+        item.getChildren().addAll(info, spacer, txtProductQty, btnAdd);
         return item;
     }
     
@@ -870,18 +889,269 @@ public class CreateInvoiceForm {
         }
         
         double unitPrice = parsePrice(price);
-        VBox selectedItem = createSelectedItem(name, price, unitPrice);
-        selectedServicesBox.getChildren().add(selectedItem);
         
         // Track for database
         Map<String, Object> item = new HashMap<>();
         item.put("id", serviceId);
         item.put("name", name);
         item.put("price", unitPrice);
+        item.put("linkedProducts", new ArrayList<Map<String, Object>>());
+        
+        VBox selectedItem = createSelectedServiceItem(item, name, price, unitPrice);
+        selectedItem.getProperties().put("map", item);
+        selectedServicesBox.getChildren().add(selectedItem);
+        
         item.put("hbox", selectedItem);
         selectedServices.add(item);
         
         recalculateTotal();
+    }
+
+    @SuppressWarnings("unchecked")
+    private VBox createSelectedServiceItem(Map<String, Object> serviceMap, String name, String price, double basePrice) {
+        VBox container = new VBox(8);
+        container.setPadding(new Insets(10));
+        container.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 8;" +
+            "-fx-border-color: #bdbdbd;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 8;"
+        );
+        
+        container.getProperties().put("basePrice", basePrice);
+        
+        // --- Service Header row (Name, Discount, Delete) ---
+        HBox topRow = new HBox(8);
+        topRow.setAlignment(Pos.CENTER_LEFT);
+        
+        Label lblName = new Label("🛠 Dịch vụ: " + name);
+        lblName.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1976D2;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        Label discLabel = new Label("Giảm:");
+        discLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
+        
+        ComboBox<String> itemDiscountCombo = new ComboBox<>();
+        itemDiscountCombo.getItems().addAll("0%", "5%", "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%", "50%");
+        itemDiscountCombo.setValue("0%");
+        itemDiscountCombo.setPrefWidth(70);
+        itemDiscountCombo.setStyle("-fx-font-size: 11px;");
+        
+        Label customDiscLabel = new Label("hoặc VNĐ:");
+        customDiscLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #616161;");
+        
+        TextField txtCustomDiscount = new TextField();
+        txtCustomDiscount.setPromptText("Số tiền...");
+        txtCustomDiscount.setPrefWidth(80);
+        txtCustomDiscount.setStyle("-fx-font-size: 11px;");
+        
+        txtCustomDiscount.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.matches("\\d*")) {
+                txtCustomDiscount.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+        });
+        
+        itemDiscountCombo.setOnAction(e -> {
+            if (!itemDiscountCombo.getValue().equals("0%")) {
+                txtCustomDiscount.setText("");
+            }
+            recalculateTotal();
+        });
+        txtCustomDiscount.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.trim().isEmpty()) {
+                itemDiscountCombo.setValue("0%");
+            }
+            recalculateTotal();
+        });
+        
+        Button btnDelete = new Button("🗑");
+        btnDelete.setStyle(
+            "-fx-background-color: transparent;" +
+            "-fx-text-fill: #d32f2f;" +
+            "-fx-cursor: hand;" +
+            "-fx-font-size: 14px;"
+        );
+        btnDelete.setOnAction(e -> {
+            selectedServicesBox.getChildren().remove(container);
+            selectedServices.remove(serviceMap);
+            if (selectedServicesBox.getChildren().isEmpty()) {
+                Label emptyLabel = new Label("Chưa chọn dịch vụ nào");
+                emptyLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #9e9e9e;");
+                selectedServicesBox.getChildren().add(emptyLabel);
+            }
+            recalculateTotal();
+        });
+        
+        topRow.getChildren().addAll(lblName, spacer, discLabel, itemDiscountCombo, customDiscLabel, txtCustomDiscount, btnDelete);
+        
+        // Row 2: Subtotal info for service itself
+        HBox subtotalRow = new HBox(10);
+        subtotalRow.setAlignment(Pos.CENTER_RIGHT);
+        Label lblPriceInfo = new Label("Giá gốc: " + price);
+        lblPriceInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #757575;");
+        Label discountAmountLabel = new Label("");
+        discountAmountLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #d32f2f;");
+        Label vatLabel = new Label("VAT 8%: 0đ");
+        vatLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #757575;");
+        Label totalLabel = new Label("= " + price);
+        totalLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #388e3c;");
+        subtotalRow.getChildren().addAll(lblPriceInfo, discountAmountLabel, vatLabel, totalLabel);
+        
+        container.getProperties().put("discountAmountLabel", discountAmountLabel);
+        container.getProperties().put("vatLabel", vatLabel);
+        container.getProperties().put("totalLabel", totalLabel);
+        container.getProperties().put("discountCombo", itemDiscountCombo);
+        container.getProperties().put("customDiscountField", txtCustomDiscount);
+        
+        // --- Section for Linked Products (vật tư phụ kèm theo) ---
+        VBox linkedBox = new VBox(5);
+        linkedBox.setPadding(new Insets(5, 0, 5, 15));
+        linkedBox.setStyle("-fx-border-color: #e0e0e0; -fx-border-width: 0 0 0 2; -fx-border-style: dashed;");
+        
+        Label lblLinkedTitle = new Label("📦 Vật tư/Dầu nhớt sử dụng kèm dịch vụ này:");
+        lblLinkedTitle.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #616161;");
+        
+        VBox linkedList = new VBox(4);
+        
+        // Form to add linked product
+        HBox addLinkForm = new HBox(8);
+        addLinkForm.setAlignment(Pos.CENTER_LEFT);
+        
+        ComboBox<model.Product> cbProducts = new ComboBox<>();
+        cbProducts.setPromptText("Chọn vật tư/dầu nhớt...");
+        cbProducts.setPrefWidth(220);
+        cbProducts.setStyle("-fx-font-size: 11px;");
+        // Load products into ComboBox
+        try {
+            List<model.Product> productList = new dao.ProductDAO().getAllProducts();
+            cbProducts.getItems().addAll(productList);
+        } catch (Exception ex) {}
+        
+        // Cell factory to display product name and unit price
+        cbProducts.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(model.Product item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getName() + " (" + formatPrice(item.getPrice()) + "/" + item.getUnit() + ") - Kho: " + item.getStock());
+                }
+            }
+        });
+        cbProducts.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(model.Product item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.getName() + " (" + formatPrice(item.getPrice()) + "/" + item.getUnit() + ")");
+                }
+            }
+        });
+        
+        Label lblQty = new Label("SL:");
+        lblQty.setStyle("-fx-font-size: 11px;");
+        
+        TextField txtQty = new TextField("1");
+        txtQty.setPrefWidth(60);
+        txtQty.setStyle("-fx-font-size: 11px;");
+        txtQty.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.matches("\\d*(\\.\\d*)?")) {
+                txtQty.setText(oldValue);
+            }
+        });
+        
+        Button btnAddLink = new Button("+ Thêm vật tư");
+        btnAddLink.setStyle(
+            "-fx-background-color: #4CAF50;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 11px;" +
+            "-fx-font-weight: bold;" +
+            "-fx-padding: 4px 10px;" +
+            "-fx-background-radius: 4;" +
+            "-fx-cursor: hand;"
+        );
+        
+        btnAddLink.setOnAction(evt -> {
+            model.Product selectedProd = cbProducts.getValue();
+            if (selectedProd == null) {
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng chọn một vật tư/dầu nhớt từ kho!");
+                alert.showAndWait();
+                return;
+            }
+            
+            double qty = 1.0;
+            try {
+                qty = Double.parseDouble(txtQty.getText().trim());
+            } catch (Exception ex) {}
+            
+            if (qty <= 0) {
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng nhập số lượng hợp lệ lớn hơn 0!");
+                alert.showAndWait();
+                return;
+            }
+            
+            if (selectedProd.getStock() < qty) {
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Sản phẩm \"" + selectedProd.getName() + "\" không đủ hàng trong kho (Còn lại: " + new java.text.DecimalFormat("#.##").format(selectedProd.getStock()) + ")");
+                alert.showAndWait();
+                return;
+            }
+            
+            // Check if already added
+            List<Map<String, Object>> linked = (List<Map<String, Object>>) serviceMap.get("linkedProducts");
+            for (Map<String, Object> pMap : linked) {
+                if ((Integer) pMap.get("id") == selectedProd.getId()) {
+                    Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vật tư này đã được chọn!");
+                    alert.showAndWait();
+                    return;
+                }
+            }
+            
+            // Add to database tracker
+            Map<String, Object> prodMap = new HashMap<>();
+            prodMap.put("id", selectedProd.getId());
+            prodMap.put("name", selectedProd.getName());
+            prodMap.put("unitPrice", selectedProd.getPrice());
+            prodMap.put("quantity", qty);
+            prodMap.put("totalPrice", selectedProd.getPrice() * qty);
+            linked.add(prodMap);
+            
+            // Add visual row
+            String formattedQty = new java.text.DecimalFormat("#.##").format(qty);
+            HBox pRow = new HBox(10);
+            pRow.setAlignment(Pos.CENTER_LEFT);
+            pRow.setPadding(new Insets(2, 0, 2, 0));
+            Label lblPInfo = new Label("• " + selectedProd.getName() + " (x" + formattedQty + " " + selectedProd.getUnit() + ") - " + formatPrice(selectedProd.getPrice() * qty) + " (+8% VAT)");
+            lblPInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #424242;");
+            
+            Button btnDelP = new Button("✕");
+            btnDelP.setStyle("-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-cursor: hand; -fx-font-size: 11px;");
+            btnDelP.setOnAction(delEvt -> {
+                linkedList.getChildren().remove(pRow);
+                linked.remove(prodMap);
+                recalculateTotal();
+            });
+            
+            pRow.getChildren().addAll(lblPInfo, btnDelP);
+            linkedList.getChildren().add(pRow);
+            
+            // Reset fields
+            cbProducts.setValue(null);
+            txtQty.setText("1");
+            
+            recalculateTotal();
+        });
+        
+        addLinkForm.getChildren().addAll(cbProducts, lblQty, txtQty, btnAddLink);
+        linkedBox.getChildren().addAll(lblLinkedTitle, linkedList, addLinkForm);
+        
+        container.getChildren().addAll(topRow, subtotalRow, linkedBox);
+        return container;
     }
     
     private void addSelectedPackage(String name, String price) {
@@ -918,12 +1188,13 @@ public class CreateInvoiceForm {
         recalculateTotal();
     }
     
-    private void addSelectedProduct(int productId, String name, String price, int quantity) {
+    private void addSelectedProduct(int productId, String name, String price, double quantity) {
         if (selectedProductsBox.getChildren().get(0) instanceof Label) {
             selectedProductsBox.getChildren().clear();
         }
         
-        String displayText = name + " (x" + quantity + ")";
+        String formattedQty = new java.text.DecimalFormat("#.##").format(quantity);
+        String displayText = name + " (x" + formattedQty + ")";
         double unitPrice = parsePrice(price);
         double itemTotal = unitPrice * quantity;
         String displayPrice = formatPrice(itemTotal);
@@ -1225,6 +1496,17 @@ public class CreateInvoiceForm {
                 totalSubtotal += bp;
                 totalDiscountAmount += da;
                 totalFinalAmount += ad + vt;
+                
+                // Add linked products
+                List<Map<String, Object>> linked = (List<Map<String, Object>>) svc.get("linkedProducts");
+                if (linked != null) {
+                    for (Map<String, Object> product : linked) {
+                        double pBasePrice = (Double) product.get("totalPrice");
+                        double pVat = pBasePrice * 0.08;
+                        totalSubtotal += pBasePrice;
+                        totalFinalAmount += pBasePrice + pVat;
+                    }
+                }
             }
             for (Map<String, Object> pk : selectedPackages) {
                 double bp = (Double) pk.get("price");
@@ -1304,6 +1586,43 @@ public class CreateInvoiceForm {
                         category,
                         costPrice
                     );
+
+                    // Save linked products
+                    List<Map<String, Object>> linked = (List<Map<String, Object>>) service.get("linkedProducts");
+                    if (linked != null) {
+                        for (Map<String, Object> product : linked) {
+                            int prId = (Integer) product.get("id");
+                            String prName = (String) product.get("name");
+                            double pUnitPrice = (Double) product.get("unitPrice");
+                            int pQty = (Integer) product.get("quantity");
+                            double pTotalPrice = (Double) product.get("totalPrice");
+                            
+                            String pCategory = "phụ kiện";
+                            double pCostPrice = 0.0;
+                            try {
+                                model.Product prodObj = new dao.ProductDAO().getProductById(prId);
+                                if (prodObj != null) {
+                                    if (prodObj.getCategory() != null) pCategory = prodObj.getCategory();
+                                    pCostPrice = prodObj.getCostPrice();
+                                }
+                            } catch (Exception ex) {}
+
+                            itemService.addInvoiceItem(
+                                invoiceId,
+                                "product",
+                                prName,
+                                pQty,
+                                pUnitPrice,
+                                pTotalPrice,
+                                prId,
+                                pCategory,
+                                pCostPrice
+                            );
+                            
+                            // Reduce stock
+                            new service.ProductService().reduceStock(prId, pQty);
+                        }
+                    }
                 }
                 
                 // Save packages
@@ -1363,7 +1682,7 @@ public class CreateInvoiceForm {
                         invoiceId,
                         "product",
                         (String) product.get("name"),
-                        (Integer) product.get("quantity"),
+                        (Double) product.get("quantity"),
                         (Double) product.get("unitPrice"),
                         afterDisc,
                         prId > 0 ? prId : null,
@@ -1374,7 +1693,7 @@ public class CreateInvoiceForm {
                     // Reduce stock for this product
                     ProductService productService = new ProductService();
                     if (prId > 0) {
-                        productService.reduceStock(prId, (Integer) product.get("quantity"));
+                        productService.reduceStock(prId, (Double) product.get("quantity"));
                     }
                 }
                 // Cập nhật trạng thái lịch hẹn nếu được tạo từ lịch hẹn
@@ -1532,6 +1851,19 @@ public class CreateInvoiceForm {
             grandDiscount += result[1];
             grandVat += result[2];
             grandTotal += result[3];
+            
+            // Add linked products
+            List<Map<String, Object>> linked = (List<Map<String, Object>>) service.get("linkedProducts");
+            if (linked != null) {
+                for (Map<String, Object> product : linked) {
+                    double pBasePrice = (Double) product.get("totalPrice");
+                    double pVat = pBasePrice * 0.08;
+                    double pTotal = pBasePrice + pVat;
+                    grandSubtotal += pBasePrice;
+                    grandVat += pVat;
+                    grandTotal += pTotal;
+                }
+            }
         }
         
         // Process packages

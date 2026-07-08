@@ -16,12 +16,12 @@ public class InvoiceItemService {
     }
     
     public boolean addInvoiceItem(int invoiceId, String itemType, String itemName, 
-                                  int quantity, double unitPrice, double totalPrice) {
+                                  double quantity, double unitPrice, double totalPrice) {
         return addInvoiceItem(invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, null, null, 0.0);
     }
 
     public boolean addInvoiceItem(int invoiceId, String itemType, String itemName, 
-                                  int quantity, double unitPrice, double totalPrice,
+                                  double quantity, double unitPrice, double totalPrice,
                                   Integer itemId, String category, double costPrice) {
         InvoiceItem item = new InvoiceItem(0, invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, itemId, category, costPrice);
         return invoiceItemDAO.addInvoiceItem(item);

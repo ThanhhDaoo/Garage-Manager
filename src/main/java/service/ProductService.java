@@ -15,7 +15,7 @@ public class ProductService {
         return productDAO.getProductById(id);
     }
     
-    public boolean addProduct(String name, String category, double price, double costPrice, int stock, String unit, String status, int minStock) {
+    public boolean addProduct(String name, String category, double price, double costPrice, double stock, String unit, String status, int minStock) {
         if (name == null || name.trim().isEmpty()) {
             return false;
         }
@@ -23,7 +23,7 @@ public class ProductService {
         return productDAO.addProduct(product);
     }
     
-    public boolean updateProduct(int id, String name, String category, double price, double costPrice, int stock, String unit, String status, int minStock) {
+    public boolean updateProduct(int id, String name, String category, double price, double costPrice, double stock, String unit, String status, int minStock) {
         if (name == null || name.trim().isEmpty()) {
             return false;
         }
@@ -31,7 +31,7 @@ public class ProductService {
         return productDAO.updateProduct(product);
     }
     
-    public boolean reduceStock(int productId, int quantity) {
+    public boolean reduceStock(int productId, double quantity) {
         return productDAO.reduceStock(productId, quantity);
     }
     

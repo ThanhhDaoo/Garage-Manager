@@ -26,7 +26,7 @@ public class InvoiceItemDAO {
                     rs.getInt("invoice_id"),
                     rs.getString("item_type"),
                     rs.getString("item_name"),
-                    rs.getInt("quantity"),
+                    rs.getDouble("quantity"),
                     rs.getDouble("unit_price"),
                     rs.getDouble("total_price"),
                     itemId,
@@ -51,7 +51,7 @@ public class InvoiceItemDAO {
             pstmt.setInt(1, item.getInvoiceId());
             pstmt.setString(2, item.getItemType());
             pstmt.setString(3, item.getItemName());
-            pstmt.setInt(4, item.getQuantity());
+            pstmt.setDouble(4, item.getQuantity());
             pstmt.setDouble(5, item.getUnitPrice());
             pstmt.setDouble(6, item.getTotalPrice());
             if (item.getItemId() != null && item.getItemId() > 0) {
