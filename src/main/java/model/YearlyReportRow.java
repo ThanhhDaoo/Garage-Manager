@@ -7,6 +7,9 @@ public class YearlyReportRow {
     private double revenueAccessory;
     private double revenuePaint;
     private double totalRevenue;
+    private double vat;
+    private double costWash;
+    private double profitWash;
     private double profitCare;
     private double profitAccessory;
     private double profitPaint;
@@ -17,7 +20,7 @@ public class YearlyReportRow {
     public YearlyReportRow() {}
 
     public YearlyReportRow(String month, double revenueWash, double revenueCare, double revenueAccessory, double revenuePaint,
-                           double totalRevenue, double profitCare, double profitAccessory, double profitPaint,
+                           double totalRevenue, double vat, double costWash, double profitWash, double profitCare, double profitAccessory, double profitPaint,
                            double variableCost, double fixedCost, double totalNetProfit) {
         this.month = month;
         this.revenueWash = revenueWash;
@@ -25,6 +28,9 @@ public class YearlyReportRow {
         this.revenueAccessory = revenueAccessory;
         this.revenuePaint = revenuePaint;
         this.totalRevenue = totalRevenue;
+        this.vat = vat;
+        this.costWash = costWash;
+        this.profitWash = profitWash;
         this.profitCare = profitCare;
         this.profitAccessory = profitAccessory;
         this.profitPaint = profitPaint;
@@ -50,6 +56,15 @@ public class YearlyReportRow {
 
     public double getTotalRevenue() { return totalRevenue; }
     public void setTotalRevenue(double totalRevenue) { this.totalRevenue = totalRevenue; }
+
+    public double getVat() { return vat; }
+    public void setVat(double vat) { this.vat = vat; }
+
+    public double getCostWash() { return costWash; }
+    public void setCostWash(double costWash) { this.costWash = costWash; }
+
+    public double getProfitWash() { return profitWash; }
+    public void setProfitWash(double profitWash) { this.profitWash = profitWash; }
 
     public double getProfitCare() { return profitCare; }
     public void setProfitCare(double profitCare) { this.profitCare = profitCare; }

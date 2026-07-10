@@ -203,28 +203,30 @@ public class ReportHelper {
         List<model.DailyReportRow> reportRows = new ArrayList<>();
         int stt = 1;
         dao.InvoiceItemDAO itemDAO = new dao.InvoiceItemDAO();
-        
+
         for (Invoice inv : invoices) {
             List<model.InvoiceItem> items = itemDAO.getItemsByInvoiceId(inv.getId());
             String servicesDesc = items.stream()
-                .map(model.InvoiceItem::getItemName)
-                .collect(Collectors.joining(", "));
-            
+                    .map(model.InvoiceItem::getItemName)
+                    .collect(Collectors.joining(", "));
+
             double revWash = 0;
             double revCare = 0;
             double revAccessory = 0;
             double revPaint = 0;
+            double costWash = 0;
             double costCare = 0;
             double costAccessory = 0;
             double costPaint = 0;
-            
+
             for (model.InvoiceItem item : items) {
                 String cat = item.getCategory() != null ? item.getCategory().toLowerCase().trim() : "";
                 double price = item.getTotalPrice();
                 double cost = item.getCostPrice() * item.getQuantity();
-                
+
                 if (cat.contains("rửa") || cat.contains("rua")) {
                     revWash += price;
+                    costWash += cost;
                 } else if (cat.contains("chăm sóc") || cat.contains("cham soc")) {
                     revCare += price;
                     costCare += cost;
@@ -243,10 +245,12 @@ public class ReportHelper {
                         costCare += cost;
                     } else {
                         revWash += price;
+                        costWash += cost;
                     }
                 }
             }
-            
+
+            double profitWash = revWash - costWash;
             double profitCare = revCare - costCare;
             double profitAccessory = revAccessory - costAccessory;
             double profitPaint = revPaint - costPaint;
@@ -254,7 +258,17 @@ public class ReportHelper {
             if (pMethod == null || pMethod.trim().isEmpty()) {
                 pMethod = "TM";
             }
-            
+
+            double vat = 0;
+            if ("CK".equalsIgnoreCase(pMethod)) {
+                vat = (revWash + revCare + revAccessory + revPaint) * 0.08;
+            }
+
+            double displayTotal = (revWash + revCare + revAccessory + revPaint);
+            if ("CK".equalsIgnoreCase(pMethod)) {
+                displayTotal += vat;
+            }
+
             String dateFormatted = "";
             if (inv.getCreatedAt() != null && inv.getCreatedAt().length() >= 10) {
                 try {
@@ -264,55 +278,58 @@ public class ReportHelper {
                     dateFormatted = inv.getCreatedAt().substring(0, 10);
                 }
             }
-            
+
             model.DailyReportRow row = new model.DailyReportRow(
-                stt++,
-                dateFormatted,
-                inv.getLicensePlate() != null ? inv.getLicensePlate() : "",
-                servicesDesc,
-                revWash,
-                revCare,
-                revAccessory,
-                revPaint,
-                inv.getTotalAmount(),
-                pMethod,
-                costCare,
-                costAccessory,
-                costPaint,
-                profitCare,
-                profitAccessory,
-                profitPaint,
-                inv.getNotes() != null ? inv.getNotes() : ""
-            );
+                    stt++,
+                    dateFormatted,
+                    inv.getLicensePlate() != null ? inv.getLicensePlate() : "",
+                    servicesDesc,
+                    revWash,
+                    revCare,
+                    revAccessory,
+                    revPaint,
+                    displayTotal,
+                    vat,
+                    pMethod,
+                    costWash,
+                    costCare,
+                    costAccessory,
+                    costPaint,
+                    profitWash,
+                    profitCare,
+                    profitAccessory,
+                    profitPaint,
+                    inv.getNotes() != null ? inv.getNotes() : "");
             reportRows.add(row);
         }
         return reportRows;
     }
 
     public static void exportToExcel(List<model.DailyReportRow> rows,
-                                     java.time.LocalDate fromDate,
-                                     java.time.LocalDate toDate,
-                                     javafx.stage.Window owner) {
+            java.time.LocalDate fromDate,
+            java.time.LocalDate toDate,
+            javafx.stage.Window owner) {
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
         fileChooser.setTitle("Lưu Báo Cáo Excel");
         fileChooser.setInitialFileName("BaoSoHangNgay_" + java.time.LocalDate.now() + ".xlsx");
         fileChooser.getExtensionFilters().add(
                 new javafx.stage.FileChooser.ExtensionFilter("Excel Workbook", "*.xlsx"));
-        
+
         java.io.File file = fileChooser.showSaveDialog(owner);
-        if (file == null) return;
-        
+        if (file == null)
+            return;
+
         try (org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
             org.apache.poi.xssf.usermodel.XSSFSheet sheet = workbook.createSheet("Báo số hằng ngày");
             sheet.setDisplayGridlines(true);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle titleStyle = workbook.createCellStyle();
             org.apache.poi.xssf.usermodel.XSSFFont titleFont = workbook.createFont();
             titleFont.setBold(true);
             titleFont.setFontHeightInPoints((short) 16);
             titleStyle.setFont(titleFont);
             titleStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle headerStyle = workbook.createCellStyle();
             org.apache.poi.xssf.usermodel.XSSFFont headerFont = workbook.createFont();
             headerFont.setBold(true);
@@ -324,64 +341,67 @@ public class ReportHelper {
             headerStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             headerStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             headerStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle yellowHeaderStyle = workbook.createCellStyle();
             yellowHeaderStyle.cloneStyleFrom(headerStyle);
-            yellowHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)255, (byte)235, (byte)59}, null));
+            yellowHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
+                    new byte[] { (byte) 255, (byte) 235, (byte) 59 }, null));
             yellowHeaderStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle greenHeaderStyle = workbook.createCellStyle();
             greenHeaderStyle.cloneStyleFrom(headerStyle);
-            greenHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)200, (byte)230, (byte)201}, null));
+            greenHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
+                    new byte[] { (byte) 200, (byte) 230, (byte) 201 }, null));
             greenHeaderStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle normalHeaderStyle = workbook.createCellStyle();
             normalHeaderStyle.cloneStyleFrom(headerStyle);
-            normalHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)245, (byte)245, (byte)245}, null));
+            normalHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
+                    new byte[] { (byte) 245, (byte) 245, (byte) 245 }, null));
             normalHeaderStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle borderStyle = workbook.createCellStyle();
             borderStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             borderStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             borderStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             borderStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle numberStyle = workbook.createCellStyle();
             numberStyle.cloneStyleFrom(borderStyle);
             numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
-            
+
             org.apache.poi.xssf.usermodel.XSSFRow row0 = sheet.createRow(0);
             org.apache.poi.xssf.usermodel.XSSFRow row1 = sheet.createRow(1);
-            
+
             String[] r0Headers = {
-                "STT", "Ngày/Tháng", "Tên xe", "Tên dịch vụ",
-                "DOANH THU", "", "", "",
-                "TỔNG DT THỰC NHẬN", "Phương thức thanh toán",
-                "CHI PHÍ", "", "",
-                "LỢI NHUẬN", "", "",
-                "GHI CHÚ"
+                    "STT", "Ngày/Tháng", "Tên xe", "Tên dịch vụ",
+                    "DOANH THU", "", "", "",
+                    "TỔNG DT THỰC NHẬN", "VAT", "Phương thức thanh toán",
+                    "CHI PHÍ", "", "", "",
+                    "LỢI NHUẬN", "", "", "",
+                    "GHI CHÚ"
             };
-            
+
             String[] r1Headers = {
-                "", "", "", "",
-                "Rửa xe", "Chăm sóc", "Phụ kiện", "Sơn",
-                "", "",
-                "Chi phí chăm sóc", "Chi phí phụ kiện", "Chi phí sơn",
-                "Lợi nhuận chăm sóc", "Lợi nhuận phụ kiện", "Lợi nhuận sơn",
-                ""
+                    "", "", "", "",
+                    "Rửa xe", "Chăm sóc", "Phụ kiện", "Sơn",
+                    "", "", "",
+                    "Chi phí rửa xe", "Chi phí chăm sóc", "Chi phí phụ kiện", "Chi phí sơn",
+                    "Lợi nhuận rửa xe", "Lợi nhuận chăm sóc", "Lợi nhuận phụ kiện", "Lợi nhuận sơn",
+                    ""
             };
-            
+
             for (int i = 0; i < r0Headers.length; i++) {
                 org.apache.poi.xssf.usermodel.XSSFCell cell0 = row0.createCell(i);
                 cell0.setCellValue(r0Headers[i]);
-                
+
                 org.apache.poi.xssf.usermodel.XSSFCell cell1 = row1.createCell(i);
                 cell1.setCellValue(r1Headers[i]);
-                
+
                 if (i >= 4 && i <= 7) {
                     cell0.setCellStyle(yellowHeaderStyle);
                     cell1.setCellStyle(yellowHeaderStyle);
-                } else if ((i >= 10 && i <= 12) || (i >= 13 && i <= 15)) {
+                } else if ((i >= 11 && i <= 14) || (i >= 15 && i <= 18)) {
                     cell0.setCellStyle(greenHeaderStyle);
                     cell1.setCellStyle(greenHeaderStyle);
                 } else {
@@ -389,7 +409,7 @@ public class ReportHelper {
                     cell1.setCellStyle(normalHeaderStyle);
                 }
             }
-            
+
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 0, 0));
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 1, 1));
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 2, 2));
@@ -397,10 +417,11 @@ public class ReportHelper {
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 4, 7));
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 8, 8));
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 9, 9));
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 10, 12));
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 13, 15));
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 16, 16));
-            
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 10, 10));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 11, 14));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 15, 18));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 19, 19));
+
             int rowIndex = 2;
             for (model.DailyReportRow data : rows) {
                 org.apache.poi.xssf.usermodel.XSSFRow r = sheet.createRow(rowIndex++);
@@ -408,25 +429,29 @@ public class ReportHelper {
                 r.createCell(1).setCellValue(data.getDate());
                 r.createCell(2).setCellValue(data.getLicensePlate());
                 r.createCell(3).setCellValue(data.getServices());
-                
+
                 r.createCell(4).setCellValue(data.getRevenueWash());
                 r.createCell(5).setCellValue(data.getRevenueCare());
                 r.createCell(6).setCellValue(data.getRevenueAccessory());
                 r.createCell(7).setCellValue(data.getRevenuePaint());
                 r.createCell(8).setCellValue(data.getTotalRevenue());
-                r.createCell(9).setCellValue(data.getPaymentMethod());
-                r.createCell(10).setCellValue(data.getCostCare());
-                r.createCell(11).setCellValue(data.getCostAccessory());
-                r.createCell(12).setCellValue(data.getCostPaint());
-                r.createCell(13).setCellValue(data.getProfitCare());
-                r.createCell(14).setCellValue(data.getProfitAccessory());
-                r.createCell(15).setCellValue(data.getProfitPaint());
-                r.createCell(16).setCellValue(data.getNotes());
-                
-                for (int col = 0; col <= 16; col++) {
+                r.createCell(9).setCellValue(data.getVat());
+                r.createCell(10).setCellValue(data.getPaymentMethod());
+                r.createCell(11).setCellValue(data.getCostWash());
+                r.createCell(12).setCellValue(data.getCostCare());
+                r.createCell(13).setCellValue(data.getCostAccessory());
+                r.createCell(14).setCellValue(data.getCostPaint());
+                r.createCell(15).setCellValue(data.getProfitWash());
+                r.createCell(16).setCellValue(data.getProfitCare());
+                r.createCell(17).setCellValue(data.getProfitAccessory());
+                r.createCell(18).setCellValue(data.getProfitPaint());
+                r.createCell(19).setCellValue(data.getNotes());
+
+                for (int col = 0; col <= 19; col++) {
                     org.apache.poi.xssf.usermodel.XSSFCell c = r.getCell(col);
-                    if (c == null) c = r.createCell(col);
-                    if (col == 9 || col == 1 || col == 2 || col == 3 || col == 16) {
+                    if (c == null)
+                        c = r.createCell(col);
+                    if (col == 10 || col == 1 || col == 2 || col == 3 || col == 19) {
                         c.setCellStyle(borderStyle);
                     } else if (col == 0) {
                         c.setCellStyle(borderStyle);
@@ -435,11 +460,11 @@ public class ReportHelper {
                     }
                 }
             }
-            
+
             org.apache.poi.xssf.usermodel.XSSFRow totalRow = sheet.createRow(rowIndex);
             totalRow.createCell(0).setCellValue("TỔNG CỘNG");
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowIndex, rowIndex, 0, 3));
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle totalStyle = workbook.createCellStyle();
             org.apache.poi.xssf.usermodel.XSSFFont totalFont = workbook.createFont();
             totalFont.setBold(true);
@@ -448,37 +473,39 @@ public class ReportHelper {
             totalStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.DOUBLE);
             totalStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             totalStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle totalNumStyle = workbook.createCellStyle();
             totalNumStyle.cloneStyleFrom(totalStyle);
             totalNumStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
-            
-            for (int col = 0; col <= 16; col++) {
+
+            for (int col = 0; col <= 19; col++) {
                 org.apache.poi.xssf.usermodel.XSSFCell c = totalRow.getCell(col);
-                if (c == null) c = totalRow.createCell(col);
+                if (c == null)
+                    c = totalRow.createCell(col);
                 c.setCellStyle(totalStyle);
-                
-                if (col == 4 || col == 5 || col == 6 || col == 7 || col == 8 || col == 10 || col == 11 || col == 12 || col == 13 || col == 14 || col == 15) {
+
+                if (col == 4 || col == 5 || col == 6 || col == 7 || col == 8 || col == 9 || (col >= 11 && col <= 18)) {
                     char colLetter = (char) ('A' + col);
                     c.setCellFormula("SUM(" + colLetter + "3:" + colLetter + (rowIndex) + ")");
                     c.setCellStyle(totalNumStyle);
                 }
             }
-            
-            for (int i = 0; i <= 16; i++) {
+
+            for (int i = 0; i <= 19; i++) {
                 sheet.autoSizeColumn(i);
             }
-            
+
             try (java.io.FileOutputStream fileOut = new java.io.FileOutputStream(file)) {
                 workbook.write(fileOut);
             }
-            
-            javafx.scene.control.Alert succ = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
+
+            javafx.scene.control.Alert succ = new javafx.scene.control.Alert(
+                    javafx.scene.control.Alert.AlertType.INFORMATION);
             succ.setTitle("Thành công");
             succ.setHeaderText(null);
             succ.setContentText("Xuất file Excel báo cáo thành công!\nĐã lưu tại: " + file.getAbsolutePath());
             succ.showAndWait();
-            
+
         } catch (Exception ex) {
             ex.printStackTrace();
             javafx.scene.control.Alert err = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
@@ -518,7 +545,8 @@ public class ReportHelper {
                     .setFont(boldFont)
                     .setFontSize(10)
                     .setMarginBottom(1));
-            document.add(new com.itextpdf.layout.element.Paragraph("Ngã tư An Dương Vương và Trương Định, P. Trần Phú, TP. Quảng Ngãi, T. Quảng Ngãi.")
+            document.add(new com.itextpdf.layout.element.Paragraph(
+                    "Ngã tư An Dương Vương và Trương Định, P. Trần Phú, TP. Quảng Ngãi, T. Quảng Ngãi.")
                     .setFont(font)
                     .setFontSize(8.5f)
                     .setMarginBottom(1));
@@ -539,7 +567,9 @@ public class ReportHelper {
                 if (fromDate.getMonthValue() == toDate.getMonthValue() && fromDate.getYear() == toDate.getYear()) {
                     dateRangeText = "Tháng " + fromDate.getMonthValue() + " Năm " + fromDate.getYear();
                 } else {
-                    dateRangeText = "Thời gian: " + fromDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " đến " + toDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    dateRangeText = "Thời gian: "
+                            + fromDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " đến "
+                            + toDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 }
             } else {
                 dateRangeText = "Tất cả";
@@ -550,13 +580,15 @@ public class ReportHelper {
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
                     .setMarginBottom(10));
 
-            document.add(new com.itextpdf.layout.element.Paragraph("Ngày xuất: " + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+            document.add(new com.itextpdf.layout.element.Paragraph("Ngày xuất: "
+                    + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")))
                     .setFont(font)
                     .setFontSize(9)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
                     .setMarginBottom(5));
 
-            float[] columnWidths = {15f, 45f, 45f, 90f, 42f, 46f, 46f, 42f, 45f, 20f, 46f, 46f, 42f, 46f, 46f, 42f, 70f};
+            float[] columnWidths = { 15f, 35f, 35f, 70f, 35f, 38f, 38f, 35f, 40f, 35f, 20f, 35f, 38f, 38f, 35f, 35f,
+                    38f, 38f, 35f, 50f };
             com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(columnWidths);
             table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
 
@@ -564,99 +596,109 @@ public class ReportHelper {
 
             // Row 1 Header with proper spans and alignment
             table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
-                .add(new com.itextpdf.layout.element.Paragraph("STT").setFont(boldFont).setFontSize(8))
-                .setBackgroundColor(headerBg)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setPadding(3));
-            
-            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
-                .add(new com.itextpdf.layout.element.Paragraph("Ngày").setFont(boldFont).setFontSize(8))
-                .setBackgroundColor(headerBg)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setPadding(3));
-
-            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
-                .add(new com.itextpdf.layout.element.Paragraph("Tên xe").setFont(boldFont).setFontSize(8))
-                .setBackgroundColor(headerBg)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setPadding(3));
-
-            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
-                .add(new com.itextpdf.layout.element.Paragraph("Dịch vụ").setFont(boldFont).setFontSize(8))
-                .setBackgroundColor(headerBg)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setPadding(3));
-
-            table.addHeaderCell(new com.itextpdf.layout.element.Cell(1, 4)
-                .add(new com.itextpdf.layout.element.Paragraph("DOANH THU").setFont(boldFont).setFontSize(8))
-                .setBackgroundColor(headerBg)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setPadding(3));
-
-            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
-                .add(new com.itextpdf.layout.element.Paragraph("TỔNG DT").setFont(boldFont).setFontSize(8))
-                .setBackgroundColor(headerBg)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setPadding(3));
-
-            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
-                .add(new com.itextpdf.layout.element.Paragraph("PT").setFont(boldFont).setFontSize(8))
-                .setBackgroundColor(headerBg)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setPadding(3));
-
-            table.addHeaderCell(new com.itextpdf.layout.element.Cell(1, 3)
-                .add(new com.itextpdf.layout.element.Paragraph("CHI PHÍ").setFont(boldFont).setFontSize(8))
-                .setBackgroundColor(headerBg)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setPadding(3));
-
-            table.addHeaderCell(new com.itextpdf.layout.element.Cell(1, 3)
-                .add(new com.itextpdf.layout.element.Paragraph("LỢI NHUẬN").setFont(boldFont).setFontSize(8))
-                .setBackgroundColor(headerBg)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setPadding(3));
-
-            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
-                .add(new com.itextpdf.layout.element.Paragraph("GHI CHÚ").setFont(boldFont).setFontSize(8))
-                .setBackgroundColor(headerBg)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
-                .setPadding(3));
-
-            // Row 2 Header
-            String[] subHeaders = {
-                "Rửa xe", "Chăm sóc", "Phụ kiện", "Sơn xe",
-                "Chăm sóc", "Phụ kiện", "Sơn xe",
-                "Chăm sóc", "Phụ kiện", "Sơn xe"
-            };
-            for (String sh : subHeaders) {
-                table.addHeaderCell(new com.itextpdf.layout.element.Cell(1, 1)
-                    .add(new com.itextpdf.layout.element.Paragraph(sh).setFont(boldFont).setFontSize(7f))
+                    .add(new com.itextpdf.layout.element.Paragraph("STT").setFont(boldFont).setFontSize(8))
                     .setBackgroundColor(headerBg)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
                     .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
                     .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
+                    .add(new com.itextpdf.layout.element.Paragraph("Ngày").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
+                    .add(new com.itextpdf.layout.element.Paragraph("Tên xe").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
+                    .add(new com.itextpdf.layout.element.Paragraph("Dịch vụ").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(1, 4)
+                    .add(new com.itextpdf.layout.element.Paragraph("DOANH THU").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
+                    .add(new com.itextpdf.layout.element.Paragraph("TỔNG DT").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
+                    .add(new com.itextpdf.layout.element.Paragraph("VAT").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
+                    .add(new com.itextpdf.layout.element.Paragraph("PT").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(1, 4)
+                    .add(new com.itextpdf.layout.element.Paragraph("CHI PHÍ").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(1, 4)
+                    .add(new com.itextpdf.layout.element.Paragraph("LỢI NHUẬN").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
+                    .add(new com.itextpdf.layout.element.Paragraph("GHI CHÚ").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            // Row 2 Header
+            String[] subHeaders = {
+                    "Rửa xe", "Chăm sóc", "Phụ kiện", "Sơn xe",
+                    "Rửa xe", "Chăm sóc", "Phụ kiện", "Sơn xe",
+                    "Rửa xe", "Chăm sóc", "Phụ kiện", "Sơn xe"
+            };
+            for (String sh : subHeaders) {
+                table.addHeaderCell(new com.itextpdf.layout.element.Cell(1, 1)
+                        .add(new com.itextpdf.layout.element.Paragraph(sh).setFont(boldFont).setFontSize(7f))
+                        .setBackgroundColor(headerBg)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                        .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                        .setPadding(3));
             }
 
             double sumWash = 0, sumCare = 0, sumAccessory = 0, sumPaint = 0, sumTotal = 0;
-            double sumCostCare = 0, sumCostAccessory = 0, sumCostPaint = 0;
-            double sumProfitCare = 0, sumProfitAccessory = 0, sumProfitPaint = 0;
+            double sumVat = 0;
+            double sumCostWash = 0, sumCostCare = 0, sumCostAccessory = 0, sumCostPaint = 0;
+            double sumProfitWash = 0, sumProfitCare = 0, sumProfitAccessory = 0, sumProfitPaint = 0;
 
-            java.util.function.BiConsumer<String, com.itextpdf.layout.properties.TextAlignment> addBodyCell = (text, align) -> {
+            java.util.function.BiConsumer<String, com.itextpdf.layout.properties.TextAlignment> addBodyCell = (text,
+                    align) -> {
                 com.itextpdf.layout.element.Cell cell = new com.itextpdf.layout.element.Cell()
-                    .add(new com.itextpdf.layout.element.Paragraph(text != null ? text : "").setFont(font).setFontSize(8))
-                    .setPadding(3)
-                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+                        .add(new com.itextpdf.layout.element.Paragraph(text != null ? text : "").setFont(font)
+                                .setFontSize(8))
+                        .setPadding(3)
+                        .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
                 if (align != null) {
                     cell.setTextAlignment(align);
                 }
@@ -669,21 +711,38 @@ public class ReportHelper {
                 addBodyCell.accept(row.getLicensePlate(), com.itextpdf.layout.properties.TextAlignment.LEFT);
                 addBodyCell.accept(row.getServices(), com.itextpdf.layout.properties.TextAlignment.LEFT);
 
-                addBodyCell.accept(String.format("%,.0f", row.getRevenueWash()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addBodyCell.accept(String.format("%,.0f", row.getRevenueCare()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addBodyCell.accept(String.format("%,.0f", row.getRevenueAccessory()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addBodyCell.accept(String.format("%,.0f", row.getRevenuePaint()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addBodyCell.accept(String.format("%,.0f", row.getTotalRevenue()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                
+                addBodyCell.accept(String.format("%,.0f", row.getRevenueWash()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getRevenueCare()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getRevenueAccessory()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getRevenuePaint()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getTotalRevenue()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getVat()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+
                 addBodyCell.accept(row.getPaymentMethod(), com.itextpdf.layout.properties.TextAlignment.CENTER);
 
-                addBodyCell.accept(String.format("%,.0f", row.getCostCare()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addBodyCell.accept(String.format("%,.0f", row.getCostAccessory()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addBodyCell.accept(String.format("%,.0f", row.getCostPaint()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getCostWash()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getCostCare()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getCostAccessory()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getCostPaint()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
 
-                addBodyCell.accept(String.format("%,.0f", row.getProfitCare()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addBodyCell.accept(String.format("%,.0f", row.getProfitAccessory()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addBodyCell.accept(String.format("%,.0f", row.getProfitPaint()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getProfitWash()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getProfitCare()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getProfitAccessory()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addBodyCell.accept(String.format("%,.0f", row.getProfitPaint()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
 
                 addBodyCell.accept(row.getNotes(), com.itextpdf.layout.properties.TextAlignment.LEFT);
 
@@ -692,25 +751,29 @@ public class ReportHelper {
                 sumAccessory += row.getRevenueAccessory();
                 sumPaint += row.getRevenuePaint();
                 sumTotal += row.getTotalRevenue();
+                sumVat += row.getVat();
+                sumCostWash += row.getCostWash();
                 sumCostCare += row.getCostCare();
                 sumCostAccessory += row.getCostAccessory();
                 sumCostPaint += row.getCostPaint();
+                sumProfitWash += row.getProfitWash();
                 sumProfitCare += row.getProfitCare();
                 sumProfitAccessory += row.getProfitAccessory();
                 sumProfitPaint += row.getProfitPaint();
             }
 
             table.addCell(new com.itextpdf.layout.element.Cell(1, 4)
-                .add(new com.itextpdf.layout.element.Paragraph("TỔNG CỘNG").setFont(boldFont).setFontSize(8))
-                .setPadding(3)
-                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE));
-            
+                    .add(new com.itextpdf.layout.element.Paragraph("TỔNG CỘNG").setFont(boldFont).setFontSize(8))
+                    .setPadding(3)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE));
+
             java.util.function.Consumer<Double> addTotalCell = val -> {
                 table.addCell(new com.itextpdf.layout.element.Cell()
-                    .add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", val)).setFont(boldFont).setFontSize(8))
-                    .setPadding(3)
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
-                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE));
+                        .add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", val)).setFont(boldFont)
+                                .setFontSize(8))
+                        .setPadding(3)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
+                        .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE));
             };
 
             addTotalCell.accept(sumWash);
@@ -718,21 +781,24 @@ public class ReportHelper {
             addTotalCell.accept(sumAccessory);
             addTotalCell.accept(sumPaint);
             addTotalCell.accept(sumTotal);
+            addTotalCell.accept(sumVat);
 
             table.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new com.itextpdf.layout.element.Paragraph("").setFont(boldFont).setFontSize(8))
-                .setPadding(3));
+                    .add(new com.itextpdf.layout.element.Paragraph("").setFont(boldFont).setFontSize(8))
+                    .setPadding(3));
 
+            addTotalCell.accept(sumCostWash);
             addTotalCell.accept(sumCostCare);
             addTotalCell.accept(sumCostAccessory);
             addTotalCell.accept(sumCostPaint);
+            addTotalCell.accept(sumProfitWash);
             addTotalCell.accept(sumProfitCare);
             addTotalCell.accept(sumProfitAccessory);
             addTotalCell.accept(sumProfitPaint);
 
             table.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new com.itextpdf.layout.element.Paragraph("").setFont(boldFont).setFontSize(8))
-                .setPadding(3));
+                    .add(new com.itextpdf.layout.element.Paragraph("").setFont(boldFont).setFontSize(8))
+                    .setPadding(3));
 
             document.add(table);
             document.close();
@@ -754,34 +820,35 @@ public class ReportHelper {
     }
 
     public static void exportYearlyToExcel(List<model.YearlyReportRow> rows,
-                                           int year,
-                                           javafx.stage.Window owner) {
+            int year,
+            javafx.stage.Window owner) {
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
         fileChooser.setTitle("Lưu Báo Cáo Excel Năm");
         fileChooser.setInitialFileName("BangThongKeNam_" + year + "_" + java.time.LocalDate.now() + ".xlsx");
         fileChooser.getExtensionFilters().add(
                 new javafx.stage.FileChooser.ExtensionFilter("Excel Workbook", "*.xlsx"));
-        
+
         java.io.File file = fileChooser.showSaveDialog(owner);
-        if (file == null) return;
-        
+        if (file == null)
+            return;
+
         try (org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
             org.apache.poi.xssf.usermodel.XSSFSheet sheet = workbook.createSheet("Thống kê năm");
             sheet.setDisplayGridlines(true);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle titleStyle = workbook.createCellStyle();
             org.apache.poi.xssf.usermodel.XSSFFont titleFont = workbook.createFont();
             titleFont.setBold(true);
             titleFont.setFontHeightInPoints((short) 16);
             titleStyle.setFont(titleFont);
             titleStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
-            
+
             org.apache.poi.xssf.usermodel.XSSFRow titleRow = sheet.createRow(0);
             org.apache.poi.xssf.usermodel.XSSFCell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("BẢNG THỐNG KÊ NĂM " + year);
             titleCell.setCellStyle(titleStyle);
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 11));
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle headerStyle = workbook.createCellStyle();
             org.apache.poi.xssf.usermodel.XSSFFont headerFont = workbook.createFont();
             headerFont.setBold(true);
@@ -793,51 +860,56 @@ public class ReportHelper {
             headerStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             headerStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             headerStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle yellowHeaderStyle = workbook.createCellStyle();
             yellowHeaderStyle.cloneStyleFrom(headerStyle);
-            yellowHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)255, (byte)235, (byte)59}, null));
+            yellowHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
+                    new byte[] { (byte) 255, (byte) 235, (byte) 59 }, null));
             yellowHeaderStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle greenHeaderStyle = workbook.createCellStyle();
             greenHeaderStyle.cloneStyleFrom(headerStyle);
-            greenHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)200, (byte)230, (byte)201}, null));
+            greenHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
+                    new byte[] { (byte) 200, (byte) 230, (byte) 201 }, null));
             greenHeaderStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle normalHeaderStyle = workbook.createCellStyle();
             normalHeaderStyle.cloneStyleFrom(headerStyle);
-            normalHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)245, (byte)245, (byte)245}, null));
+            normalHeaderStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
+                    new byte[] { (byte) 245, (byte) 245, (byte) 245 }, null));
             normalHeaderStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle borderStyle = workbook.createCellStyle();
             borderStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             borderStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             borderStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             borderStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle numberStyle = workbook.createCellStyle();
             numberStyle.cloneStyleFrom(borderStyle);
             numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
-            
+
             org.apache.poi.xssf.usermodel.XSSFRow row2 = sheet.createRow(2);
             org.apache.poi.xssf.usermodel.XSSFRow row3 = sheet.createRow(3);
-            
+
             String[] r2Headers = {
-                "STT", "Doanh thu rửa xe", "Doanh thu chăm sóc", "Doanh thu phụ kiện", "Doanh thu sơn xe", "Tổng doanh thu",
-                "Lợi nhuận chăm sóc", "Lợi nhuận phụ kiện", "Lợi nhuận sơn", "Chi phí biến thiên", "Chi Phí Cố định", "TỔNG LỢI NHUẬN"
+                    "STT", "Doanh thu rửa xe", "Doanh thu chăm sóc", "Doanh thu phụ kiện", "Doanh thu sơn xe",
+                    "Tổng doanh thu",
+                    "Tổng VAT", "Lợi nhuận rửa xe", "Lợi nhuận chăm sóc", "Lợi nhuận phụ kiện", "Lợi nhuận sơn",
+                    "Chi phí biến thiên", "Chi Phí Cố định", "TỔNG LỢI NHUẬN"
             };
-            
+
             for (int i = 0; i < r2Headers.length; i++) {
                 org.apache.poi.xssf.usermodel.XSSFCell cell2 = row2.createCell(i);
                 cell2.setCellValue(r2Headers[i]);
                 cell2.setCellStyle(normalHeaderStyle);
-                
+
                 org.apache.poi.xssf.usermodel.XSSFCell cell3 = row3.createCell(i);
                 cell3.setCellStyle(normalHeaderStyle);
-                
+
                 sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(2, 3, i, i));
             }
-            
+
             int rowIndex = 4;
             // Write first 12 months. Row index 4 to 15.
             for (int m = 0; m < 12; m++) {
@@ -849,16 +921,19 @@ public class ReportHelper {
                 r.createCell(3).setCellValue(data.getRevenueAccessory());
                 r.createCell(4).setCellValue(data.getRevenuePaint());
                 r.createCell(5).setCellValue(data.getTotalRevenue());
-                r.createCell(6).setCellValue(data.getProfitCare());
-                r.createCell(7).setCellValue(data.getProfitAccessory());
-                r.createCell(8).setCellValue(data.getProfitPaint());
-                r.createCell(9).setCellValue(data.getVariableCost());
-                r.createCell(10).setCellValue(data.getFixedCost());
-                r.createCell(11).setCellValue(data.getTotalNetProfit());
-                
-                for (int col = 0; col <= 11; col++) {
+                r.createCell(6).setCellValue(data.getVat());
+                r.createCell(7).setCellValue(data.getProfitWash());
+                r.createCell(8).setCellValue(data.getProfitCare());
+                r.createCell(9).setCellValue(data.getProfitAccessory());
+                r.createCell(10).setCellValue(data.getProfitPaint());
+                r.createCell(11).setCellValue(data.getVariableCost());
+                r.createCell(12).setCellValue(data.getFixedCost());
+                r.createCell(13).setCellValue(data.getTotalNetProfit());
+
+                for (int col = 0; col <= 13; col++) {
                     org.apache.poi.xssf.usermodel.XSSFCell c = r.getCell(col);
-                    if (c == null) c = r.createCell(col);
+                    if (c == null)
+                        c = r.createCell(col);
                     if (col == 0) {
                         c.setCellStyle(borderStyle);
                     } else {
@@ -866,11 +941,11 @@ public class ReportHelper {
                     }
                 }
             }
-            
+
             // Row 16 (index 16) is TOTAL row.
             org.apache.poi.xssf.usermodel.XSSFRow totalRow = sheet.createRow(rowIndex);
             totalRow.createCell(0).setCellValue("TỔNG CỘNG");
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle totalStyle = workbook.createCellStyle();
             org.apache.poi.xssf.usermodel.XSSFFont totalFont = workbook.createFont();
             totalFont.setBold(true);
@@ -879,37 +954,39 @@ public class ReportHelper {
             totalStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.DOUBLE);
             totalStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             totalStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle totalNumStyle = workbook.createCellStyle();
             totalNumStyle.cloneStyleFrom(totalStyle);
             totalNumStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
-            
-            for (int col = 0; col <= 11; col++) {
+
+            for (int col = 0; col <= 13; col++) {
                 org.apache.poi.xssf.usermodel.XSSFCell c = totalRow.getCell(col);
-                if (c == null) c = totalRow.createCell(col);
+                if (c == null)
+                    c = totalRow.createCell(col);
                 c.setCellStyle(totalStyle);
-                
-                if (col >= 1 && col <= 11) {
+
+                if (col >= 1 && col <= 13) {
                     char colLetter = (char) ('A' + col);
                     c.setCellFormula("SUM(" + colLetter + "5:" + colLetter + (rowIndex) + ")");
                     c.setCellStyle(totalNumStyle);
                 }
             }
-            
-            for (int i = 0; i <= 11; i++) {
+
+            for (int i = 0; i <= 13; i++) {
                 sheet.autoSizeColumn(i);
             }
-            
+
             try (java.io.FileOutputStream fileOut = new java.io.FileOutputStream(file)) {
                 workbook.write(fileOut);
             }
-            
-            javafx.scene.control.Alert succ = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
+
+            javafx.scene.control.Alert succ = new javafx.scene.control.Alert(
+                    javafx.scene.control.Alert.AlertType.INFORMATION);
             succ.setTitle("Thành công");
             succ.setHeaderText(null);
             succ.setContentText("Xuất file Excel thống kê năm thành công!\nĐã lưu tại: " + file.getAbsolutePath());
             succ.showAndWait();
-            
+
         } catch (Exception ex) {
             ex.printStackTrace();
             javafx.scene.control.Alert err = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
@@ -921,8 +998,8 @@ public class ReportHelper {
     }
 
     public static void exportYearlyToPDF(List<model.YearlyReportRow> rows,
-                                         int year,
-                                         javafx.stage.Window owner) {
+            int year,
+            javafx.stage.Window owner) {
         try {
             javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
             fileChooser.setTitle("Lưu Báo Cáo PDF Năm");
@@ -931,13 +1008,14 @@ public class ReportHelper {
                     new javafx.stage.FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
 
             java.io.File file = fileChooser.showSaveDialog(owner);
-            if (file == null) return;
+            if (file == null)
+                return;
 
             com.itextpdf.kernel.pdf.PdfWriter writer = new com.itextpdf.kernel.pdf.PdfWriter(file);
             com.itextpdf.kernel.geom.PageSize pageSize = com.itextpdf.kernel.geom.PageSize.A4.rotate();
             com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
             pdf.setDefaultPageSize(pageSize);
-            
+
             com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf);
             document.setMargins(15, 15, 15, 15);
 
@@ -949,7 +1027,8 @@ public class ReportHelper {
                     .setFont(boldFont)
                     .setFontSize(10)
                     .setMarginBottom(1));
-            document.add(new com.itextpdf.layout.element.Paragraph("Ngã tư An Dương Vương và Trương Định, P. Trần Phú, TP. Quảng Ngãi, T. Quảng Ngãi.")
+            document.add(new com.itextpdf.layout.element.Paragraph(
+                    "Ngã tư An Dương Vương và Trương Định, P. Trần Phú, TP. Quảng Ngãi, T. Quảng Ngãi.")
                     .setFont(font)
                     .setFontSize(8.5f)
                     .setMarginBottom(1));
@@ -970,20 +1049,20 @@ public class ReportHelper {
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
                     .setMarginBottom(10));
 
-            document.add(new com.itextpdf.layout.element.Paragraph("Ngày xuất: " + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+            document.add(new com.itextpdf.layout.element.Paragraph("Ngày xuất: "
+                    + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")))
                     .setFont(font)
                     .setFontSize(9)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
                     .setMarginBottom(5));
 
-            float[] columnWidths = {50f, 70f, 70f, 70f, 70f, 80f, 70f, 70f, 70f, 70f, 70f, 80f};
+            float[] columnWidths = { 45f, 65f, 65f, 65f, 65f, 75f, 65f, 65f, 65f, 65f, 65f, 65f, 75f };
             com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(columnWidths);
             table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
 
             com.itextpdf.kernel.colors.DeviceRgb headerBg = new com.itextpdf.kernel.colors.DeviceRgb(245, 245, 245);
 
-            java.util.function.Function<String, com.itextpdf.layout.element.Cell> makeHeaderCell = text -> 
-                new com.itextpdf.layout.element.Cell()
+            java.util.function.Function<String, com.itextpdf.layout.element.Cell> makeHeaderCell = text -> new com.itextpdf.layout.element.Cell()
                     .add(new com.itextpdf.layout.element.Paragraph(text).setFont(boldFont).setFontSize(8))
                     .setBackgroundColor(headerBg)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
@@ -996,6 +1075,7 @@ public class ReportHelper {
             table.addHeaderCell(makeHeaderCell.apply("DT Phụ Kiện"));
             table.addHeaderCell(makeHeaderCell.apply("DT Sơn Xe"));
             table.addHeaderCell(makeHeaderCell.apply("Tổng DT"));
+            table.addHeaderCell(makeHeaderCell.apply("LN Rửa Xe"));
             table.addHeaderCell(makeHeaderCell.apply("LN Chăm Sóc"));
             table.addHeaderCell(makeHeaderCell.apply("LN Phụ Kiện"));
             table.addHeaderCell(makeHeaderCell.apply("LN Sơn"));
@@ -1007,11 +1087,13 @@ public class ReportHelper {
                 boolean isTotal = "TỔNG CỘNG".equals(row.getMonth());
                 com.itextpdf.kernel.font.PdfFont activeFont = isTotal ? boldFont : font;
 
-                java.util.function.BiConsumer<String, com.itextpdf.layout.properties.TextAlignment> addRowCell = (text, align) -> {
+                java.util.function.BiConsumer<String, com.itextpdf.layout.properties.TextAlignment> addRowCell = (text,
+                        align) -> {
                     com.itextpdf.layout.element.Cell cell = new com.itextpdf.layout.element.Cell()
-                        .add(new com.itextpdf.layout.element.Paragraph(text != null ? text : "").setFont(activeFont).setFontSize(8))
-                        .setPadding(3)
-                        .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+                            .add(new com.itextpdf.layout.element.Paragraph(text != null ? text : "").setFont(activeFont)
+                                    .setFontSize(8))
+                            .setPadding(3)
+                            .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
                     if (align != null) {
                         cell.setTextAlignment(align);
                     }
@@ -1019,17 +1101,30 @@ public class ReportHelper {
                 };
 
                 addRowCell.accept(row.getMonth(), com.itextpdf.layout.properties.TextAlignment.CENTER);
-                addRowCell.accept(String.format("%,.0f", row.getRevenueWash()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(String.format("%,.0f", row.getRevenueCare()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(String.format("%,.0f", row.getRevenueAccessory()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(String.format("%,.0f", row.getRevenuePaint()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(String.format("%,.0f", row.getTotalRevenue()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(String.format("%,.0f", row.getProfitCare()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(String.format("%,.0f", row.getProfitAccessory()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(String.format("%,.0f", row.getProfitPaint()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(String.format("%,.0f", row.getVariableCost()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(String.format("%,.0f", row.getFixedCost()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(String.format("%,.0f", row.getTotalNetProfit()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getRevenueWash()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getRevenueCare()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getRevenueAccessory()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getRevenuePaint()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getTotalRevenue()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getProfitWash()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getProfitCare()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getProfitAccessory()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getProfitPaint()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getVariableCost()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getFixedCost()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getTotalNetProfit()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
             }
 
             document.add(table);
@@ -1052,23 +1147,24 @@ public class ReportHelper {
     }
 
     public static void exportDebtToExcel(List<Invoice> rows,
-                                     int targetMonth,
-                                     int targetYear,
-                                     javafx.stage.Window owner) {
+            int targetMonth,
+            int targetYear,
+            javafx.stage.Window owner) {
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
         fileChooser.setTitle("Lưu Báo Cáo Công Nợ Excel");
         String monthStr = targetMonth > 0 ? "Thang" + targetMonth : "CaNam";
         fileChooser.setInitialFileName("BaoCaoCongNo_" + monthStr + "_" + targetYear + ".xlsx");
         fileChooser.getExtensionFilters().add(
                 new javafx.stage.FileChooser.ExtensionFilter("Excel Workbook", "*.xlsx"));
-        
+
         java.io.File file = fileChooser.showSaveDialog(owner);
-        if (file == null) return;
-        
+        if (file == null)
+            return;
+
         try (org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
             org.apache.poi.xssf.usermodel.XSSFSheet sheet = workbook.createSheet("Danh sách công nợ");
             sheet.setDisplayGridlines(true);
-            
+
             // Header Styles
             org.apache.poi.xssf.usermodel.XSSFCellStyle titleStyle = workbook.createCellStyle();
             org.apache.poi.xssf.usermodel.XSSFFont titleFont = workbook.createFont();
@@ -1076,7 +1172,7 @@ public class ReportHelper {
             titleFont.setFontHeightInPoints((short) 14);
             titleStyle.setFont(titleFont);
             titleStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle headerStyle = workbook.createCellStyle();
             org.apache.poi.xssf.usermodel.XSSFFont headerFont = workbook.createFont();
             headerFont.setBold(true);
@@ -1088,60 +1184,81 @@ public class ReportHelper {
             headerStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             headerStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             headerStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-            headerStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)255, (byte)205, (byte)210}, null)); // Light red background
+            headerStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(
+                    new byte[] { (byte) 255, (byte) 205, (byte) 210 }, null)); // Light red background
             headerStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle borderStyle = workbook.createCellStyle();
             borderStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             borderStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             borderStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             borderStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle centerStyle = workbook.createCellStyle();
             centerStyle.cloneStyleFrom(borderStyle);
             centerStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
-            
+
             org.apache.poi.xssf.usermodel.XSSFCellStyle rightStyle = workbook.createCellStyle();
             rightStyle.cloneStyleFrom(borderStyle);
             rightStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.RIGHT);
-            
+
             // Title
             org.apache.poi.ss.usermodel.Row titleRow = sheet.createRow(0);
             org.apache.poi.ss.usermodel.Cell titleCell = titleRow.createCell(0);
-            String titleText = targetMonth > 0 ? "BÁO CÁO CÔNG NỢ THÁNG " + targetMonth + "/" + targetYear : "BÁO CÁO CÔNG NỢ NĂM " + targetYear;
+            String titleText = targetMonth > 0 ? "BÁO CÁO CÔNG NỢ THÁNG " + targetMonth + "/" + targetYear
+                    : "BÁO CÁO CÔNG NỢ NĂM " + targetYear;
             titleCell.setCellValue(titleText);
             titleCell.setCellStyle(titleStyle);
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 8));
-            
+
             // Header Row
             org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(2);
-            String[] headers = {"STT", "Mã HĐ", "Ngày tạo", "Khách hàng", "Số điện thoại", "Biển số", "Tổng tiền nợ (VNĐ)", "PTTT", "Ghi chú"};
+            String[] headers = { "STT", "Mã HĐ", "Ngày tạo", "Khách hàng", "Số điện thoại", "Biển số",
+                    "Tổng tiền nợ (VNĐ)", "PTTT", "Ghi chú" };
             for (int i = 0; i < headers.length; i++) {
                 org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
                 cell.setCellStyle(headerStyle);
             }
-            
+
             // Data Rows
             int rowIdx = 3;
             double totalDebt = 0.0;
             int stt = 1;
             for (model.Invoice inv : rows) {
                 org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowIdx++);
-                
-                org.apache.poi.ss.usermodel.Cell c0 = row.createCell(0); c0.setCellValue(stt++); c0.setCellStyle(centerStyle);
-                org.apache.poi.ss.usermodel.Cell c1 = row.createCell(1); c1.setCellValue(String.format("%05d", inv.getId())); c1.setCellStyle(centerStyle);
-                org.apache.poi.ss.usermodel.Cell c2 = row.createCell(2); c2.setCellValue(inv.getCreatedAt() != null ? inv.getCreatedAt() : ""); c2.setCellStyle(centerStyle);
-                org.apache.poi.ss.usermodel.Cell c3 = row.createCell(3); c3.setCellValue(inv.getCustomerName()); c3.setCellStyle(borderStyle);
-                org.apache.poi.ss.usermodel.Cell c4 = row.createCell(4); c4.setCellValue(inv.getPhone() != null ? inv.getPhone() : ""); c4.setCellStyle(centerStyle);
-                org.apache.poi.ss.usermodel.Cell c5 = row.createCell(5); c5.setCellValue(inv.getLicensePlate() != null ? inv.getLicensePlate() : ""); c5.setCellStyle(centerStyle);
-                org.apache.poi.ss.usermodel.Cell c6 = row.createCell(6); c6.setCellValue(inv.getTotalAmount()); c6.setCellStyle(rightStyle);
-                org.apache.poi.ss.usermodel.Cell c7 = row.createCell(7); c7.setCellValue(inv.getPaymentMethod() != null ? inv.getPaymentMethod() : ""); c7.setCellStyle(centerStyle);
-                org.apache.poi.ss.usermodel.Cell c8 = row.createCell(8); c8.setCellValue(inv.getNotes() != null ? inv.getNotes() : ""); c8.setCellStyle(borderStyle);
-                
+
+                org.apache.poi.ss.usermodel.Cell c0 = row.createCell(0);
+                c0.setCellValue(stt++);
+                c0.setCellStyle(centerStyle);
+                org.apache.poi.ss.usermodel.Cell c1 = row.createCell(1);
+                c1.setCellValue(String.format("%05d", inv.getId()));
+                c1.setCellStyle(centerStyle);
+                org.apache.poi.ss.usermodel.Cell c2 = row.createCell(2);
+                c2.setCellValue(inv.getCreatedAt() != null ? inv.getCreatedAt() : "");
+                c2.setCellStyle(centerStyle);
+                org.apache.poi.ss.usermodel.Cell c3 = row.createCell(3);
+                c3.setCellValue(inv.getCustomerName());
+                c3.setCellStyle(borderStyle);
+                org.apache.poi.ss.usermodel.Cell c4 = row.createCell(4);
+                c4.setCellValue(inv.getPhone() != null ? inv.getPhone() : "");
+                c4.setCellStyle(centerStyle);
+                org.apache.poi.ss.usermodel.Cell c5 = row.createCell(5);
+                c5.setCellValue(inv.getLicensePlate() != null ? inv.getLicensePlate() : "");
+                c5.setCellStyle(centerStyle);
+                org.apache.poi.ss.usermodel.Cell c6 = row.createCell(6);
+                c6.setCellValue(inv.getTotalAmount());
+                c6.setCellStyle(rightStyle);
+                org.apache.poi.ss.usermodel.Cell c7 = row.createCell(7);
+                c7.setCellValue(inv.getPaymentMethod() != null ? inv.getPaymentMethod() : "");
+                c7.setCellStyle(centerStyle);
+                org.apache.poi.ss.usermodel.Cell c8 = row.createCell(8);
+                c8.setCellValue(inv.getNotes() != null ? inv.getNotes() : "");
+                c8.setCellStyle(borderStyle);
+
                 totalDebt += inv.getTotalAmount();
             }
-            
+
             // Total Row
             org.apache.poi.ss.usermodel.Row totalRow = sheet.createRow(rowIdx);
             org.apache.poi.xssf.usermodel.XSSFCellStyle totalStyle = workbook.createCellStyle();
@@ -1149,7 +1266,7 @@ public class ReportHelper {
             totalFont.setBold(true);
             totalStyle.setFont(totalFont);
             totalStyle.cloneStyleFrom(rightStyle);
-            
+
             org.apache.poi.ss.usermodel.Cell tLabel = totalRow.createCell(5);
             tLabel.setCellValue("TỔNG NỢ:");
             org.apache.poi.xssf.usermodel.XSSFCellStyle tLabelStyle = workbook.createCellStyle();
@@ -1157,11 +1274,11 @@ public class ReportHelper {
             tLabelStyle.cloneStyleFrom(borderStyle);
             tLabelStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.RIGHT);
             tLabel.setCellStyle(tLabelStyle);
-            
+
             org.apache.poi.ss.usermodel.Cell tVal = totalRow.createCell(6);
             tVal.setCellValue(totalDebt);
             tVal.setCellStyle(totalStyle);
-            
+
             // Borders for empty cells in total row
             for (int i = 0; i < headers.length; i++) {
                 if (i != 5 && i != 6) {
@@ -1169,22 +1286,22 @@ public class ReportHelper {
                 }
             }
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowIdx, rowIdx, 0, 4));
-            
+
             // Auto size columns
             for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);
             }
-            
+
             try (java.io.FileOutputStream fos = new java.io.FileOutputStream(file)) {
                 workbook.write(fos);
             }
-            
+
             javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
                     javafx.scene.control.Alert.AlertType.INFORMATION,
                     "Thành công",
                     "Xuất báo cáo công nợ Excel thành công!\nĐã lưu tại: " + file.getAbsolutePath());
             alert.showAndWait();
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
@@ -1196,56 +1313,60 @@ public class ReportHelper {
     }
 
     public static void exportDebtToPDF(List<Invoice> rows,
-                                     int targetMonth,
-                                     int targetYear,
-                                     javafx.stage.Window owner) {
+            int targetMonth,
+            int targetYear,
+            javafx.stage.Window owner) {
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
         fileChooser.setTitle("Lưu Báo Cáo Công Nợ PDF");
         String monthStr = targetMonth > 0 ? "Thang" + targetMonth : "CaNam";
         fileChooser.setInitialFileName("BaoCaoCongNo_" + monthStr + "_" + targetYear + ".pdf");
         fileChooser.getExtensionFilters().add(
                 new javafx.stage.FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
-        
+
         java.io.File file = fileChooser.showSaveDialog(owner);
-        if (file == null) return;
-        
+        if (file == null)
+            return;
+
         try {
             com.itextpdf.kernel.pdf.PdfWriter writer = new com.itextpdf.kernel.pdf.PdfWriter(file);
             com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
             com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf);
-            
+
             com.itextpdf.kernel.font.PdfFont font = util.PDFFontHelper.createVietnameseFont();
             com.itextpdf.kernel.font.PdfFont boldFont = util.PDFFontHelper.createVietnameseFont(true);
-            
+
             // Header company info
             document.add(new com.itextpdf.layout.element.Paragraph("CÔNG TY TNHH TM DV PHỤ TÙNG Ô TÔ MINH TÂM")
                     .setFont(boldFont).setFontSize(13)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            document.add(new com.itextpdf.layout.element.Paragraph("Ngã tư Trương Định và An Dương Vương, P. Nghĩa Lộ, tỉnh Quảng Ngãi")
+            document.add(new com.itextpdf.layout.element.Paragraph(
+                    "Ngã tư Trương Định và An Dương Vương, P. Nghĩa Lộ, tỉnh Quảng Ngãi")
                     .setFont(font).setFontSize(9)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            
-            String titleText = targetMonth > 0 ? "BÁO CÁO CHI TIẾT CÔNG NỢ THÁNG " + targetMonth + "/" + targetYear : "BÁO CÁO CHI TIẾT CÔNG NỢ NĂM " + targetYear;
+
+            String titleText = targetMonth > 0 ? "BÁO CÁO CHI TIẾT CÔNG NỢ THÁNG " + targetMonth + "/" + targetYear
+                    : "BÁO CÁO CHI TIẾT CÔNG NỢ NĂM " + targetYear;
             document.add(new com.itextpdf.layout.element.Paragraph(titleText)
                     .setFont(boldFont).setFontSize(15)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
                     .setMarginTop(12));
             document.add(new com.itextpdf.layout.element.Paragraph("\n"));
-            
-            // Table definition: STT, Mã HĐ, Ngày tạo, Khách hàng, SĐT, Biển số, Tiền nợ, PTTT, Ghi chú
-            float[] colWidths = {30, 45, 65, 95, 70, 60, 75, 40, 80};
+
+            // Table definition: STT, Mã HĐ, Ngày tạo, Khách hàng, SĐT, Biển số, Tiền nợ,
+            // PTTT, Ghi chú
+            float[] colWidths = { 30, 45, 65, 95, 70, 60, 75, 40, 80 };
             com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(colWidths);
             table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
-            
+
             java.util.function.Function<String, com.itextpdf.layout.element.Cell> makeHeaderCell = text -> {
                 return new com.itextpdf.layout.element.Cell()
-                    .add(new com.itextpdf.layout.element.Paragraph(text).setFont(boldFont).setFontSize(9))
-                    .setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(255, 205, 210)) // light red
-                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                    .setPadding(4)
-                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+                        .add(new com.itextpdf.layout.element.Paragraph(text).setFont(boldFont).setFontSize(9))
+                        .setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(255, 205, 210)) // light red
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                        .setPadding(4)
+                        .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
             };
-            
+
             table.addHeaderCell(makeHeaderCell.apply("STT"));
             table.addHeaderCell(makeHeaderCell.apply("Mã HĐ"));
             table.addHeaderCell(makeHeaderCell.apply("Ngày tạo"));
@@ -1255,56 +1376,67 @@ public class ReportHelper {
             table.addHeaderCell(makeHeaderCell.apply("Tiền nợ (đ)"));
             table.addHeaderCell(makeHeaderCell.apply("PTTT"));
             table.addHeaderCell(makeHeaderCell.apply("Ghi chú"));
-            
+
             int stt = 1;
             double totalDebt = 0.0;
             for (model.Invoice inv : rows) {
-                java.util.function.BiConsumer<String, com.itextpdf.layout.properties.TextAlignment> addRowCell = (text, align) -> {
+                java.util.function.BiConsumer<String, com.itextpdf.layout.properties.TextAlignment> addRowCell = (text,
+                        align) -> {
                     com.itextpdf.layout.element.Cell cell = new com.itextpdf.layout.element.Cell()
-                        .add(new com.itextpdf.layout.element.Paragraph(text != null ? text : "").setFont(font).setFontSize(8))
-                        .setPadding(4)
-                        .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+                            .add(new com.itextpdf.layout.element.Paragraph(text != null ? text : "").setFont(font)
+                                    .setFontSize(8))
+                            .setPadding(4)
+                            .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
                     if (align != null) {
                         cell.setTextAlignment(align);
                     }
                     table.addCell(cell);
                 };
-                
+
                 addRowCell.accept(String.valueOf(stt++), com.itextpdf.layout.properties.TextAlignment.CENTER);
-                addRowCell.accept(String.format("%05d", inv.getId()), com.itextpdf.layout.properties.TextAlignment.CENTER);
-                addRowCell.accept(inv.getCreatedAt() != null ? inv.getCreatedAt().substring(0, 16) : "", com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addRowCell.accept(String.format("%05d", inv.getId()),
+                        com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addRowCell.accept(inv.getCreatedAt() != null ? inv.getCreatedAt().substring(0, 16) : "",
+                        com.itextpdf.layout.properties.TextAlignment.CENTER);
                 addRowCell.accept(inv.getCustomerName(), com.itextpdf.layout.properties.TextAlignment.LEFT);
-                addRowCell.accept(inv.getPhone() != null ? inv.getPhone() : "", com.itextpdf.layout.properties.TextAlignment.CENTER);
-                addRowCell.accept(inv.getLicensePlate() != null ? inv.getLicensePlate() : "", com.itextpdf.layout.properties.TextAlignment.CENTER);
-                addRowCell.accept(String.format("%,.0f", inv.getTotalAmount()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
-                addRowCell.accept(inv.getPaymentMethod() != null ? inv.getPaymentMethod() : "", com.itextpdf.layout.properties.TextAlignment.CENTER);
-                addRowCell.accept(inv.getNotes() != null ? inv.getNotes() : "", com.itextpdf.layout.properties.TextAlignment.LEFT);
-                
+                addRowCell.accept(inv.getPhone() != null ? inv.getPhone() : "",
+                        com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addRowCell.accept(inv.getLicensePlate() != null ? inv.getLicensePlate() : "",
+                        com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addRowCell.accept(String.format("%,.0f", inv.getTotalAmount()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(inv.getPaymentMethod() != null ? inv.getPaymentMethod() : "",
+                        com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addRowCell.accept(inv.getNotes() != null ? inv.getNotes() : "",
+                        com.itextpdf.layout.properties.TextAlignment.LEFT);
+
                 totalDebt += inv.getTotalAmount();
             }
-            
+
             // Add total cell row
             com.itextpdf.layout.element.Cell totalLabelCell = new com.itextpdf.layout.element.Cell(1, 6)
-                .add(new com.itextpdf.layout.element.Paragraph("TỔNG CỘNG TIỀN NỢ:").setFont(boldFont).setFontSize(9))
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
-                .setPadding(4);
+                    .add(new com.itextpdf.layout.element.Paragraph("TỔNG CỘNG TIỀN NỢ:").setFont(boldFont)
+                            .setFontSize(9))
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
+                    .setPadding(4);
             table.addCell(totalLabelCell);
-            
+
             com.itextpdf.layout.element.Cell totalValueCell = new com.itextpdf.layout.element.Cell(1, 3)
-                .add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f đ", totalDebt)).setFont(boldFont).setFontSize(9))
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.LEFT)
-                .setPadding(4);
+                    .add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f đ", totalDebt))
+                            .setFont(boldFont).setFontSize(9))
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.LEFT)
+                    .setPadding(4);
             table.addCell(totalValueCell);
-            
+
             document.add(table);
             document.close();
-            
+
             javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
                     javafx.scene.control.Alert.AlertType.INFORMATION,
                     "Thành công",
                     "Xuất báo cáo công nợ PDF thành công!\nĐã lưu tại: " + file.getAbsolutePath());
             alert.showAndWait();
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             javafx.scene.control.Alert alert = util.AlertHelper.createAlert(

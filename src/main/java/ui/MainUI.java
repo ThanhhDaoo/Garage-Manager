@@ -726,7 +726,7 @@ public class MainUI extends Application {
         // Table header
         HBox tableHeader = new HBox(0);
         tableHeader.setAlignment(Pos.CENTER_LEFT);
-        tableHeader.setPadding(new Insets(12, 0, 12, 0));
+        tableHeader.setPadding(new Insets(12, 16, 12, 0));
         tableHeader.setStyle(
             "-fx-background-color: #F9FAFB;" +
             "-fx-border-color: #f3f4f6;" +
@@ -782,9 +782,9 @@ public class MainUI extends Application {
         hTrangThai.setAlignment(Pos.CENTER);
         
         Label hThaoTac = new Label("Thao Tác");
-        hThaoTac.setPrefWidth(150);
-        hThaoTac.setMinWidth(150);
-        hThaoTac.setMaxWidth(150);
+        hThaoTac.setPrefWidth(180);
+        hThaoTac.setMinWidth(180);
+        hThaoTac.setMaxWidth(180);
         hThaoTac.setPadding(new Insets(0, 5, 0, 5));
         hThaoTac.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hThaoTac.setAlignment(Pos.CENTER);
@@ -798,6 +798,7 @@ public class MainUI extends Application {
         // Wrap invoiceTableRows in ScrollPane for scrolling
         ScrollPane scrollPane = new ScrollPane(invoiceTableRows);
         scrollPane.setFitToWidth(true);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
         scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         
@@ -847,11 +848,15 @@ public class MainUI extends Application {
             tableRows.getChildren().add(emptyState);
         } else {
             for (Invoice invoice : invoices) {
+                boolean isCK = "CK".equalsIgnoreCase(invoice.getPaymentMethod());
+                double subtotal = invoice.getTotalBeforeDiscount() - invoice.getDiscount();
+                double displayTotal = isCK ? subtotal * 1.08 : subtotal;
+                
                 tableRows.getChildren().add(createInvoiceRow(
                     invoice.getId(),
                     invoice.getCustomerName(),
                     "Dịch vụ",
-                    String.format("%.0f đ", invoice.getTotalAmount()),
+                    String.format("%.0f đ", displayTotal),
                     invoice.getStatus(),
                     invoice.getNotes(),
                     tableRows
@@ -936,9 +941,9 @@ public class MainUI extends Application {
         
         HBox actions = new HBox(6);
         actions.setAlignment(Pos.CENTER);
-        actions.setPrefWidth(150);
-        actions.setMinWidth(150);
-        actions.setMaxWidth(150);
+        actions.setPrefWidth(180);
+        actions.setMinWidth(180);
+        actions.setMaxWidth(180);
         actions.setPadding(new Insets(12, 5, 12, 5));
         
         Button btnPDF = new Button("Xuất");
@@ -947,10 +952,15 @@ public class MainUI extends Application {
             "-fx-text-fill: white;" +
             "-fx-font-size: 13px;" +
             "-fx-font-weight: 600;" +
-            "-fx-padding: 10px 18px;" +
+            "-fx-padding: 0 12px;" +
             "-fx-background-radius: 6;" +
             "-fx-cursor: hand;" +
-            "-fx-min-width: 60;"
+            "-fx-pref-height: 32;" +
+            "-fx-min-height: 32;" +
+            "-fx-max-height: 32;" +
+            "-fx-min-width: 55;" +
+            "-fx-pref-width: 55;" +
+            "-fx-max-width: 55;"
         );
         btnPDF.setOnAction(e -> {
             InvoiceService invoiceService = new InvoiceService();
@@ -965,14 +975,42 @@ public class MainUI extends Application {
             "-fx-background-color: #E3F2FD;" +
             "-fx-text-fill: #2196F3;" +
             "-fx-font-size: 12px;" +
-            "-fx-padding: 8px 10px;" +
             "-fx-background-radius: 6;" +
             "-fx-cursor: hand;" +
+            "-fx-pref-width: 32;" +
+            "-fx-pref-height: 32;" +
             "-fx-min-width: 32;" +
-            "-fx-min-height: 32;"
+            "-fx-min-height: 32;" +
+            "-fx-max-width: 32;" +
+            "-fx-max-height: 32;" +
+            "-fx-padding: 0;"
         );
         btnView.setOnAction(e -> {
             showInvoiceDetail(id, tableRows);
+        });
+
+        Button btnEdit = new Button("✏");
+        btnEdit.setStyle(
+            "-fx-background-color: #FFF3E0;" +
+            "-fx-text-fill: #E65100;" +
+            "-fx-font-size: 12px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-pref-width: 32;" +
+            "-fx-pref-height: 32;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;" +
+            "-fx-max-width: 32;" +
+            "-fx-max-height: 32;" +
+            "-fx-padding: 0;"
+        );
+        btnEdit.setOnAction(e -> {
+            InvoiceService invoiceService = new InvoiceService();
+            Invoice invoice = invoiceService.getInvoiceById(id);
+            if (invoice != null) {
+                CreateInvoiceForm form = new CreateInvoiceForm(() -> refreshInvoiceTable(tableRows), invoice);
+                form.show();
+            }
         });
         
         Button btnDelete = new Button("🗑");
@@ -980,11 +1018,15 @@ public class MainUI extends Application {
             "-fx-background-color: #FFEBEE;" +
             "-fx-text-fill: #f44336;" +
             "-fx-font-size: 12px;" +
-            "-fx-padding: 8px 10px;" +
             "-fx-background-radius: 6;" +
             "-fx-cursor: hand;" +
+            "-fx-pref-width: 32;" +
+            "-fx-pref-height: 32;" +
             "-fx-min-width: 32;" +
-            "-fx-min-height: 32;"
+            "-fx-min-height: 32;" +
+            "-fx-max-width: 32;" +
+            "-fx-max-height: 32;" +
+            "-fx-padding: 0;"
         );
         btnDelete.setOnAction(e -> {
             showDeleteConfirmation("hóa đơn", "HĐ #" + String.format("%05d", id), () -> {
@@ -997,7 +1039,7 @@ public class MainUI extends Application {
             });
         });
         
-        actions.getChildren().addAll(btnPDF, btnView, btnDelete);
+        actions.getChildren().addAll(btnPDF, btnView, btnEdit, btnDelete);
         
         row.getChildren().addAll(lblId, lblCustomer, lblService, lblNotes, lblTotal, lblStatus, actions);
         HBox.setHgrow(lblNotes, Priority.ALWAYS);
@@ -1126,7 +1168,7 @@ public class MainUI extends Application {
         // Table header with fixed widths
         HBox tableHeader = new HBox(0);
         tableHeader.setAlignment(Pos.CENTER_LEFT);
-        tableHeader.setPadding(new Insets(12, 0, 12, 0));
+        tableHeader.setPadding(new Insets(12, 16, 12, 0));
         tableHeader.setStyle(
             "-fx-background-color: #F9FAFB;" +
             "-fx-border-color: #f3f4f6;" +
@@ -1213,6 +1255,7 @@ public class MainUI extends Application {
         // Wrap tableRows in ScrollPane for scrolling
         ScrollPane scrollPane = new ScrollPane(tableRows);
         scrollPane.setFitToWidth(true);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
         scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         
@@ -1542,7 +1585,7 @@ public class MainUI extends Application {
         // Table header
         HBox tableHeader = new HBox(0);
         tableHeader.setAlignment(Pos.CENTER_LEFT);
-        tableHeader.setPadding(new Insets(12, 0, 12, 0));
+        tableHeader.setPadding(new Insets(12, 16, 12, 0));
         tableHeader.setStyle(
             "-fx-background-color: #F9FAFB;" +
             "-fx-border-color: #f3f4f6;" +
@@ -1601,6 +1644,7 @@ public class MainUI extends Application {
         // Wrap tableRows in ScrollPane for scrolling
         ScrollPane scrollPane = new ScrollPane(tableRows);
         scrollPane.setFitToWidth(true);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
         scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         
@@ -1797,7 +1841,7 @@ public class MainUI extends Application {
         // Table header
         HBox tableHeader = new HBox(0);
         tableHeader.setAlignment(Pos.CENTER_LEFT);
-        tableHeader.setPadding(new Insets(12, 0, 12, 0));
+        tableHeader.setPadding(new Insets(12, 16, 12, 0));
         tableHeader.setStyle(
             "-fx-background-color: #F9FAFB;" +
             "-fx-border-color: #f3f4f6;" +
@@ -1856,6 +1900,7 @@ public class MainUI extends Application {
         // Wrap tableRows in ScrollPane for scrolling
         ScrollPane scrollPane = new ScrollPane(tableRows);
         scrollPane.setFitToWidth(true);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
         scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         
@@ -2317,6 +2362,11 @@ public class MainUI extends Application {
         // Chi Phí (Sub-columns)
         TableColumn<model.DailyReportRow, Double> cpParent = new TableColumn<>("CHI PHÍ (VNĐ)");
 
+        TableColumn<model.DailyReportRow, Double> cpWash = new TableColumn<>("Phí rửa xe");
+        cpWash.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("costWash"));
+        cpWash.setPrefWidth(75);
+        formatCurrencyColumn(cpWash);
+
         TableColumn<model.DailyReportRow, Double> cpCare = new TableColumn<>("Phí chăm sóc");
         cpCare.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("costCare"));
         cpCare.setPrefWidth(85);
@@ -2332,10 +2382,15 @@ public class MainUI extends Application {
         cpPaint.setPrefWidth(75);
         formatCurrencyColumn(cpPaint);
 
-        cpParent.getColumns().addAll(cpCare, cpAcc, cpPaint);
+        cpParent.getColumns().addAll(cpWash, cpCare, cpAcc, cpPaint);
 
         // Lợi Nhuận (Sub-columns)
         TableColumn<model.DailyReportRow, Double> lnParent = new TableColumn<>("LỢI NHUẬN (VNĐ)");
+
+        TableColumn<model.DailyReportRow, Double> lnWash = new TableColumn<>("LN rửa xe");
+        lnWash.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("profitWash"));
+        lnWash.setPrefWidth(75);
+        formatCurrencyColumn(lnWash);
 
         TableColumn<model.DailyReportRow, Double> lnCare = new TableColumn<>("LN chăm sóc");
         lnCare.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("profitCare"));
@@ -2352,13 +2407,18 @@ public class MainUI extends Application {
         lnPaint.setPrefWidth(75);
         formatCurrencyColumn(lnPaint);
 
-        lnParent.getColumns().addAll(lnCare, lnAcc, lnPaint);
+        lnParent.getColumns().addAll(lnWash, lnCare, lnAcc, lnPaint);
+
+        TableColumn<model.DailyReportRow, Double> colVat = new TableColumn<>("VAT");
+        colVat.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("vat"));
+        colVat.setPrefWidth(80);
+        formatCurrencyColumn(colVat);
 
         TableColumn<model.DailyReportRow, String> colNotes = new TableColumn<>("Ghi chú");
         colNotes.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("notes"));
         colNotes.setPrefWidth(120);
 
-        tableReport.getColumns().addAll(colStt, colDate, colPlate, colServices, dtParent, colTotal, colMethod, cpParent, lnParent, colNotes);
+        tableReport.getColumns().addAll(colStt, colDate, colPlate, colServices, dtParent, colTotal, colVat, colMethod, cpParent, lnParent, colNotes);
 
         // Action to load data
         Runnable loadDailyData = () -> {
@@ -2528,6 +2588,11 @@ public class MainUI extends Application {
         // Lợi nhuận (Sub-columns)
         TableColumn<model.YearlyReportRow, Double> lnParentY = new TableColumn<>("LỢI NHUẬN (VNĐ)");
 
+        TableColumn<model.YearlyReportRow, Double> lnWashY = new TableColumn<>("LN rửa xe");
+        lnWashY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("profitWash"));
+        lnWashY.setPrefWidth(100);
+        formatCurrencyColumnYearly(lnWashY);
+
         TableColumn<model.DailyReportRow, Double> lnCareY_raw = new TableColumn<>("LN chăm sóc");
         TableColumn<model.YearlyReportRow, Double> lnCareY = (TableColumn<model.YearlyReportRow, Double>)(Object)lnCareY_raw;
         lnCareY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("profitCare"));
@@ -2546,7 +2611,7 @@ public class MainUI extends Application {
         lnPaintY.setPrefWidth(100);
         formatCurrencyColumnYearly(lnPaintY);
 
-        lnParentY.getColumns().addAll(lnCareY, lnAccY, lnPaintY);
+        lnParentY.getColumns().addAll(lnWashY, lnCareY, lnAccY, lnPaintY);
 
         // Chi phí & Lợi nhuận ròng
         TableColumn<model.DailyReportRow, Double> colVarCostY_raw = new TableColumn<>("Chi phí biến thiên");
@@ -2567,7 +2632,12 @@ public class MainUI extends Application {
         colNetProfitY.setPrefWidth(130);
         formatCurrencyColumnYearly(colNetProfitY);
 
-        tableYearly.getColumns().addAll(colYearlyMonth, dtParentY, colTotalY, lnParentY, colVarCostY, colFixedCostY, colNetProfitY);
+        TableColumn<model.YearlyReportRow, Double> colVatY = new TableColumn<>("Tổng VAT");
+        colVatY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("vat"));
+        colVatY.setPrefWidth(100);
+        formatCurrencyColumnYearly(colVatY);
+
+        tableYearly.getColumns().addAll(colYearlyMonth, dtParentY, colTotalY, colVatY, lnParentY, colVarCostY, colFixedCostY, colNetProfitY);
 
         // Action to load yearly data
         Runnable loadYearlyData = () -> {
@@ -2580,8 +2650,10 @@ public class MainUI extends Application {
             java.util.List<model.YearlyReportRow> rows = new java.util.ArrayList<>();
             
             double totalWashAll = 0, totalCareAll = 0, totalAccAll = 0, totalPaintAll = 0, totalRevenueAll = 0;
+            double costWashAll = 0, profitWashAll = 0;
             double profitCareAll = 0, profitAccAll = 0, profitPaintAll = 0;
             double varCostAll = 0, fixedCostAll = 0, netProfitAll = 0;
+            double totalVatAll = 0;
 
             for (int m = 1; m <= 12; m++) {
                 String monthKey = String.format("%02d", m);
@@ -2592,18 +2664,28 @@ public class MainUI extends Application {
                     .collect(java.util.stream.Collectors.toList());
                 
                 double mWash = 0, mCare = 0, mAcc = 0, mPaint = 0;
+                double costWash = 0, profitWash = 0;
                 double profitCare = 0, profitAccessory = 0, profitPaint = 0;
+                double mVat = 0;
 
                 for (Invoice inv : monthInvoices) {
+                    if ("CK".equalsIgnoreCase(inv.getPaymentMethod())) {
+                        double invVat = inv.getTotalAmount() - (inv.getTotalBeforeDiscount() - inv.getDiscount());
+                        if (invVat > 0) {
+                            mVat += invVat;
+                        }
+                    }
                     List<model.InvoiceItem> items = yearlyItemDAO.getItemsByInvoiceId(inv.getId());
                     for (model.InvoiceItem item : items) {
                         String cat = item.getCategory() != null ? item.getCategory().toLowerCase().trim() : "";
                         double price = item.getTotalPrice();
-                        double cost = item.getCostPrice();
+                        double cost = item.getCostPrice() * item.getQuantity();
                         double itemProfit = price - cost;
 
                         if (cat.contains("rửa") || cat.contains("rua")) {
                             mWash += price;
+                            costWash += cost;
+                            profitWash += itemProfit;
                         } else if (cat.contains("chăm sóc") || cat.contains("cham soc")) {
                             mCare += price;
                             profitCare += itemProfit;
@@ -2622,12 +2704,14 @@ public class MainUI extends Application {
                                 profitCare += itemProfit;
                             } else {
                                 mWash += price;
+                                costWash += cost;
+                                profitWash += itemProfit;
                             }
                         }
                     }
                 }
                 
-                double mTotal = mWash + mCare + mAcc + mPaint;
+                double mTotal = mWash + mCare + mAcc + mPaint + mVat;
 
                 List<model.FixedExpense> expenses = expenseService.getAllExpensesByMonth(periodStr);
                 double varCost = expenses.stream()
@@ -2644,11 +2728,11 @@ public class MainUI extends Application {
                     .mapToDouble(model.Payroll::getNetSalary)
                     .sum();
 
-                double totalNetProfit = (mWash + profitCare + profitAccessory + profitPaint) - varCost - fixedCost - totalPayrollCost;
+                double totalNetProfit = (profitWash + profitCare + profitAccessory + profitPaint) - varCost - fixedCost - totalPayrollCost - mVat;
 
                 rows.add(new model.YearlyReportRow(
                     "Tháng " + m, mWash, mCare, mAcc, mPaint,
-                    mTotal, profitCare, profitAccessory, profitPaint,
+                    mTotal, mVat, costWash, profitWash, profitCare, profitAccessory, profitPaint,
                     varCost, fixedCost, totalNetProfit
                 ));
 
@@ -2657,6 +2741,9 @@ public class MainUI extends Application {
                 totalAccAll += mAcc;
                 totalPaintAll += mPaint;
                 totalRevenueAll += mTotal;
+                totalVatAll += mVat;
+                costWashAll += costWash;
+                profitWashAll += profitWash;
                 profitCareAll += profitCare;
                 profitAccAll += profitAccessory;
                 profitPaintAll += profitPaint;
@@ -2667,7 +2754,7 @@ public class MainUI extends Application {
 
             rows.add(new model.YearlyReportRow(
                 "TỔNG CỘNG", totalWashAll, totalCareAll, totalAccAll, totalPaintAll,
-                totalRevenueAll, profitCareAll, profitAccAll, profitPaintAll,
+                totalRevenueAll, totalVatAll, costWashAll, profitWashAll, profitCareAll, profitAccAll, profitPaintAll,
                 varCostAll, fixedCostAll, netProfitAll
             ));
 
@@ -2692,6 +2779,440 @@ public class MainUI extends Application {
 
         tab3Content.getChildren().addAll(yearlyFilters, tableYearly);
 
+        // --- TAB 4: Quản Lý Công Nợ ---
+        VBox tab4Content = new VBox(20);
+        tab4Content.setPadding(new Insets(20));
+
+        // Filters for Debt Report
+        HBox debtFilters = new HBox(15);
+        debtFilters.setAlignment(Pos.CENTER_LEFT);
+        debtFilters.setPadding(new Insets(15));
+        debtFilters.setStyle(
+            "-fx-background-color: #f9fafb;" +
+            "-fx-background-radius: 10;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 10;"
+        );
+
+        Label lblDebtMonth = new Label("Tháng:");
+        lblDebtMonth.setStyle("-fx-font-size: 14px; -fx-font-weight: 500;");
+        ComboBox<String> cbDebtMonth = new ComboBox<>();
+        cbDebtMonth.getItems().add("Tất cả các tháng");
+        for (int m = 1; m <= 12; m++) cbDebtMonth.getItems().add("Tháng " + m);
+        cbDebtMonth.setValue("Tháng " + LocalDate.now().getMonthValue());
+        cbDebtMonth.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 6;" +
+            "-fx-border-color: #dcdcdc;" +
+            "-fx-border-radius: 6;" +
+            "-fx-pref-height: 36px;" +
+            "-fx-font-size: 13px;"
+        );
+
+        Label lblDebtYear = new Label("Năm:");
+        lblDebtYear.setStyle("-fx-font-size: 14px; -fx-font-weight: 500;");
+        ComboBox<String> cbDebtYear = new ComboBox<>();
+        cbDebtYear.getItems().addAll(getAvailableYears());
+        String curDebtYearStr = String.valueOf(LocalDate.now().getYear());
+        if (!cbDebtYear.getItems().contains(curDebtYearStr)) {
+            cbDebtYear.getItems().add(curDebtYearStr);
+        }
+        cbDebtYear.setValue(curDebtYearStr);
+        cbDebtYear.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 6;" +
+            "-fx-border-color: #dcdcdc;" +
+            "-fx-border-radius: 6;" +
+            "-fx-pref-height: 36px;" +
+            "-fx-font-size: 13px;"
+        );
+
+        Button btnFilterDebt = new Button("🔍 Lọc Công Nợ");
+        btnFilterDebt.setStyle(
+            "-fx-background-color: #4CAF50;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        Region debtSpacer = new Region();
+        HBox.setHgrow(debtSpacer, Priority.ALWAYS);
+
+        Button btnExcelExportDebt = new Button("📥 Xuất Excel");
+        btnExcelExportDebt.setStyle(
+            "-fx-background-color: #4CAF50;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        Button btnPdfExportDebt = new Button("📥 Xuất PDF");
+        btnPdfExportDebt.setStyle(
+            "-fx-background-color: #2196F3;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 13px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        debtFilters.getChildren().addAll(lblDebtMonth, cbDebtMonth, lblDebtYear, cbDebtYear, btnFilterDebt, debtSpacer, btnExcelExportDebt, btnPdfExportDebt);
+
+        // Stats Cards Bar for Debt
+        HBox debtStatsBar = new HBox(20);
+        debtStatsBar.setPadding(new Insets(10, 0, 10, 0));
+        
+        VBox cardCount = new VBox(5);
+        cardCount.setPrefWidth(220);
+        cardCount.setPadding(new Insets(15));
+        cardCount.setStyle("-fx-background-color: #FFF3E0; -fx-background-radius: 10; -fx-border-color: #FFE0B2; -fx-border-width: 1;");
+        Label lblCountTitle = new Label("Tổng Số Hóa Đơn Nợ");
+        lblCountTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #E65100; -fx-font-weight: bold;");
+        Label lblCountVal = new Label("0");
+        lblCountVal.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #E65100;");
+        cardCount.getChildren().addAll(lblCountTitle, lblCountVal);
+        
+        VBox cardAmount = new VBox(5);
+        cardAmount.setPrefWidth(260);
+        cardAmount.setPadding(new Insets(15));
+        cardAmount.setStyle("-fx-background-color: #FFEBEE; -fx-background-radius: 10; -fx-border-color: #FFCDD2; -fx-border-width: 1;");
+        Label lblAmountTitle = new Label("Tổng Tiền Nợ Chưa Thu");
+        lblAmountTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #C62828; -fx-font-weight: bold;");
+        Label lblAmountVal = new Label("0 đ");
+        lblAmountVal.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #C62828;");
+        cardAmount.getChildren().addAll(lblAmountTitle, lblAmountVal);
+        
+        debtStatsBar.getChildren().addAll(cardCount, cardAmount);
+
+        // Debt TableView
+        TableView<DebtRow> tableDebt = new TableView<>();
+        tableDebt.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        tableDebt.setStyle("-fx-font-size: 12px;");
+        VBox.setVgrow(tableDebt, Priority.ALWAYS);
+
+        // Columns definition
+        TableColumn<DebtRow, Integer> colDebtStt = new TableColumn<>("STT");
+        colDebtStt.setMaxWidth(40);
+        colDebtStt.setMinWidth(40);
+        colDebtStt.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) setText(null);
+                else setText(String.valueOf(getIndex() + 1));
+            }
+        });
+
+        TableColumn<DebtRow, Integer> colDebtId = new TableColumn<>("Mã HĐ");
+        colDebtId.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("id"));
+        colDebtId.setPrefWidth(60);
+        colDebtId.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) setText(null);
+                else setText(String.format("%05d", item));
+            }
+        });
+
+        TableColumn<DebtRow, String> colDebtDate = new TableColumn<>("Ngày Tạo");
+        colDebtDate.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("dateStr"));
+        colDebtDate.setPrefWidth(120);
+
+        TableColumn<DebtRow, String> colDebtCustomer = new TableColumn<>("Khách Hàng");
+        colDebtCustomer.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("customerName"));
+        colDebtCustomer.setPrefWidth(140);
+
+        TableColumn<DebtRow, String> colDebtPhone = new TableColumn<>("Số Điện Thoại");
+        colDebtPhone.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("phone"));
+        colDebtPhone.setPrefWidth(100);
+
+        TableColumn<DebtRow, String> colDebtPlate = new TableColumn<>("Biển Số Xe");
+        colDebtPlate.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("licensePlate"));
+        colDebtPlate.setPrefWidth(90);
+
+        TableColumn<DebtRow, String> colDebtServices = new TableColumn<>("Nội Dung Dịch Vụ");
+        colDebtServices.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("servicesSummary"));
+        colDebtServices.setPrefWidth(220);
+
+        TableColumn<DebtRow, Double> colDebtAmount = new TableColumn<>("Tiền Nợ");
+        colDebtAmount.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("amount"));
+        colDebtAmount.setPrefWidth(110);
+        colDebtAmount.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f đ", item));
+                    setStyle("-fx-text-fill: #e53935; -fx-font-weight: bold; -fx-alignment: center-right;");
+                }
+            }
+        });
+
+        TableColumn<DebtRow, String> colDebtMethod = new TableColumn<>("PTTT");
+        colDebtMethod.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("paymentMethod"));
+        colDebtMethod.setPrefWidth(60);
+
+        TableColumn<DebtRow, String> colDebtNotes = new TableColumn<>("Ghi Chú");
+        colDebtNotes.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("notes"));
+        colDebtNotes.setPrefWidth(120);
+
+        TableColumn<DebtRow, Void> colDebtActions = new TableColumn<>("Thao Tác");
+        colDebtActions.setPrefWidth(100);
+        colDebtActions.setCellFactory(col -> new TableCell<>() {
+            private final Button btnCollect = new Button("Thu Nợ");
+            {
+                btnCollect.setStyle(
+                    "-fx-background-color: #E8F5E9;" +
+                    "-fx-text-fill: #2E7D32;" +
+                    "-fx-font-size: 11px;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-padding: 6px 12px;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-cursor: hand;"
+                );
+                btnCollect.setOnAction(e -> {
+                    DebtRow rowData = getTableView().getItems().get(getIndex());
+                    model.Invoice inv = rowData.getInvoice();
+                    
+                    Stage confirmStage = new Stage();
+                    confirmStage.initModality(Modality.APPLICATION_MODAL);
+                    confirmStage.setTitle("Thu Nợ Hóa Đơn #" + String.format("%05d", inv.getId()));
+                    
+                    VBox dRoot = new VBox(20);
+                    dRoot.setPadding(new Insets(25));
+                    dRoot.setStyle("-fx-background-color: white; -fx-font-family: 'Times New Roman';");
+                    
+                    Label title = new Label("💸 THU HỒI CÔNG NỢ");
+                    title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1976D2;");
+                    
+                    // Info Panel
+                    VBox infoBox = new VBox(8);
+                    infoBox.setPadding(new Insets(15));
+                    infoBox.setStyle("-fx-background-color: #E3F2FD; -fx-background-radius: 8; -fx-border-color: #BBDEFB; -fx-border-width: 1;");
+                    
+                    Label lblInvoice = new Label("Mã hóa đơn: HĐ #" + String.format("%05d", inv.getId()));
+                    lblInvoice.setStyle("-fx-font-size: 13px; -fx-text-fill: #555555; -fx-font-weight: bold;");
+                    
+                    Label lblCust = new Label("Khách hàng: " + inv.getCustomerName());
+                    lblCust.setStyle("-fx-font-size: 13px; -fx-text-fill: #555555; -fx-font-weight: bold;");
+                    
+                    Label lblAmt = new Label("Số tiền nợ: " + String.format("%,.0f đ", inv.getTotalAmount()));
+                    lblAmt.setStyle("-fx-font-size: 16px; -fx-text-fill: #e53935; -fx-font-weight: bold;");
+                    
+                    infoBox.getChildren().addAll(lblInvoice, lblCust, lblAmt);
+                    
+                    // Payment Method Selection
+                    VBox methodBox = new VBox(6);
+                    Label lblMethod = new Label("Chọn phương thức thanh toán thực tế *:");
+                    lblMethod.setStyle("-fx-font-weight: bold; -fx-text-fill: #374151; -fx-font-size: 13px;");
+                    
+                    ComboBox<String> cbMethods = new ComboBox<>();
+                    cbMethods.getItems().addAll("💵 Tiền mặt (TM)", "💳 Chuyển khoản (CK)");
+                    cbMethods.setValue("💵 Tiền mặt (TM)");
+                    cbMethods.setStyle(
+                        "-fx-background-color: #f9fafb;" +
+                        "-fx-border-color: #d1d5db;" +
+                        "-fx-border-radius: 6;" +
+                        "-fx-background-radius: 6;" +
+                        "-fx-padding: 6px 10px;" +
+                        "-fx-font-size: 13px;" +
+                        "-fx-pref-width: 320px;"
+                    );
+                    methodBox.getChildren().addAll(lblMethod, cbMethods);
+                    
+                    // Action Buttons
+                    HBox btnBox = new HBox(12);
+                    btnBox.setAlignment(Pos.CENTER_RIGHT);
+                    
+                    Button btnCancel = new Button("Quay lại");
+                    btnCancel.setStyle(
+                        "-fx-background-color: #e5e7eb;" +
+                        "-fx-text-fill: #4b5563;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-padding: 10px 20px;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-font-size: 13px;"
+                    );
+                    btnCancel.setOnMouseEntered(ev -> btnCancel.setStyle(
+                        "-fx-background-color: #d1d5db;" +
+                        "-fx-text-fill: #4b5563;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-padding: 10px 20px;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-font-size: 13px;"
+                    ));
+                    btnCancel.setOnMouseExited(ev -> btnCancel.setStyle(
+                        "-fx-background-color: #e5e7eb;" +
+                        "-fx-text-fill: #4b5563;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-padding: 10px 20px;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-font-size: 13px;"
+                    ));
+                    btnCancel.setOnAction(ev -> confirmStage.close());
+                    
+                    Button btnConfirm = new Button("Xác Nhận Thu");
+                    btnConfirm.setStyle(
+                        "-fx-background-color: #2196F3;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-padding: 10px 24px;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-font-size: 13px;"
+                    );
+                    btnConfirm.setOnMouseEntered(ev -> btnConfirm.setStyle(
+                        "-fx-background-color: #1976D2;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-padding: 10px 24px;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-font-size: 13px;"
+                    ));
+                    btnConfirm.setOnMouseExited(ev -> btnConfirm.setStyle(
+                        "-fx-background-color: #2196F3;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-padding: 10px 24px;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-font-size: 13px;"
+                    ));
+                    btnConfirm.setOnAction(ev -> {
+                        String finalMethod = cbMethods.getValue().contains("CK") ? "CK" : "TM";
+                        inv.setStatus("paid");
+                        inv.setPaymentMethod(finalMethod);
+                        double net = inv.getTotalBeforeDiscount() - inv.getDiscount();
+                        inv.setTotalAmount("CK".equals(finalMethod) ? net * 1.08 : net);
+                        if (new service.InvoiceService().updateInvoice(inv)) {
+                            showSuccessAlert("Thành công", "Đã ghi nhận thanh toán công nợ thành công!");
+                            confirmStage.close();
+                            btnFilterDebt.fire(); // Reload table
+                            refreshInvoiceTable(invoiceTableRows); // Refresh invoices main list if open
+                        } else {
+                            showErrorAlert("Lỗi", "Không thể cập nhật hóa đơn!");
+                        }
+                    });
+                    
+                    btnBox.getChildren().addAll(btnCancel, btnConfirm);
+                    dRoot.getChildren().addAll(title, infoBox, methodBox, btnBox);
+                    
+                    Scene dScene = new Scene(dRoot, 360, 340);
+                    try {
+                        String css = getClass().getResource("/global-styles.css").toExternalForm();
+                        dScene.getStylesheets().add(css);
+                    } catch (Exception ex) {}
+                    confirmStage.setScene(dScene);
+                    confirmStage.showAndWait();
+                });
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(btnCollect);
+                }
+            }
+        });
+
+        tableDebt.getColumns().addAll(colDebtStt, colDebtId, colDebtDate, colDebtCustomer, colDebtPhone, colDebtPlate, colDebtServices, colDebtAmount, colDebtMethod, colDebtNotes, colDebtActions);
+
+        // Load data runnable for Debt
+        Runnable loadDebtData = () -> {
+            String selectedMonth = cbDebtMonth.getValue();
+            String selectedYear = cbDebtYear.getValue();
+            
+            List<Invoice> invoices = new InvoiceService().getAllInvoices();
+            dao.InvoiceItemDAO itemDAO = new dao.InvoiceItemDAO();
+            
+            List<DebtRow> rows = new java.util.ArrayList<>();
+            double totalDebtSum = 0.0;
+            
+            for (Invoice inv : invoices) {
+                // Filter only unpaid/debt status
+                if (!inv.getStatus().equals("nhap")) {
+                    continue;
+                }
+                
+                // Filter date range
+                if (inv.getCreatedAt() == null || inv.getCreatedAt().length() < 10) continue;
+                try {
+                    LocalDate d = LocalDate.parse(inv.getCreatedAt().substring(0, 10));
+                    boolean yearMatch = String.valueOf(d.getYear()).equals(selectedYear);
+                    boolean monthMatch = selectedMonth.equals("Tất cả các tháng") || 
+                                         selectedMonth.equals("Tháng " + d.getMonthValue());
+                    
+                    if (yearMatch && monthMatch) {
+                        List<model.InvoiceItem> items = itemDAO.getItemsByInvoiceId(inv.getId());
+                        String servicesSummary = items.stream()
+                            .map(model.InvoiceItem::getItemName)
+                            .collect(java.util.stream.Collectors.joining(", "));
+                        
+                        rows.add(new DebtRow(inv, inv.getCreatedAt(), servicesSummary, inv.getTotalAmount()));
+                        totalDebtSum += inv.getTotalAmount();
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+            
+            tableDebt.getItems().clear();
+            tableDebt.getItems().addAll(rows);
+            
+            lblCountVal.setText(String.valueOf(rows.size()));
+            lblAmountVal.setText(String.format("%,.0f đ", totalDebtSum));
+        };
+
+        btnFilterDebt.setOnAction(e -> loadDebtData.run());
+        cbDebtMonth.valueProperty().addListener((obs, old, newVal) -> loadDebtData.run());
+        cbDebtYear.valueProperty().addListener((obs, old, newVal) -> loadDebtData.run());
+
+        btnExcelExportDebt.setOnAction(e -> {
+            String selectedMonth = cbDebtMonth.getValue();
+            int monthInt = selectedMonth.equals("Tất cả các tháng") ? 0 : Integer.parseInt(selectedMonth.replaceAll("[^0-9]", ""));
+            int yearInt = Integer.parseInt(cbDebtYear.getValue());
+            
+            java.util.List<Invoice> currentDebtInvoices = tableDebt.getItems().stream()
+                .map(DebtRow::getInvoice)
+                .collect(java.util.stream.Collectors.toList());
+                
+            ReportHelper.exportDebtToExcel(currentDebtInvoices, monthInt, yearInt, mainLayout.getScene().getWindow());
+        });
+
+        btnPdfExportDebt.setOnAction(e -> {
+            String selectedMonth = cbDebtMonth.getValue();
+            int monthInt = selectedMonth.equals("Tất cả các tháng") ? 0 : Integer.parseInt(selectedMonth.replaceAll("[^0-9]", ""));
+            int yearInt = Integer.parseInt(cbDebtYear.getValue());
+            
+            java.util.List<Invoice> currentDebtInvoices = tableDebt.getItems().stream()
+                .map(DebtRow::getInvoice)
+                .collect(java.util.stream.Collectors.toList());
+                
+            ReportHelper.exportDebtToPDF(currentDebtInvoices, monthInt, yearInt, mainLayout.getScene().getWindow());
+        });
+
+        // Load initially
+        loadDebtData.run();
+
+        tab4Content.getChildren().addAll(debtFilters, debtStatsBar, tableDebt);
+
         // Custom Tab Bar using Rounded Flat Buttons (matching HR module)
         HBox navBar = new HBox(12);
         navBar.setAlignment(Pos.CENTER_LEFT);
@@ -2699,28 +3220,33 @@ public class MainUI extends Application {
         Button btnTabSummary = new Button("📊 Tổng Quan & Biểu Đồ");
         Button btnTabDaily = new Button("📋 Báo Số Hằng Ngày");
         Button btnTabYearly = new Button("📅 Thống Kê Năm");
+        Button btnTabDebt = new Button("💸 Quản Lý Công Nợ");
 
-        navBar.getChildren().addAll(btnTabSummary, btnTabDaily, btnTabYearly);
+        navBar.getChildren().addAll(btnTabSummary, btnTabDaily, btnTabYearly, btnTabDebt);
 
         StackPane tabContentArea = new StackPane();
         VBox.setVgrow(tabContentArea, Priority.ALWAYS);
 
         // Tab Switching logic
         btnTabSummary.setOnAction(e -> {
-            setTabActive(btnTabSummary, btnTabDaily, btnTabYearly);
+            setTabActive(btnTabSummary, btnTabDaily, btnTabYearly, btnTabDebt);
             tabContentArea.getChildren().setAll(tab1Content);
         });
         btnTabDaily.setOnAction(e -> {
-            setTabActive(btnTabDaily, btnTabSummary, btnTabYearly);
+            setTabActive(btnTabDaily, btnTabSummary, btnTabYearly, btnTabDebt);
             tabContentArea.getChildren().setAll(tab2Content);
         });
         btnTabYearly.setOnAction(e -> {
-            setTabActive(btnTabYearly, btnTabSummary, btnTabDaily);
+            setTabActive(btnTabYearly, btnTabSummary, btnTabDaily, btnTabDebt);
             tabContentArea.getChildren().setAll(tab3Content);
+        });
+        btnTabDebt.setOnAction(e -> {
+            setTabActive(btnTabDebt, btnTabSummary, btnTabDaily, btnTabYearly);
+            tabContentArea.getChildren().setAll(tab4Content);
         });
 
         // Initialize with Summary Tab
-        setTabActive(btnTabSummary, btnTabDaily, btnTabYearly);
+        setTabActive(btnTabSummary, btnTabDaily, btnTabYearly, btnTabDebt);
         tabContentArea.getChildren().setAll(tab1Content);
 
         view.getChildren().addAll(title, navBar, tabContentArea);
@@ -3743,12 +4269,14 @@ public class MainUI extends Application {
         Label lblDiscount = new Label(String.format("Giảm giá: %,.0f đ", invoice.getDiscount()));
         lblDiscount.setStyle("-fx-font-size: 14px; -fx-text-fill: #e53935;");
         
+        boolean isCK = "CK".equalsIgnoreCase(invoice.getPaymentMethod());
         double subtotalAfterDiscount = invoice.getTotalBeforeDiscount() - invoice.getDiscount();
-        double vatAmount = subtotalAfterDiscount * 0.08;
-        Label lblVat = new Label(String.format("Thuế VAT (8%%): %,.0f đ", vatAmount));
+        double vatAmount = isCK ? subtotalAfterDiscount * 0.08 : 0.0;
+        Label lblVat = new Label(isCK ? String.format("Thuế VAT (8%%): %,.0f đ", vatAmount) : "Thuế VAT: 0 đ");
         lblVat.setStyle("-fx-font-size: 14px; -fx-text-fill: #757575;");
         
-        Label lblFinal = new Label(String.format("Tổng cộng thanh toán: %,.0f đ", invoice.getTotalAmount()));
+        double finalAmount = isCK ? (subtotalAfterDiscount + vatAmount) : subtotalAfterDiscount;
+        Label lblFinal = new Label(String.format("Tổng cộng thanh toán: %,.0f đ", finalAmount));
         lblFinal.setStyle("-fx-font-size: 20px; -fx-text-fill: #4CAF50; -fx-font-weight: bold;");
         
         paymentSection.getChildren().addAll(paymentTitle, lblTotal, lblDiscount, lblVat, lblFinal);
@@ -4002,14 +4530,16 @@ public class MainUI extends Application {
             document.add(timeInfo);
             
             // ===== SERVICE TABLE =====
-            // 6 columns: STT | TÊN DỊCH VỤ | ĐƠN GIÁ | GIẢM GIÁ | VAT(8%) | THÀNH TIỀN
+            // 6 columns: STT | TÊN DỊCH VỤ | ĐƠN GIÁ | GIẢM GIÁ | VAT | THÀNH TIỀN
+            boolean isCK = "CK".equalsIgnoreCase(invoice.getPaymentMethod());
             float[] columnWidths = {8f, 32f, 15f, 13f, 12f, 20f};
             com.itextpdf.layout.element.Table serviceTable = new com.itextpdf.layout.element.Table(
                 com.itextpdf.layout.properties.UnitValue.createPercentArray(columnWidths));
             serviceTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             
             // Header row
-            String[] headers = {"STT", "TÊN DỊCH VỤ", "ĐƠN GIÁ", "GIẢM GIÁ", "VAT(8%)", "THÀNH TIỀN"};
+            String vatHeader = isCK ? "VAT(8%)" : "VAT(0%)";
+            String[] headers = {"STT", "TÊN DỊCH VỤ", "ĐƠN GIÁ", "GIẢM GIÁ", vatHeader, "THÀNH TIỀN"};
             for (String header : headers) {
                 com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell()
                     .add(new com.itextpdf.layout.element.Paragraph(header)
@@ -4057,9 +4587,9 @@ public class MainUI extends Application {
                         discount = "";
                     }
                     
-                    // VAT 8% on price after discount
-                    double vatAmount = item.getTotalPrice() * 0.08;
-                    vat = String.format("%,.0f", vatAmount);
+                    // VAT 8% on price after discount if CK
+                    double vatAmount = isCK ? item.getTotalPrice() * 0.08 : 0.0;
+                    vat = vatAmount > 0 ? String.format("%,.0f", vatAmount) : "0";
                     
                     // Thành tiền = price after discount + VAT
                     double itemTotal = item.getTotalPrice() + vatAmount;
@@ -4126,7 +4656,7 @@ public class MainUI extends Application {
             serviceTable.addCell(totalLabelCell);
             
             // Total value spanning last 4 columns
-            double finalTotal = invoice.getTotalAmount();
+            double finalTotal = isCK ? grandTotal : (invoice.getTotalBeforeDiscount() - invoice.getDiscount());
             String totalText = String.format("%,.0f đ", finalTotal);
             
             com.itextpdf.layout.element.Cell totalValueCell = new com.itextpdf.layout.element.Cell(1, 4)
@@ -4778,7 +5308,7 @@ public class MainUI extends Application {
         
         HBox tableHeader = new HBox(0);
         tableHeader.setAlignment(Pos.CENTER_LEFT);
-        tableHeader.setPadding(new Insets(12, 0, 12, 0));
+        tableHeader.setPadding(new Insets(12, 16, 12, 0));
         tableHeader.setStyle(
             "-fx-background-color: #F9FAFB;" +
             "-fx-border-color: #f3f4f6;" +
@@ -4800,6 +5330,7 @@ public class MainUI extends Application {
         
         ScrollPane scrollPane = new ScrollPane(appointmentTableRows);
         scrollPane.setFitToWidth(true);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
         scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         

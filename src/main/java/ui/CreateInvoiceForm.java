@@ -56,12 +56,26 @@ public class CreateInvoiceForm {
     private String prefilledNotes;
     private String preselectedItemName;
     private model.Appointment fromAppointment;
+    private model.Invoice existingInvoice;
 
     public CreateInvoiceForm() {
     }
 
     public CreateInvoiceForm(Runnable onInvoiceCreated) {
         this.onInvoiceCreated = onInvoiceCreated;
+    }
+
+    public CreateInvoiceForm(Runnable onInvoiceCreated, model.Invoice existingInvoice) {
+        this.onInvoiceCreated = onInvoiceCreated;
+        this.existingInvoice = existingInvoice;
+        if (existingInvoice != null) {
+            this.prefilledName = existingInvoice.getCustomerName();
+            this.prefilledPhone = existingInvoice.getPhone();
+            this.prefilledPlate = existingInvoice.getLicensePlate();
+            this.prefilledVehicleType = existingInvoice.getVehicleType();
+            this.prefilledAddress = existingInvoice.getAddress();
+            this.prefilledNotes = existingInvoice.getNotes();
+        }
     }
 
     public CreateInvoiceForm(Runnable onInvoiceCreated, model.Appointment appointment) {
@@ -81,7 +95,7 @@ public class CreateInvoiceForm {
     public void show() {
         stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
-        stage.setTitle("Tạo Hóa Đơn Mới");
+        stage.setTitle(existingInvoice != null ? "Sửa Hóa Đơn #" + String.format("%05d", existingInvoice.getId()) : "Tạo Hóa Đơn Mới");
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(true);
@@ -92,7 +106,7 @@ public class CreateInvoiceForm {
         mainContent.setStyle("-fx-background-color: #f8f9fa;");
 
         // Header
-        Label title = new Label("📝 Tạo Hóa Đơn Mới");
+        Label title = new Label(existingInvoice != null ? "📝 Sửa Hóa Đơn #" + String.format("%05d", existingInvoice.getId()) : "📝 Tạo Hóa Đơn Mới");
         title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
 
         // Customer Info Section
@@ -184,7 +198,66 @@ public class CreateInvoiceForm {
             }
         }
 
+        if (existingInvoice != null) {
+            loadExistingInvoiceItems();
+        }
+
         stage.show();
+    }
+
+    private void restoreOldInvoiceStock(int invoiceId) {
+        InvoiceItemService itemService = new InvoiceItemService();
+        List<model.InvoiceItem> items = itemService.getItemsByInvoiceId(invoiceId);
+        String sql = "UPDATE products SET stock = stock + ? WHERE id = ?";
+        try (java.sql.Connection conn = util.DatabaseManager.getConnection();
+             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            for (model.InvoiceItem item : items) {
+                if ("product".equals(item.getItemType()) && item.getItemId() != null && item.getItemId() > 0) {
+                    pstmt.setDouble(1, item.getQuantity());
+                    pstmt.setInt(2, item.getItemId());
+                    pstmt.addBatch();
+                }
+            }
+            pstmt.executeBatch();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadExistingInvoiceItems() {
+        if (existingInvoice == null) return;
+        try {
+            InvoiceItemService itemService = new InvoiceItemService();
+            List<model.InvoiceItem> items = itemService.getItemsByInvoiceId(existingInvoice.getId());
+            
+            selectedServices.clear();
+            selectedPackages.clear();
+            selectedProducts.clear();
+            
+            for (model.InvoiceItem item : items) {
+                if ("service".equals(item.getItemType())) {
+                    addSelectedService(item.getItemId() != null ? item.getItemId() : 0, item.getItemName(), item.getUnitPrice());
+                } else if ("package".equals(item.getItemType())) {
+                    addSelectedPackage(item.getItemId() != null ? item.getItemId() : 0, item.getItemName(), item.getUnitPrice());
+                } else if ("product".equals(item.getItemType())) {
+                    addSelectedProduct(item.getItemId() != null ? item.getItemId() : 0, item.getItemName(), item.getUnitPrice(), item.getQuantity());
+                }
+            }
+            
+            if (existingInvoice.getPaymentMethod() != null) {
+                if (existingInvoice.getPaymentMethod().equals("TM")) {
+                    cbPaymentMethod.setValue("Tiền mặt (TM)");
+                } else if (existingInvoice.getPaymentMethod().equals("CK")) {
+                    cbPaymentMethod.setValue("Chuyển khoản (CK)");
+                } else if (existingInvoice.getPaymentMethod().equals("N")) {
+                    cbPaymentMethod.setValue("Ghi nợ (N)");
+                }
+            }
+            
+            recalculateTotal();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private VBox createCustomerInfoSection() {
@@ -358,6 +431,9 @@ public class CreateInvoiceForm {
         cbPaymentMethod = new ComboBox<>();
         cbPaymentMethod.getItems().addAll("Tiền mặt (TM)", "Chuyển khoản (CK)", "Ghi nợ (N)");
         cbPaymentMethod.setValue("Tiền mặt (TM)"); // Default to Tiền mặt
+        cbPaymentMethod.valueProperty().addListener((obs, oldVal, newVal) -> {
+            recalculateTotal();
+        });
         cbPaymentMethod.setStyle(
                 "-fx-background-color: #f5f5f5;" +
                         "-fx-background-radius: 8;" +
@@ -896,7 +972,7 @@ public class CreateInvoiceForm {
     }
 
     private void addSelectedService(int serviceId, String name, String price) {
-        if (selectedServicesBox.getChildren().get(0) instanceof Label) {
+        if (!selectedServicesBox.getChildren().isEmpty() && selectedServicesBox.getChildren().get(0) instanceof Label) {
             selectedServicesBox.getChildren().clear();
         }
 
@@ -910,6 +986,28 @@ public class CreateInvoiceForm {
         item.put("linkedProducts", new ArrayList<Map<String, Object>>());
 
         VBox selectedItem = createSelectedServiceItem(item, name, price, unitPrice);
+        selectedItem.getProperties().put("map", item);
+        selectedServicesBox.getChildren().add(selectedItem);
+
+        item.put("hbox", selectedItem);
+        selectedServices.add(item);
+
+        recalculateTotal();
+    }
+
+    private void addSelectedService(int serviceId, String name, double unitPrice) {
+        if (!selectedServicesBox.getChildren().isEmpty() && selectedServicesBox.getChildren().get(0) instanceof Label) {
+            selectedServicesBox.getChildren().clear();
+        }
+
+        // Track for database
+        Map<String, Object> item = new HashMap<>();
+        item.put("id", serviceId);
+        item.put("name", name);
+        item.put("price", unitPrice);
+        item.put("linkedProducts", new ArrayList<Map<String, Object>>());
+
+        VBox selectedItem = createSelectedServiceItem(item, name, formatPrice(unitPrice), unitPrice);
         selectedItem.getProperties().put("map", item);
         selectedServicesBox.getChildren().add(selectedItem);
 
@@ -1447,7 +1545,7 @@ public class CreateInvoiceForm {
     }
 
     private void addSelectedPackage(int packageId, String name, String price) {
-        if (selectedPackagesBox.getChildren().get(0) instanceof Label) {
+        if (!selectedPackagesBox.getChildren().isEmpty() && selectedPackagesBox.getChildren().get(0) instanceof Label) {
             selectedPackagesBox.getChildren().clear();
         }
 
@@ -1470,14 +1568,62 @@ public class CreateInvoiceForm {
         recalculateTotal();
     }
 
+    private void addSelectedPackage(int packageId, String name, double unitPrice) {
+        if (!selectedPackagesBox.getChildren().isEmpty() && selectedPackagesBox.getChildren().get(0) instanceof Label) {
+            selectedPackagesBox.getChildren().clear();
+        }
+
+        // Track for database
+        Map<String, Object> item = new HashMap<>();
+        item.put("id", packageId);
+        item.put("name", name);
+        item.put("price", unitPrice);
+        item.put("linkedProducts", new ArrayList<Map<String, Object>>());
+
+        VBox selectedItem = createSelectedPackageItem(item, name, formatPrice(unitPrice), unitPrice);
+        selectedItem.getProperties().put("map", item);
+        selectedPackagesBox.getChildren().add(selectedItem);
+
+        item.put("hbox", selectedItem);
+        selectedPackages.add(item);
+
+        recalculateTotal();
+    }
+
     private void addSelectedProduct(int productId, String name, String price, double quantity) {
-        if (selectedProductsBox.getChildren().get(0) instanceof Label) {
+        if (!selectedProductsBox.getChildren().isEmpty() && selectedProductsBox.getChildren().get(0) instanceof Label) {
             selectedProductsBox.getChildren().clear();
         }
 
         String formattedQty = new java.text.DecimalFormat("#.##").format(quantity);
         String displayText = name + " (x" + formattedQty + ")";
         double unitPrice = parsePrice(price);
+        double itemTotal = unitPrice * quantity;
+        String displayPrice = formatPrice(itemTotal);
+
+        VBox selectedItem = createSelectedItem(displayText, displayPrice, itemTotal);
+        selectedProductsBox.getChildren().add(selectedItem);
+
+        // Track for database
+        Map<String, Object> item = new HashMap<>();
+        item.put("id", productId);
+        item.put("name", name);
+        item.put("unitPrice", unitPrice);
+        item.put("quantity", quantity);
+        item.put("totalPrice", itemTotal);
+        item.put("hbox", selectedItem);
+        selectedProducts.add(item);
+
+        recalculateTotal();
+    }
+
+    private void addSelectedProduct(int productId, String name, double unitPrice, double quantity) {
+        if (!selectedProductsBox.getChildren().isEmpty() && selectedProductsBox.getChildren().get(0) instanceof Label) {
+            selectedProductsBox.getChildren().clear();
+        }
+
+        String formattedQty = new java.text.DecimalFormat("#.##").format(quantity);
+        String displayText = name + " (x" + formattedQty + ")";
         double itemTotal = unitPrice * quantity;
         String displayPrice = formatPrice(itemTotal);
 
@@ -1714,7 +1860,7 @@ public class CreateInvoiceForm {
                         "-fx-cursor: hand;");
         btnCancel.setOnAction(e -> stage.close());
 
-        Button btnCreate = new Button("Tạo Hóa Đơn");
+        Button btnCreate = new Button(existingInvoice != null ? "Lưu Thay Đổi" : "Tạo Hóa Đơn");
         btnCreate.setStyle(
                 "-fx-background-color: #2196F3;" +
                         "-fx-text-fill: white;" +
@@ -1764,50 +1910,6 @@ public class CreateInvoiceForm {
             RadioButton selectedRadio = (RadioButton) carTypeGroup.getSelectedToggle();
             String vehicleType = selectedRadio != null ? selectedRadio.getText() : "sedan";
 
-            // Calculate per-item totals for invoice
-            double totalSubtotal = 0;
-            double totalDiscountAmount = 0;
-            double totalFinalAmount = 0;
-
-            for (Map<String, Object> svc : selectedServices) {
-                double bp = (Double) svc.get("price");
-                double da = getItemDiscountAmount(svc, bp);
-                double ad = bp - da;
-                double vt = ad * 0.08;
-                totalSubtotal += bp;
-                totalDiscountAmount += da;
-                totalFinalAmount += ad + vt;
-
-                // Add linked products
-                List<Map<String, Object>> linked = (List<Map<String, Object>>) svc.get("linkedProducts");
-                if (linked != null) {
-                    for (Map<String, Object> product : linked) {
-                        double pBasePrice = (Double) product.get("totalPrice");
-                        double pVat = pBasePrice * 0.08;
-                        totalSubtotal += pBasePrice;
-                        totalFinalAmount += pBasePrice + pVat;
-                    }
-                }
-            }
-            for (Map<String, Object> pk : selectedPackages) {
-                double bp = (Double) pk.get("price");
-                double da = getItemDiscountAmount(pk, bp);
-                double ad = bp - da;
-                double vt = ad * 0.08;
-                totalSubtotal += bp;
-                totalDiscountAmount += da;
-                totalFinalAmount += ad + vt;
-            }
-            for (Map<String, Object> pr : selectedProducts) {
-                double bp = (Double) pr.get("totalPrice");
-                double da = getItemDiscountAmount(pr, bp);
-                double ad = bp - da;
-                double vt = ad * 0.08;
-                totalSubtotal += bp;
-                totalDiscountAmount += da;
-                totalFinalAmount += ad + vt;
-            }
-
             // Resolve payment method value
             String paymentMethodVal = "TM";
             String cbVal = cbPaymentMethod.getValue();
@@ -1818,20 +1920,90 @@ public class CreateInvoiceForm {
                     paymentMethodVal = "N";
             }
 
+            boolean isCK = "CK".equals(paymentMethodVal);
+
+            // Calculate per-item totals for invoice
+            double totalSubtotal = 0;
+            double totalDiscountAmount = 0;
+            double totalFinalAmount = 0;
+
+            for (Map<String, Object> svc : selectedServices) {
+                double bp = (Double) svc.get("price");
+                double da = getItemDiscountAmount(svc, bp);
+                double ad = bp - da;
+                double vt = isCK ? ad * 0.08 : 0.0;
+                totalSubtotal += bp;
+                totalDiscountAmount += da;
+                totalFinalAmount += ad + vt;
+
+                // Add linked products
+                List<Map<String, Object>> linked = (List<Map<String, Object>>) svc.get("linkedProducts");
+                if (linked != null) {
+                    for (Map<String, Object> product : linked) {
+                        double pBasePrice = (Double) product.get("totalPrice");
+                        double pVat = isCK ? pBasePrice * 0.08 : 0.0;
+                        totalSubtotal += pBasePrice;
+                        totalFinalAmount += pBasePrice + pVat;
+                    }
+                }
+            }
+            for (Map<String, Object> pk : selectedPackages) {
+                double bp = (Double) pk.get("price");
+                double da = getItemDiscountAmount(pk, bp);
+                double ad = bp - da;
+                double vt = isCK ? ad * 0.08 : 0.0;
+                totalSubtotal += bp;
+                totalDiscountAmount += da;
+                totalFinalAmount += ad + vt;
+            }
+            for (Map<String, Object> pr : selectedProducts) {
+                double bp = (Double) pr.get("totalPrice");
+                double da = getItemDiscountAmount(pr, bp);
+                double ad = bp - da;
+                double vt = isCK ? ad * 0.08 : 0.0;
+                totalSubtotal += bp;
+                totalDiscountAmount += da;
+                totalFinalAmount += ad + vt;
+            }
+
             // Save invoice to database
             InvoiceService invoiceService = new InvoiceService();
-            int invoiceId = invoiceService.addInvoice(
-                    txtName.getText().trim(),
-                    txtPhone.getText().trim(),
-                    txtPlate.getText().trim(),
-                    vehicleType.toLowerCase(),
-                    txtAddress.getText().trim(),
-                    totalSubtotal,
-                    totalDiscountAmount,
-                    totalFinalAmount,
-                    txtNotes.getText().trim(),
-                    "nhap",
-                    paymentMethodVal);
+            int invoiceId;
+            if (existingInvoice != null) {
+                // Restore old stock
+                restoreOldInvoiceStock(existingInvoice.getId());
+                
+                // Delete old items
+                new InvoiceItemService().deleteItemsByInvoiceId(existingInvoice.getId());
+                
+                // Update invoice
+                existingInvoice.setCustomerName(txtName.getText().trim());
+                existingInvoice.setPhone(txtPhone.getText().trim());
+                existingInvoice.setLicensePlate(txtPlate.getText().trim());
+                existingInvoice.setVehicleType(vehicleType.toLowerCase());
+                existingInvoice.setAddress(txtAddress.getText().trim());
+                existingInvoice.setTotalBeforeDiscount(totalSubtotal);
+                existingInvoice.setDiscount(totalDiscountAmount);
+                existingInvoice.setTotalAmount(totalFinalAmount);
+                existingInvoice.setNotes(txtNotes.getText().trim());
+                existingInvoice.setPaymentMethod(paymentMethodVal);
+                
+                invoiceService.updateInvoice(existingInvoice);
+                invoiceId = existingInvoice.getId();
+            } else {
+                invoiceId = invoiceService.addInvoice(
+                        txtName.getText().trim(),
+                        txtPhone.getText().trim(),
+                        txtPlate.getText().trim(),
+                        vehicleType.toLowerCase(),
+                        txtAddress.getText().trim(),
+                        totalSubtotal,
+                        totalDiscountAmount,
+                        totalFinalAmount,
+                        txtNotes.getText().trim(),
+                        "nhap",
+                        paymentMethodVal);
+            }
 
             if (invoiceId > 0) {
                 // Save invoice items
@@ -2037,7 +2209,7 @@ public class CreateInvoiceForm {
                 }
 
                 Alert alert = util.AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công",
-                        "Tạo hóa đơn thành công!");
+                        existingInvoice != null ? "Lưu thay đổi hóa đơn thành công!" : "Tạo hóa đơn thành công!");
                 alert.showAndWait();
 
                 // Call callback to refresh invoice list
@@ -2047,7 +2219,8 @@ public class CreateInvoiceForm {
 
                 stage.close();
             } else {
-                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tạo hóa đơn!");
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", 
+                        existingInvoice != null ? "Không thể cập nhật hóa đơn!" : "Không thể tạo hóa đơn!");
                 alert.showAndWait();
             }
         });
@@ -2176,6 +2349,8 @@ public class CreateInvoiceForm {
         double grandVat = 0;
         double grandTotal = 0;
 
+        boolean calcVat = isTransferPayment();
+
         // Process services
         for (Map<String, Object> service : selectedServices) {
             double basePrice = (Double) service.get("price");
@@ -2191,7 +2366,7 @@ public class CreateInvoiceForm {
             if (linked != null) {
                 for (Map<String, Object> product : linked) {
                     double pBasePrice = (Double) product.get("totalPrice");
-                    double pVat = pBasePrice * 0.08;
+                    double pVat = calcVat ? pBasePrice * 0.08 : 0.0;
                     double pTotal = pBasePrice + pVat;
                     grandSubtotal += pBasePrice;
                     grandVat += pVat;
@@ -2215,7 +2390,7 @@ public class CreateInvoiceForm {
             if (linked != null) {
                 for (Map<String, Object> product : linked) {
                     double pBasePrice = (Double) product.get("totalPrice");
-                    double pVat = pBasePrice * 0.08;
+                    double pVat = calcVat ? pBasePrice * 0.08 : 0.0;
                     double pTotal = pBasePrice + pVat;
                     grandSubtotal += pBasePrice;
                     grandVat += pVat;
@@ -2251,7 +2426,7 @@ public class CreateInvoiceForm {
     @SuppressWarnings("unchecked")
     private double[] calcItemTotals(Map<String, Object> item, double basePrice, double discAmount) {
         double afterDisc = basePrice - discAmount;
-        double vat = afterDisc * 0.08;
+        double vat = isTransferPayment() ? afterDisc * 0.08 : 0.0;
         double itemTotal = afterDisc + vat;
 
         // Update per-item labels
@@ -2263,8 +2438,13 @@ public class CreateInvoiceForm {
 
             if (discLabel != null)
                 discLabel.setText(discAmount > 0 ? "Giảm: -" + formatPrice(discAmount) : "");
-            if (vatLbl != null)
-                vatLbl.setText("VAT 8%: " + formatPrice(vat));
+            if (vatLbl != null) {
+                if (isTransferPayment()) {
+                    vatLbl.setText("VAT 8%: " + formatPrice(vat));
+                } else {
+                    vatLbl.setText("VAT 0%");
+                }
+            }
             if (totalLbl != null)
                 totalLbl.setText("= " + formatPrice(itemTotal));
         }
@@ -2354,5 +2534,12 @@ public class CreateInvoiceForm {
 
     private String formatPrice(double price) {
         return String.format("%,.0fđ", price);
+    }
+
+    private boolean isTransferPayment() {
+        if (cbPaymentMethod == null || cbPaymentMethod.getValue() == null) {
+            return false;
+        }
+        return cbPaymentMethod.getValue().contains("CK") || cbPaymentMethod.getValue().contains("Chuyển khoản");
     }
 }

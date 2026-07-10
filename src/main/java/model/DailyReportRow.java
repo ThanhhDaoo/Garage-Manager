@@ -10,10 +10,13 @@ public class DailyReportRow {
     private double revenueAccessory;
     private double revenuePaint;
     private double totalRevenue;
+    private double vat;
     private String paymentMethod;
+    private double costWash;
     private double costCare;
     private double costAccessory;
     private double costPaint;
+    private double profitWash;
     private double profitCare;
     private double profitAccessory;
     private double profitPaint;
@@ -23,9 +26,9 @@ public class DailyReportRow {
 
     public DailyReportRow(int stt, String date, String licensePlate, String services, 
                           double revenueWash, double revenueCare, double revenueAccessory, double revenuePaint,
-                          double totalRevenue, String paymentMethod, 
-                          double costCare, double costAccessory, double costPaint,
-                          double profitCare, double profitAccessory, double profitPaint, String notes) {
+                          double totalRevenue, double vat, String paymentMethod, 
+                          double costWash, double costCare, double costAccessory, double costPaint,
+                          double profitWash, double profitCare, double profitAccessory, double profitPaint, String notes) {
         this.stt = stt;
         this.date = date;
         this.licensePlate = licensePlate;
@@ -35,10 +38,13 @@ public class DailyReportRow {
         this.revenueAccessory = revenueAccessory;
         this.revenuePaint = revenuePaint;
         this.totalRevenue = totalRevenue;
+        this.vat = vat;
         this.paymentMethod = paymentMethod;
+        this.costWash = costWash;
         this.costCare = costCare;
         this.costAccessory = costAccessory;
         this.costPaint = costPaint;
+        this.profitWash = profitWash;
         this.profitCare = profitCare;
         this.profitAccessory = profitAccessory;
         this.profitPaint = profitPaint;
@@ -72,8 +78,14 @@ public class DailyReportRow {
     public double getTotalRevenue() { return totalRevenue; }
     public void setTotalRevenue(double totalRevenue) { this.totalRevenue = totalRevenue; }
 
+    public double getVat() { return vat; }
+    public void setVat(double vat) { this.vat = vat; }
+
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public double getCostWash() { return costWash; }
+    public void setCostWash(double costWash) { this.costWash = costWash; }
 
     public double getCostCare() { return costCare; }
     public void setCostCare(double costCare) { this.costCare = costCare; }
@@ -83,6 +95,9 @@ public class DailyReportRow {
 
     public double getCostPaint() { return costPaint; }
     public void setCostPaint(double costPaint) { this.costPaint = costPaint; }
+
+    public double getProfitWash() { return profitWash; }
+    public void setProfitWash(double profitWash) { this.profitWash = profitWash; }
 
     public double getProfitCare() { return profitCare; }
     public void setProfitCare(double profitCare) { this.profitCare = profitCare; }

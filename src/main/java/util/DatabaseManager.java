@@ -70,6 +70,15 @@ public class DatabaseManager {
                 System.out.println(String.format("✓ Đã dọn dẹp dữ liệu mồ côi: %d dòng chấm công, %d dòng bảng lương, %d dòng chi tiết hóa đơn.", 
                                    deletedAtt, deletedPayroll, deletedItems));
             }
+
+            // Tự động điều chỉnh các hóa đơn cũ để khớp với chính sách thuế VAT mới:
+            // Tiền mặt / Ghi nợ -> không thuế VAT
+            // Chuyển khoản -> có thuế VAT 8%
+            int updatedTM = stmt.executeUpdate("UPDATE invoices SET total_amount = total_before_discount - discount WHERE payment_method = 'TM' OR payment_method = 'N' OR payment_method IS NULL OR payment_method = '';");
+            int updatedCK = stmt.executeUpdate("UPDATE invoices SET total_amount = (total_before_discount - discount) * 1.08 WHERE payment_method = 'CK';");
+            if (updatedTM > 0 || updatedCK > 0) {
+                System.out.println(String.format("✓ Đã đồng bộ thuế VAT cho %d hóa đơn Tiền mặt và %d hóa đơn Chuyển khoản trong CSDL.", updatedTM, updatedCK));
+            }
             
             // Tự động dọn dẹp các cột thừa trong bảng employees để bảng chỉ lưu thông tin cá nhân và lương cơ bản
             String[] columnsToRemove = {
