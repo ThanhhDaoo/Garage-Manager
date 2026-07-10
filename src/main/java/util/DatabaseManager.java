@@ -50,6 +50,9 @@ public class DatabaseManager {
         if (connection == null || connection.isClosed()) {
             connection = DriverManager.getConnection(DB_URL);
             connection.setAutoCommit(true);
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("PRAGMA foreign_keys = ON;");
+            }
         }
         return connection;
     }
@@ -57,6 +60,16 @@ public class DatabaseManager {
     public static void initializeDatabase() {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
+            
+            // Kích hoạt khóa ngoại và tự động dọn dẹp dữ liệu rác (mồ côi) từ các nhân viên/hóa đơn đã bị xóa trước đây
+            stmt.execute("PRAGMA foreign_keys = ON;");
+            int deletedAtt = stmt.executeUpdate("DELETE FROM attendance WHERE employee_id NOT IN (SELECT id FROM employees);");
+            int deletedPayroll = stmt.executeUpdate("DELETE FROM payroll WHERE employee_id NOT IN (SELECT id FROM employees);");
+            int deletedItems = stmt.executeUpdate("DELETE FROM invoice_items WHERE invoice_id NOT IN (SELECT id FROM invoices);");
+            if (deletedAtt > 0 || deletedPayroll > 0 || deletedItems > 0) {
+                System.out.println(String.format("✓ Đã dọn dẹp dữ liệu mồ côi: %d dòng chấm công, %d dòng bảng lương, %d dòng chi tiết hóa đơn.", 
+                                   deletedAtt, deletedPayroll, deletedItems));
+            }
             
             // Tự động dọn dẹp các cột thừa trong bảng employees để bảng chỉ lưu thông tin cá nhân và lương cơ bản
             String[] columnsToRemove = {

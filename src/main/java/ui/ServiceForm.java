@@ -37,9 +37,7 @@ public class ServiceForm {
     private TextField txtPricePickup;
     private ComboBox<String> cbCategory;
     private TextField txtCostPrice;
-    private CheckBox chkLinkProduct;
-    private ComboBox<Product> cbLinkedProduct;
-    private TextField txtProductSearch;
+
     
     public ServiceForm() {
         this.isEdit = false;
@@ -178,79 +176,7 @@ public class ServiceForm {
         }
         UIUtils.setupIMEFix(txtCostPrice);
         
-        // Product Link CheckBox
-        chkLinkProduct = new CheckBox("Liên kết với sản phẩm trong kho (Nhớt, nước kính, camera...)");
-        chkLinkProduct.setStyle("-fx-font-size: 14px; -fx-text-fill: #1976D2; -fx-font-weight: 600; -fx-padding: 10 0 5 0;");
-        
-        // Product Search TextField
-        txtProductSearch = new TextField();
-        txtProductSearch.setPromptText("🔍 Nhập từ khóa để tìm nhanh sản phẩm...");
-        txtProductSearch.setStyle(
-            "-fx-background-color: #f5f5f5;" +
-            "-fx-padding: 10px 15px;" +
-            "-fx-background-radius: 8;" +
-            "-fx-border-color: transparent;" +
-            "-fx-font-size: 14px;"
-        );
-        txtProductSearch.setPrefWidth(400);
-        txtProductSearch.visibleProperty().bind(chkLinkProduct.selectedProperty());
-        txtProductSearch.managedProperty().bind(chkLinkProduct.selectedProperty());
-        UIUtils.setupIMEFix(txtProductSearch);
 
-        // Product Link ComboBox
-        cbLinkedProduct = new ComboBox<>();
-        java.util.List<Product> productsList = new ProductDAO().getAllProducts();
-        javafx.collections.transformation.FilteredList<Product> filteredProducts = 
-            new javafx.collections.transformation.FilteredList<>(javafx.collections.FXCollections.observableArrayList(productsList), p -> true);
-        cbLinkedProduct.setItems(filteredProducts);
-        
-        txtProductSearch.textProperty().addListener((observable, oldValue, newValue) -> {
-            filteredProducts.setPredicate(product -> {
-                if (newValue == null || newValue.isEmpty()) {
-                    return true;
-                }
-                String lowerCaseFilter = newValue.toLowerCase().trim();
-                return product.getName().toLowerCase().contains(lowerCaseFilter);
-            });
-        });
-        
-        cbLinkedProduct.setStyle(
-            "-fx-background-color: #f5f5f5;" +
-            "-fx-background-radius: 8;" +
-            "-fx-border-color: transparent;" +
-            "-fx-font-size: 14px;" +
-            "-fx-pref-height: 44px;" +
-            "-fx-pref-width: 400px;"
-        );
-        cbLinkedProduct.setCellFactory(lv -> new ListCell<Product>() {
-            @Override
-            protected void updateItem(Product item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName() + " (" + (item.getUnit() != null ? item.getUnit() : "đơn vị khác") + ")");
-            }
-        });
-        cbLinkedProduct.setButtonCell(new ListCell<Product>() {
-            @Override
-            protected void updateItem(Product item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName() + " (" + (item.getUnit() != null ? item.getUnit() : "đơn vị khác") + ")");
-            }
-        });
-        
-        cbLinkedProduct.visibleProperty().bind(chkLinkProduct.selectedProperty());
-        cbLinkedProduct.managedProperty().bind(chkLinkProduct.selectedProperty());
-
-        if (isEdit && existingService != null && existingService.getLinkedProductId() != null && existingService.getLinkedProductId() > 0) {
-            chkLinkProduct.setSelected(true);
-            for (Product p : productsList) {
-                if (p.getId() == existingService.getLinkedProductId()) {
-                    cbLinkedProduct.setValue(p);
-                    break;
-                }
-            }
-        } else {
-            chkLinkProduct.setSelected(false);
-        }
         
         // Price section header
         Label lblPriceHeader = new Label("💰 Bảng Giá Theo Loại Xe (Tích chọn để nhập giá)");
@@ -475,9 +401,6 @@ public class ServiceForm {
         grid.add(cbCategory, 0, row++);
         grid.add(lblCostPrice, 0, row++);
         grid.add(txtCostPrice, 0, row++);
-        grid.add(chkLinkProduct, 0, row++);
-        grid.add(txtProductSearch, 0, row++);
-        grid.add(cbLinkedProduct, 0, row++);
         grid.add(lblPriceHeader, 0, row++);
         grid.add(priceListContainer, 0, row++);
         grid.add(lblStatus, 0, row++);
@@ -626,9 +549,6 @@ public class ServiceForm {
                 } catch (Exception ex) {}
                 
                 Integer linkedProductId = null;
-                if (chkLinkProduct.isSelected() && cbLinkedProduct.getValue() != null) {
-                    linkedProductId = cbLinkedProduct.getValue().getId();
-                }
                 
                 ServiceService serviceService = new ServiceService();
                 boolean success;

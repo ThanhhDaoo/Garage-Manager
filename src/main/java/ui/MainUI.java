@@ -4791,7 +4791,7 @@ public class MainUI extends Application {
         Label colVehicle = new Label("Xe"); colVehicle.setPrefWidth(110); colVehicle.setMinWidth(110); colVehicle.setMaxWidth(110); colVehicle.setPadding(new Insets(0, 5, 0, 5)); colVehicle.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colVehicle.setAlignment(Pos.CENTER_LEFT);
         Label colService = new Label("Dịch Vụ"); colService.setPrefWidth(150); colService.setMinWidth(150); colService.setMaxWidth(Double.MAX_VALUE); colService.setPadding(new Insets(0, 5, 0, 5)); colService.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colService.setAlignment(Pos.CENTER_LEFT);
         Label colStatus = new Label("Trạng Thái"); colStatus.setPrefWidth(110); colStatus.setMinWidth(110); colStatus.setMaxWidth(110); colStatus.setPadding(new Insets(0, 5, 0, 5)); colStatus.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colStatus.setAlignment(Pos.CENTER);
-        Label colActions = new Label("Thao Tác"); colActions.setPrefWidth(170); colActions.setMinWidth(170); colActions.setMaxWidth(170); colActions.setPadding(new Insets(0, 5, 0, 5)); colActions.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colActions.setAlignment(Pos.CENTER);
+        Label colActions = new Label("Thao Tác"); colActions.setPrefWidth(200); colActions.setMinWidth(200); colActions.setMaxWidth(200); colActions.setPadding(new Insets(0, 5, 0, 5)); colActions.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;"); colActions.setAlignment(Pos.CENTER);
         
         tableHeader.getChildren().addAll(colId, colDateTime, colCustomer, colVehicle, colService, colStatus, colActions);
         HBox.setHgrow(colService, Priority.ALWAYS);
@@ -4932,20 +4932,21 @@ public class MainUI extends Application {
         statusBox.getChildren().add(colStatus);
         
         HBox actions = new HBox(8);
-        actions.setPrefWidth(170);
-        actions.setMinWidth(170);
-        actions.setMaxWidth(170);
+        actions.setPrefWidth(200);
+        actions.setMinWidth(200);
+        actions.setMaxWidth(200);
         actions.setPadding(new Insets(12, 5, 12, 5));
         actions.setAlignment(Pos.CENTER);
         
+        // Nút phụ thuộc trạng thái (Nhận xe hoặc Lập hóa đơn)
         if (appt.getStatus().equals("Chờ")) {
             Button btnStart = new Button("Nhận Xe");
             btnStart.setStyle(
                 "-fx-background-color: #2196F3;" +
                 "-fx-text-fill: white;" +
-                "-fx-font-size: 12px;" +
+                "-fx-font-size: 11px;" +
                 "-fx-font-weight: bold;" +
-                "-fx-padding: 6px 12px;" +
+                "-fx-padding: 6px 10px;" +
                 "-fx-background-radius: 6;" +
                 "-fx-cursor: hand;"
             );
@@ -4954,54 +4955,15 @@ public class MainUI extends Application {
                 new service.AppointmentService().updateAppointment(appt);
                 showAppointmentManagement();
             });
-            
-            Button btnEdit = new Button("✏");
-            btnEdit.setStyle(
-                "-fx-background-color: #E3F2FD;" +
-                "-fx-text-fill: #2196F3;" +
-                "-fx-font-size: 12px;" +
-                "-fx-padding: 8px 10px;" +
-                "-fx-background-radius: 6;" +
-                "-fx-cursor: hand;" +
-                "-fx-min-width: 32;" +
-                "-fx-min-height: 32;"
-            );
-            btnEdit.setOnAction(e -> showCreateAppointmentDialog(appt));
-            
-            Button btnCancel = new Button("🗑");
-            btnCancel.setStyle(
-                "-fx-background-color: #FFEBEE;" +
-                "-fx-text-fill: #f44336;" +
-                "-fx-font-size: 12px;" +
-                "-fx-padding: 8px 10px;" +
-                "-fx-background-radius: 6;" +
-                "-fx-cursor: hand;" +
-                "-fx-min-width: 32;" +
-                "-fx-min-height: 32;"
-            );
-            btnCancel.setOnAction(e -> {
-                Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Bạn có chắc chắn muốn hủy lịch hẹn này?", ButtonType.YES, ButtonType.NO);
-                alert.setTitle("Xác nhận hủy");
-                alert.setHeaderText(null);
-                alert.showAndWait().ifPresent(response -> {
-                    if (response == ButtonType.YES) {
-                        appt.setStatus("Đã hủy");
-                        new service.AppointmentService().updateAppointment(appt);
-                        showAppointmentManagement();
-                    }
-                });
-            });
-            
-            actions.getChildren().addAll(btnStart, btnEdit, btnCancel);
-            
+            actions.getChildren().add(btnStart);
         } else if (appt.getStatus().equals("Đang thực hiện")) {
-            Button btnInvoice = new Button("Lập Hóa Đơn");
+            Button btnInvoice = new Button("Lập HĐ");
             btnInvoice.setStyle(
-                "-fx-background-color: #2196F3;" +
+                "-fx-background-color: #4CAF50;" +
                 "-fx-text-fill: white;" +
-                "-fx-font-size: 12px;" +
+                "-fx-font-size: 11px;" +
                 "-fx-font-weight: bold;" +
-                "-fx-padding: 6px 12px;" +
+                "-fx-padding: 6px 10px;" +
                 "-fx-background-radius: 6;" +
                 "-fx-cursor: hand;"
             );
@@ -5011,36 +4973,54 @@ public class MainUI extends Application {
                 }, appt);
                 form.show();
             });
-            Button btnCancel = new Button("🗑");
-            btnCancel.setStyle(
-                "-fx-background-color: #FFEBEE;" +
-                "-fx-text-fill: #f44336;" +
-                "-fx-font-size: 12px;" +
-                "-fx-padding: 8px 10px;" +
-                "-fx-background-radius: 6;" +
-                "-fx-cursor: hand;" +
-                "-fx-min-width: 32;" +
-                "-fx-min-height: 32;"
-            );
-            btnCancel.setOnAction(e -> {
-                Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Bạn có chắc chắn muốn hủy lịch hẹn này?", ButtonType.YES, ButtonType.NO);
-                alert.setTitle("Xác nhận hủy");
-                alert.setHeaderText(null);
-                alert.showAndWait().ifPresent(response -> {
-                    if (response == ButtonType.YES) {
-                        appt.setStatus("Đã hủy");
-                        new service.AppointmentService().updateAppointment(appt);
-                        showAppointmentManagement();
-                    }
-                });
-            });
-            
-            actions.getChildren().addAll(btnInvoice, btnCancel);
-        } else {
-            Label lblDone = new Label(appt.getStatus().equals("Đã hoàn thành") ? "✓ Đã Hoàn Thành" : "✗ Đã Hủy");
-            lblDone.setStyle("-fx-text-fill: #757575; -fx-font-style: italic; -fx-font-size: 13px;");
-            actions.getChildren().add(lblDone);
+            actions.getChildren().add(btnInvoice);
         }
+
+        
+        // Nút Chỉnh sửa (✏) - Luôn hiển thị
+        Button btnEdit = new Button("✏");
+        btnEdit.setStyle(
+            "-fx-background-color: #E3F2FD;" +
+            "-fx-text-fill: #2196F3;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 8px 10px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;"
+        );
+        btnEdit.setOnAction(e -> showCreateAppointmentDialog(appt));
+        
+        // Nút Xóa (🗑) - Luôn hiển thị và thực hiện xóa thật trong CSDL
+        Button btnDelete = new Button("🗑");
+        btnDelete.setStyle(
+            "-fx-background-color: #FFEBEE;" +
+            "-fx-text-fill: #f44336;" +
+            "-fx-font-size: 12px;" +
+            "-fx-padding: 8px 10px;" +
+            "-fx-background-radius: 6;" +
+            "-fx-cursor: hand;" +
+            "-fx-min-width: 32;" +
+            "-fx-min-height: 32;"
+        );
+        btnDelete.setOnAction(e -> {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Bạn có chắc chắn muốn xóa lịch hẹn này khỏi hệ thống?", ButtonType.YES, ButtonType.NO);
+            alert.setTitle("Xác nhận xóa");
+            alert.setHeaderText(null);
+            util.AlertHelper.applyTimesNewRomanFont(alert);
+            alert.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.YES) {
+                    if (new service.AppointmentService().deleteAppointment(appt.getId())) {
+                        showSuccessAlert("Thành công", "Xóa lịch hẹn thành công!");
+                        showAppointmentManagement();
+                    } else {
+                        showErrorAlert("Lỗi", "Không thể xóa lịch hẹn!");
+                    }
+                }
+            });
+        });
+        
+        actions.getChildren().addAll(btnEdit, btnDelete);
         
         row.getChildren().addAll(colId, colDateTime, colCustomer, colVehicle, colService, statusBox, actions);
         HBox.setHgrow(colService, Priority.ALWAYS);
@@ -5234,6 +5214,13 @@ public class MainUI extends Application {
         txtNotes.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 6;");
         txtNotes.setPromptText("Ghi chú nếu có...");
         
+        Label lblStatus = new Label("Trạng thái *");
+        lblStatus.setStyle("-fx-font-weight: 500;");
+        ComboBox<String> cbStatus = new ComboBox<>();
+        cbStatus.getItems().addAll("Chờ", "Đang thực hiện", "Đã hoàn thành", "Đã hủy");
+        cbStatus.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 6;");
+        cbStatus.setValue(existing != null ? existing.getStatus() : "Chờ");
+        
         grid.add(lblPhone, 0, 0); grid.add(txtPhone, 1, 0);
         grid.add(lblName, 0, 1); grid.add(txtName, 1, 1);
         grid.add(lblAddress, 0, 2); grid.add(txtAddress, 1, 2);
@@ -5244,6 +5231,7 @@ public class MainUI extends Application {
         grid.add(lblTime, 0, 7); grid.add(timeBox, 1, 7);
         grid.add(lblDuration, 0, 8); grid.add(txtDuration, 1, 8);
         grid.add(lblNotes, 0, 9); grid.add(txtNotes, 1, 9);
+        grid.add(lblStatus, 0, 10); grid.add(cbStatus, 1, 10);
         
         VBox mainForm = new VBox(10);
         mainForm.getChildren().addAll(grid, suggestionList);
@@ -5291,7 +5279,7 @@ public class MainUI extends Application {
             appt.setAppointmentTime(timeStr);
             appt.setExpectedCompletion(txtDuration.getText().trim());
             appt.setNotes(txtNotes.getText().trim());
-            appt.setStatus(existing != null ? existing.getStatus() : "Chờ");
+            appt.setStatus(cbStatus.getValue());
             appt.setReminded(existing != null ? existing.getReminded() : 0);
             
             boolean ok;
@@ -5742,5 +5730,30 @@ public class MainUI extends Application {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    public static class DebtRow {
+        private final model.Invoice invoice;
+        private final String dateStr;
+        private final String servicesSummary;
+        private final double amount;
+        
+        public DebtRow(model.Invoice invoice, String dateStr, String servicesSummary, double amount) {
+            this.invoice = invoice;
+            this.dateStr = dateStr;
+            this.servicesSummary = servicesSummary;
+            this.amount = amount;
+        }
+        
+        public model.Invoice getInvoice() { return invoice; }
+        public int getId() { return invoice.getId(); }
+        public String getCustomerName() { return invoice.getCustomerName(); }
+        public String getPhone() { return invoice.getPhone(); }
+        public String getLicensePlate() { return invoice.getLicensePlate(); }
+        public String getPaymentMethod() { return invoice.getPaymentMethod(); }
+        public String getNotes() { return invoice.getNotes(); }
+        public String getDateStr() { return dateStr; }
+        public String getServicesSummary() { return servicesSummary; }
+        public double getAmount() { return amount; }
     }
 }
