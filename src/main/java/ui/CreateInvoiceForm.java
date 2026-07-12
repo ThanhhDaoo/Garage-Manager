@@ -1229,6 +1229,14 @@ public class CreateInvoiceForm {
                 }
             }
 
+            // Add visual row
+            String formattedQty = new java.text.DecimalFormat("#.##").format(qty);
+            HBox pRow = new HBox(10);
+            pRow.setAlignment(Pos.CENTER_LEFT);
+            pRow.setPadding(new Insets(2, 0, 2, 0));
+            Label lblPInfo = new Label();
+            lblPInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #424242;");
+
             // Add to database tracker
             Map<String, Object> prodMap = new HashMap<>();
             prodMap.put("id", selectedProd.getId());
@@ -1236,16 +1244,9 @@ public class CreateInvoiceForm {
             prodMap.put("unitPrice", selectedProd.getPrice());
             prodMap.put("quantity", qty);
             prodMap.put("totalPrice", selectedProd.getPrice() * qty);
+            prodMap.put("label", lblPInfo);
+            prodMap.put("unit", selectedProd.getUnit());
             linked.add(prodMap);
-
-            // Add visual row
-            String formattedQty = new java.text.DecimalFormat("#.##").format(qty);
-            HBox pRow = new HBox(10);
-            pRow.setAlignment(Pos.CENTER_LEFT);
-            pRow.setPadding(new Insets(2, 0, 2, 0));
-            Label lblPInfo = new Label("• " + selectedProd.getName() + " (x" + formattedQty + " "
-                    + selectedProd.getUnit() + ") - " + formatPrice(selectedProd.getPrice() * qty) + " (+8% VAT)");
-            lblPInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #424242;");
 
             Button btnDelP = new Button("✕");
             btnDelP.setStyle(
@@ -1485,6 +1486,14 @@ public class CreateInvoiceForm {
                 }
             }
 
+            // Add visual row
+            String formattedQty = new java.text.DecimalFormat("#.##").format(qty);
+            HBox pRow = new HBox(10);
+            pRow.setAlignment(Pos.CENTER_LEFT);
+            pRow.setPadding(new Insets(2, 0, 2, 0));
+            Label lblPInfo = new Label();
+            lblPInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #424242;");
+
             // Add to database tracker
             Map<String, Object> prodMap = new HashMap<>();
             prodMap.put("id", selectedProd.getId());
@@ -1492,16 +1501,9 @@ public class CreateInvoiceForm {
             prodMap.put("unitPrice", selectedProd.getPrice());
             prodMap.put("quantity", qty);
             prodMap.put("totalPrice", selectedProd.getPrice() * qty);
+            prodMap.put("label", lblPInfo);
+            prodMap.put("unit", selectedProd.getUnit());
             linked.add(prodMap);
-
-            // Add visual row
-            String formattedQty = new java.text.DecimalFormat("#.##").format(qty);
-            HBox pRow = new HBox(10);
-            pRow.setAlignment(Pos.CENTER_LEFT);
-            pRow.setPadding(new Insets(2, 0, 2, 0));
-            Label lblPInfo = new Label("• " + selectedProd.getName() + " (x" + formattedQty + " "
-                    + selectedProd.getUnit() + ") - " + formatPrice(selectedProd.getPrice() * qty) + " (+8% VAT)");
-            lblPInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #424242;");
 
             Button btnDelP = new Button("✕");
             btnDelP.setStyle(
@@ -2371,6 +2373,22 @@ public class CreateInvoiceForm {
                     grandSubtotal += pBasePrice;
                     grandVat += pVat;
                     grandTotal += pTotal;
+
+                    // Update linked product label dynamically
+                    Label lbl = (Label) product.get("label");
+                    if (lbl != null) {
+                        String prName = (String) product.get("name");
+                        double quantity = ((Number) product.get("quantity")).doubleValue();
+                        String unit = (String) product.get("unit");
+                        String formattedQty = new java.text.DecimalFormat("#.##").format(quantity);
+                        if (calcVat) {
+                            lbl.setText("• " + prName + " (x" + formattedQty + " " + (unit != null ? unit : "") + ") - " 
+                                    + formatPrice(pBasePrice) + " (+8% VAT)");
+                        } else {
+                            lbl.setText("• " + prName + " (x" + formattedQty + " " + (unit != null ? unit : "") + ") - " 
+                                    + formatPrice(pBasePrice) + " (VAT 0%)");
+                        }
+                    }
                 }
             }
         }
@@ -2395,6 +2413,22 @@ public class CreateInvoiceForm {
                     grandSubtotal += pBasePrice;
                     grandVat += pVat;
                     grandTotal += pTotal;
+
+                    // Update linked product label dynamically
+                    Label lbl = (Label) product.get("label");
+                    if (lbl != null) {
+                        String prName = (String) product.get("name");
+                        double quantity = ((Number) product.get("quantity")).doubleValue();
+                        String unit = (String) product.get("unit");
+                        String formattedQty = new java.text.DecimalFormat("#.##").format(quantity);
+                        if (calcVat) {
+                            lbl.setText("• " + prName + " (x" + formattedQty + " " + (unit != null ? unit : "") + ") - " 
+                                    + formatPrice(pBasePrice) + " (+8% VAT)");
+                        } else {
+                            lbl.setText("• " + prName + " (x" + formattedQty + " " + (unit != null ? unit : "") + ") - " 
+                                    + formatPrice(pBasePrice) + " (VAT 0%)");
+                        }
+                    }
                 }
             }
         }
