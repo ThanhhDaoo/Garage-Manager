@@ -1760,6 +1760,7 @@ public class MainUI extends Application {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
+        UIUtils.setupIMEFix(searchField);
         
         // Category filter buttons
         HBox categoryButtons = new HBox(8);
@@ -1787,9 +1788,14 @@ public class MainUI extends Application {
         final String[] currentCategory = {""};
         final String[] currentStatus = {"Tất cả trạng thái"};
         
-        // Add search listener
+        // Add search listener with debounce to prevent UI lag and IME typing bugs
+        javafx.animation.PauseTransition searchDebounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(250));
+        searchDebounce.setOnFinished(e -> {
+            refreshProductTableWithFilter(tableRows, searchField.getText(), currentCategory[0], currentStatus[0]);
+        });
+        
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            refreshProductTableWithFilter(tableRows, newVal, currentCategory[0], currentStatus[0]);
+            searchDebounce.playFromStart();
         });
         
         // Add filter button actions
@@ -1940,7 +1946,9 @@ public class MainUI extends Application {
             String search = searchText.toLowerCase().trim();
             products = products.stream()
                 .filter(p -> p.getName().toLowerCase().contains(search) || 
-                            p.getCategory().toLowerCase().contains(search))
+                            p.getCategory().toLowerCase().contains(search) ||
+                            String.valueOf(p.getId()).contains(search) ||
+                            ("sp-" + String.format("%04d", p.getId())).contains(search))
                 .collect(java.util.stream.Collectors.toList());
         }
         
