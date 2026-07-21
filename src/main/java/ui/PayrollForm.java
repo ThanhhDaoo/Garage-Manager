@@ -81,7 +81,11 @@ public class PayrollForm {
             double ins = parseDoubleSafe(txtInsurance.getText());
             double adv = parseDoubleSafe(txtAdvance.getText());
 
-            double basePortion = (employee.getBasicSalary() / totalDays) * actualWorkDays;
+            double basicSalary = employee.getBasicSalary();
+            int standardDays = totalDays - 2;
+            double dailyRate = basicSalary / totalDays;
+            double workDiff = actualWorkDays - standardDays;
+            double basePortion = basicSalary + workDiff * dailyRate;
             double net = basePortion + resp + oth + cons + serv + ot - ins - adv;
             
             lblNetSalaryVal.setText(String.format("%,.0f đ", net));
@@ -306,7 +310,11 @@ public class PayrollForm {
             double ins = parseDoubleSafe(txtInsurance.getText());
             double adv = parseDoubleSafe(txtAdvance.getText());
 
-            double basePortion = (employee.getBasicSalary() / totalDays) * actualWorkDays;
+            double basicSalary = employee.getBasicSalary();
+            int standardDays = totalDays - 2;
+            double dailyRate = basicSalary / totalDays;
+            double workDiff = actualWorkDays - standardDays;
+            double basePortion = basicSalary + workDiff * dailyRate;
             double net = basePortion + resp + oth + cons + serv + ot - ins - adv;
 
             // 1. Lưu vào bảng payroll (lịch sử tính lương của tháng)

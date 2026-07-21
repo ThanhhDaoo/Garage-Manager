@@ -586,7 +586,10 @@ public class HRHelper {
                 Payroll savedPr = prService.getPayroll(emp.getId(), monthStr);
                 
                 double basicSalary = emp.getBasicSalary();
-                double tempWage = (basicSalary / totalDays) * workDays;
+                int standardDays = totalDays - 2;
+                double dailyRate = basicSalary / totalDays;
+                double workDiff = workDays - standardDays;
+                double tempWage = basicSalary + workDiff * dailyRate;
                 
                 Payroll displayPr;
                 if (savedPr != null) {
@@ -706,6 +709,45 @@ public class HRHelper {
             
             document.add(title);
             document.add(subtitle);
+
+            double workDays = pr.getActualWorkDays();
+            double basicSalary = pr.getBasicSalary();
+            int totalDays = pr.getTotalDays();
+            int standardDays = totalDays - 2;
+            double dailyRate = basicSalary / totalDays;
+            double workDiff = workDays - standardDays;
+            
+            double overStandard = Math.max(0, workDiff);
+            double deductionDays = Math.max(0, -workDiff);
+            double baseWage = basicSalary + workDiff * dailyRate;
+
+            // Detailed Working Days & Salary Breakdown
+            com.itextpdf.layout.element.Table breakdownTable = new com.itextpdf.layout.element.Table(new float[]{180f, 180f, 180f, 180f});
+            breakdownTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            breakdownTable.setMarginBottom(12);
+            breakdownTable.setFontSize(8.5f);
+            
+            java.util.function.BiConsumer<String, String> addInfo = (label, val) -> {
+                breakdownTable.addCell(new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph().add(new com.itextpdf.layout.element.Text(label + ": ").setFont(boldFont)).add(new com.itextpdf.layout.element.Text(val).setFont(font)))
+                    .setBorder(null)
+                    .setPadding(2));
+            };
+            
+            addInfo.accept("Mã nhân viên", emp.getEmployeeCode());
+            addInfo.accept("Lương cơ bản cố định", String.format("%,.0f đ", basicSalary));
+            addInfo.accept("Số ngày trong tháng", totalDays + " ngày");
+            addInfo.accept("Mức lương một ngày", String.format("%,.0f đ", dailyRate));
+            
+            addInfo.accept("Công chuẩn tháng", standardDays + " công");
+            addInfo.accept("Ngày công thực tế", String.format(workDays % 1 == 0 ? "%.0f công" : "%.1f công", workDays));
+            addInfo.accept("Công vượt chuẩn (+)", String.format(overStandard % 1 == 0 ? "%.0f công" : "%.1f công", overStandard));
+            addInfo.accept("Công bị khấu trừ (-)", String.format(deductionDays % 1 == 0 ? "%.0f công" : "%.1f công", deductionDays));
+
+            com.itextpdf.layout.element.Paragraph sectionTitle = new com.itextpdf.layout.element.Paragraph("CHI TIẾT NGÀY CÔNG & THÔNG SỐ LƯƠNG:")
+                .setFont(boldFont).setFontSize(9.5f).setMarginBottom(4);
+            document.add(sectionTitle);
+            document.add(breakdownTable);
             
             // Create Table
             float[] colWidths = {25f, 110f, 80f, 40f, 70f, 60f, 60f, 65f, 65f, 55f, 75f, 55f, 55f, 75f, 65f};
@@ -762,10 +804,6 @@ public class HRHelper {
             for (int i = 1; i <= 15; i++) {
                 table.addHeaderCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(i)).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
             }
-            
-            double workDays = pr.getActualWorkDays();
-            double basicSalary = pr.getBasicSalary();
-            double baseWage = (basicSalary / pr.getTotalDays()) * workDays;
             
             double resp = pr.getAllowanceResponsibility();
             double oth = pr.getAllowanceOther();

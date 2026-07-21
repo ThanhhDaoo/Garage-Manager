@@ -156,41 +156,7 @@ public class DatabaseManager {
                 }
             }
 
-            // Tự động khôi phục dữ liệu tính lương tháng 7/2026 từ bảng employees sang bảng payroll nếu bảng payroll trống
-            boolean julyHasData = false;
-            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM payroll WHERE pay_month = '2026-07'")) {
-                if (rs.next() && rs.getInt(1) > 0) {
-                    julyHasData = true;
-                }
-            }
-            if (!julyHasData) {
-                System.out.println("⚠ Đang tự động khôi phục lịch sử tính lương Tháng 07/2026...");
-                String recoverySql = 
-                    "INSERT INTO payroll (employee_id, employee_name, pay_month, total_days, actual_work_days, basic_salary, " +
-                    "allowance_responsibility, allowance_other, commission_consulting, commission_service, " +
-                    "overtime_pay, social_insurance, advance_payment, net_salary) " +
-                    "SELECT id, name, '2026-07', 31, " +
-                    "COALESCE((SELECT " +
-                    "  (length(attendance_data) - length(replace(attendance_data, '1', '')))*1.0 + " +
-                    "  (length(attendance_data) - length(replace(attendance_data, '0.5', '')))/6.0 " +
-                    "FROM attendance WHERE employee_id = employees.id AND work_month = '2026-07'), 0), " +
-                    "basic_salary, allowance_responsibility, allowance_other, commission_consulting, commission_service, " +
-                    "overtime_pay, social_insurance, advance_payment, " +
-                    "CASE WHEN net_salary > 0 THEN net_salary ELSE " +
-                    "  ((basic_salary / 31.0) * COALESCE((SELECT " +
-                    "    (length(attendance_data) - length(replace(attendance_data, '1', '')))*1.0 + " +
-                    "    (length(attendance_data) - length(replace(attendance_data, '0.5', '')))/6.0 " +
-                    "  FROM attendance WHERE employee_id = employees.id AND work_month = '2026-07'), 0) + " +
-                    "  allowance_responsibility + allowance_other + commission_consulting + commission_service + overtime_pay - " +
-                    "  social_insurance - advance_payment) END " +
-                    "FROM employees WHERE net_salary > 0 OR allowance_responsibility > 0 OR commission_consulting > 0 OR commission_service > 0 OR overtime_pay > 0 OR advance_payment > 0;";
-                try (Statement recoveryStmt = conn.createStatement()) {
-                    int rows = recoveryStmt.executeUpdate(recoverySql);
-                    System.out.println("✓ Đã khôi phục thành công " + rows + " bản ghi tính lương Tháng 07/2026!");
-                } catch (SQLException e) {
-                    System.err.println("⚠ Lỗi khôi phục lương Tháng 7: " + e.getMessage());
-                }
-            }
+            // Lịch sử khôi phục lương Tháng 07/2026 đã được di chuyển xuống cuối hàm initializeDatabase sau khi bảng payroll được nâng cấp cột.
 
             // Tự động kiểm tra và nâng cấp bảng attendance sang dạng 1 dòng/tháng
             boolean attendanceNeedsMigration = false;
@@ -671,6 +637,42 @@ public class DatabaseManager {
                 else if (!inTrigger && trimmed.endsWith(";")) {
                     stmt.execute(currentStatement.toString());
                     currentStatement.setLength(0);
+                }
+            }
+
+            // Tự động khôi phục dữ liệu tính lương tháng 7/2026 từ bảng employees sang bảng payroll nếu bảng payroll trống
+            boolean julyHasData = false;
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM payroll WHERE pay_month = '2026-07'")) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    julyHasData = true;
+                }
+            }
+            if (!julyHasData) {
+                System.out.println("⚠ Đang tự động khôi phục lịch sử tính lương Tháng 07/2026...");
+                String recoverySql = 
+                    "INSERT INTO payroll (employee_id, employee_name, pay_month, total_days, actual_work_days, basic_salary, " +
+                    "allowance_responsibility, allowance_other, commission_consulting, commission_service, " +
+                    "overtime_pay, social_insurance, advance_payment, net_salary) " +
+                    "SELECT id, name, '2026-07', 31, " +
+                    "COALESCE((SELECT " +
+                    "  (length(attendance_data) - length(replace(attendance_data, '1', '')))*1.0 + " +
+                    "  (length(attendance_data) - length(replace(attendance_data, '0.5', '')))/6.0 " +
+                    "FROM attendance WHERE employee_id = employees.id AND work_month = '2026-07'), 0), " +
+                    "basic_salary, allowance_responsibility, allowance_other, commission_consulting, commission_service, " +
+                    "overtime_pay, social_insurance, advance_payment, " +
+                    "CASE WHEN net_salary > 0 THEN net_salary ELSE " +
+                    "  (basic_salary + (COALESCE((SELECT " +
+                    "    (length(attendance_data) - length(replace(attendance_data, '1', '')))*1.0 + " +
+                    "    (length(attendance_data) - length(replace(attendance_data, '0.5', '')))/6.0 " +
+                    "  FROM attendance WHERE employee_id = employees.id AND work_month = '2026-07'), 0) - 29) * (basic_salary / 31.0) + " +
+                    "  allowance_responsibility + allowance_other + commission_consulting + commission_service + overtime_pay - " +
+                    "  social_insurance - advance_payment) END " +
+                    "FROM employees WHERE net_salary > 0 OR allowance_responsibility > 0 OR commission_consulting > 0 OR commission_service > 0 OR overtime_pay > 0 OR advance_payment > 0;";
+                try (Statement recoveryStmt = conn.createStatement()) {
+                    int rows = recoveryStmt.executeUpdate(recoverySql);
+                    System.out.println("✓ Đã khôi phục thành công " + rows + " bản ghi tính lương Tháng 07/2026!");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Lỗi khôi phục lương Tháng 7: " + e.getMessage());
                 }
             }
 
