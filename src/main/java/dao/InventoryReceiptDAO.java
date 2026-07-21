@@ -65,4 +65,21 @@ public class InventoryReceiptDAO {
         }
         return list;
     }
+
+    public java.util.Map<Integer, Double> getImportedQuantitiesByMonth(String monthStr) {
+        java.util.Map<Integer, Double> map = new java.util.HashMap<>();
+        String sql = "SELECT product_id, SUM(quantity) FROM inventory_receipts WHERE substr(receipt_date, 1, 7) = ? GROUP BY product_id";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, monthStr);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    map.put(rs.getInt(1), rs.getDouble(2));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return map;
+    }
 }

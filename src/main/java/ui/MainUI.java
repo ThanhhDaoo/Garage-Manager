@@ -1734,8 +1734,22 @@ public class MainUI extends Application {
             ProductForm form = new ProductForm(() -> refreshProductTable(tableRows));
             form.show();
         });
+
+        Button btnStockStats = new Button("📊 Thống kê kho");
+        btnStockStats.setStyle(
+            "-fx-background-color: #4CAF50;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 24px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnStockStats.setOnMouseEntered(e -> btnStockStats.setOpacity(0.9));
+        btnStockStats.setOnMouseExited(e -> btnStockStats.setOpacity(1.0));
+        btnStockStats.setOnAction(e -> showInventoryStatistics());
         
-        header.getChildren().addAll(title, spacer, btnNew);
+        header.getChildren().addAll(title, spacer, btnStockStats, btnNew);
 
         // Search bar
         HBox searchBar = new HBox(15);
@@ -1920,6 +1934,324 @@ public class MainUI extends Application {
         VBox.setVgrow(tableContainer, Priority.ALWAYS);
 
         view.getChildren().addAll(header, searchBar, tableContainer);
+        
+        contentArea.getChildren().clear();
+        contentArea.getChildren().add(view);
+    }
+
+    private void showInventoryStatistics() {
+        VBox view = new VBox(25);
+        view.setPadding(new Insets(30));
+
+        // Header
+        HBox header = new HBox(20);
+        header.setAlignment(Pos.CENTER_LEFT);
+        
+        Label title = new Label("📊 Thống Kê Tồn Kho & Nhập Xuất");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        Button btnBack = new Button("🔙 Quay lại");
+        btnBack.setStyle(
+            "-fx-background-color: #757575;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 24px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnBack.setOnMouseEntered(e -> btnBack.setOpacity(0.9));
+        btnBack.setOnMouseExited(e -> btnBack.setOpacity(1.0));
+        btnBack.setOnAction(e -> showProductManagement());
+        
+        header.getChildren().addAll(title, spacer, btnBack);
+
+        // Filter bar
+        HBox filterBar = new HBox(15);
+        filterBar.setAlignment(Pos.CENTER_LEFT);
+        filterBar.setPadding(new Insets(20));
+        filterBar.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;"
+        );
+
+        TextField txtSearch = new TextField();
+        txtSearch.setPromptText("🔍 Tìm theo tên sản phẩm...");
+        txtSearch.setStyle(
+            "-fx-font-size: 14px;" +
+            "-fx-padding: 10px 15px;" +
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-background-radius: 8;" +
+            "-fx-pref-width: 250px;"
+        );
+        UIUtils.setupIMEFix(txtSearch);
+
+        Label lblMonth = new Label("Tháng:");
+        lblMonth.setStyle("-fx-font-size: 14px; -fx-font-weight: 600; -fx-text-fill: #616161;");
+        ComboBox<String> cbMonth = new ComboBox<>();
+        for (int i = 1; i <= 12; i++) {
+            cbMonth.getItems().add(String.format("%02d", i));
+        }
+        String currentMonth = String.format("%02d", java.time.LocalDate.now().getMonthValue());
+        cbMonth.setValue(currentMonth);
+        cbMonth.setStyle("-fx-font-size: 14px; -fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-padding: 5 10;");
+
+        Label lblYear = new Label("Năm:");
+        lblYear.setStyle("-fx-font-size: 14px; -fx-font-weight: 600; -fx-text-fill: #616161;");
+        ComboBox<String> cbYear = new ComboBox<>();
+        int curYear = java.time.LocalDate.now().getYear();
+        for (int y = curYear - 5; y <= curYear + 5; y++) {
+            cbYear.getItems().add(String.valueOf(y));
+        }
+        cbYear.setValue(String.valueOf(curYear));
+        cbYear.setStyle("-fx-font-size: 14px; -fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-padding: 5 10;");
+
+        Region filterSpacer = new Region();
+        HBox.setHgrow(filterSpacer, Priority.ALWAYS);
+
+        Button btnPdf = new Button("📄 Xuất PDF");
+        btnPdf.setStyle(
+            "-fx-background-color: #E8F5E9;" +
+            "-fx-text-fill: #2E7D32;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnPdf.setOnMouseEntered(e -> btnPdf.setOpacity(0.9));
+        btnPdf.setOnMouseExited(e -> btnPdf.setOpacity(1.0));
+
+        filterBar.getChildren().addAll(txtSearch, lblMonth, cbMonth, lblYear, cbYear, filterSpacer, btnPdf);
+
+        // Summary Cards
+        HBox cards = new HBox(20);
+        cards.setPrefHeight(100);
+
+        VBox cardImport = new VBox(8);
+        cardImport.setPadding(new Insets(15));
+        cardImport.setStyle("-fx-background-color: #E8F5E9; -fx-background-radius: 12; -fx-alignment: center-left;");
+        HBox.setHgrow(cardImport, Priority.ALWAYS);
+        Label lblImportTitle = new Label("TỔNG GIÁ TRỊ NHẬP KHO TRONG KỲ");
+        lblImportTitle.setStyle("-fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #2E7D32;");
+        Label lblImportVal = new Label("0 đ");
+        lblImportVal.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2E7D32;");
+        cardImport.getChildren().addAll(lblImportTitle, lblImportVal);
+
+        VBox cardStock = new VBox(8);
+        cardStock.setPadding(new Insets(15));
+        cardStock.setStyle("-fx-background-color: #E3F2FD; -fx-background-radius: 12; -fx-alignment: center-left;");
+        HBox.setHgrow(cardStock, Priority.ALWAYS);
+        Label lblStockTitle = new Label("TỔNG GIÁ TRỊ TỒN KHO HIỆN TẠI");
+        lblStockTitle.setStyle("-fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #1565C0;");
+        Label lblStockVal = new Label("0 đ");
+        lblStockVal.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #1565C0;");
+        cardStock.getChildren().addAll(lblStockTitle, lblStockVal);
+
+        cards.getChildren().addAll(cardImport, cardStock);
+
+        // Table setup
+        TableView<model.StockStatisticsRow> tableView = new TableView<>();
+        tableView.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e0e0e0; -fx-border-width: 1; -fx-border-radius: 12;");
+        VBox.setVgrow(tableView, Priority.ALWAYS);
+
+        // Columns
+        TableColumn<model.StockStatisticsRow, String> colStt = new TableColumn<>("STT");
+        colStt.setPrefWidth(50);
+        colStt.setStyle("-fx-alignment: center;");
+        colStt.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setText(null);
+                } else {
+                    setText(String.valueOf(getIndex() + 1));
+                }
+            }
+        });
+
+        TableColumn<model.StockStatisticsRow, String> colCode = new TableColumn<>("Mã SP");
+        colCode.setPrefWidth(90);
+        colCode.setStyle("-fx-alignment: center;");
+        colCode.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("productCode"));
+
+        TableColumn<model.StockStatisticsRow, String> colName = new TableColumn<>("Tên Sản Phẩm");
+        colName.setPrefWidth(220);
+        colName.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("productName"));
+
+        TableColumn<model.StockStatisticsRow, String> colUnit = new TableColumn<>("ĐVT");
+        colUnit.setPrefWidth(60);
+        colUnit.setStyle("-fx-alignment: center;");
+        colUnit.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("unit"));
+
+        TableColumn<model.StockStatisticsRow, Double> colCost = new TableColumn<>("Giá Nhập");
+        colCost.setPrefWidth(110);
+        colCost.setStyle("-fx-alignment: center-right;");
+        colCost.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("costPrice"));
+        colCost.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f đ", item));
+                }
+            }
+        });
+
+        TableColumn<model.StockStatisticsRow, Double> colPrice = new TableColumn<>("Giá Bán");
+        colPrice.setPrefWidth(110);
+        colPrice.setStyle("-fx-alignment: center-right;");
+        colPrice.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("price"));
+        colPrice.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f đ", item));
+                }
+            }
+        });
+
+        TableColumn<model.StockStatisticsRow, Double> colImportQty = new TableColumn<>("SL Nhập");
+        colImportQty.setPrefWidth(90);
+        colImportQty.setStyle("-fx-alignment: center-right;");
+        colImportQty.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("importedQty"));
+        colImportQty.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format(item % 1 == 0 ? "%,.0f" : "%,.1f", item));
+                }
+            }
+        });
+
+        TableColumn<model.StockStatisticsRow, Double> colImportVal = new TableColumn<>("Giá Trị Nhập");
+        colImportVal.setPrefWidth(130);
+        colImportVal.setStyle("-fx-alignment: center-right;");
+        colImportVal.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("importedValue"));
+        colImportVal.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f đ", item));
+                }
+            }
+        });
+
+        TableColumn<model.StockStatisticsRow, Double> colStockQty = new TableColumn<>("Tồn Hiện Tại");
+        colStockQty.setPrefWidth(100);
+        colStockQty.setStyle("-fx-alignment: center-right;");
+        colStockQty.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("currentStock"));
+        colStockQty.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format(item % 1 == 0 ? "%,.0f" : "%,.1f", item));
+                }
+            }
+        });
+
+        TableColumn<model.StockStatisticsRow, Double> colStockVal = new TableColumn<>("Giá Trị Tồn");
+        colStockVal.setPrefWidth(140);
+        colStockVal.setStyle("-fx-alignment: center-right;");
+        colStockVal.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("currentStockValue"));
+        colStockVal.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f đ", item));
+                }
+            }
+        });
+
+        tableView.getColumns().addAll(colStt, colCode, colName, colUnit, colCost, colPrice, colImportQty, colImportVal, colStockQty, colStockVal);
+
+        // Search debouncer and update logic
+        javafx.animation.PauseTransition debounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(250));
+        Runnable loadData = () -> {
+            String monthStr = cbYear.getValue() + "-" + cbMonth.getValue();
+            String searchQuery = txtSearch.getText();
+            
+            service.ProductService productService = new service.ProductService();
+            java.util.List<Product> products = productService.getAllProducts();
+
+            dao.InventoryReceiptDAO receiptDAO = new dao.InventoryReceiptDAO();
+            java.util.Map<Integer, Double> importedMap = receiptDAO.getImportedQuantitiesByMonth(monthStr);
+
+            java.util.List<model.StockStatisticsRow> rows = new java.util.ArrayList<>();
+            double totalImportVal = 0;
+            double totalStockVal = 0;
+
+            String q = searchQuery == null ? "" : searchQuery.toLowerCase().trim();
+
+            for (Product p : products) {
+                if (!q.isEmpty() && !p.getName().toLowerCase().contains(q)) {
+                    continue;
+                }
+
+                double importedQty = importedMap.getOrDefault(p.getId(), 0.0);
+                model.StockStatisticsRow row = new model.StockStatisticsRow(
+                    p.getId(),
+                    "SP-" + String.format("%04d", p.getId()),
+                    p.getName(),
+                    p.getUnit() == null ? "" : p.getUnit(),
+                    p.getCostPrice(),
+                    p.getPrice(),
+                    importedQty,
+                    p.getStock()
+                );
+
+                rows.add(row);
+                totalImportVal += row.getImportedValue();
+                totalStockVal += row.getCurrentStockValue();
+            }
+
+            tableView.getItems().setAll(rows);
+            lblImportVal.setText(String.format("%,.0f đ", totalImportVal));
+            lblStockVal.setText(String.format("%,.0f đ", totalStockVal));
+        };
+
+        txtSearch.textProperty().addListener((obs, old, val) -> {
+            debounce.setOnFinished(e -> loadData.run());
+            debounce.playFromStart();
+        });
+
+        cbMonth.valueProperty().addListener((obs, old, val) -> loadData.run());
+        cbYear.valueProperty().addListener((obs, old, val) -> loadData.run());
+
+        btnPdf.setOnAction(e -> {
+            ReportHelper.exportStockStatisticsToPDF(new java.util.ArrayList<>(tableView.getItems()), 
+                cbYear.getValue() + "-" + cbMonth.getValue(), 
+                btnPdf.getScene().getWindow());
+        });
+
+        // Initial load
+        loadData.run();
+
+        view.getChildren().addAll(header, filterBar, cards, tableView);
         
         contentArea.getChildren().clear();
         contentArea.getChildren().add(view);

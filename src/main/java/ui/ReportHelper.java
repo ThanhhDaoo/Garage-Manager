@@ -1773,4 +1773,184 @@ public class ReportHelper {
             alert.showAndWait();
         }
     }
+
+    public static void exportStockStatisticsToPDF(List<model.StockStatisticsRow> rows,
+            String monthYear,
+            javafx.stage.Window owner) {
+        try {
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Lưu Báo Cáo Thống Kê Kho PDF");
+            fileChooser.setInitialFileName("BaoCaoThongKeKho_" + monthYear.replace("-", "_") + "_" + java.time.LocalDate.now() + ".pdf");
+            fileChooser.getExtensionFilters().add(
+                    new javafx.stage.FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
+
+            java.io.File file = fileChooser.showSaveDialog(owner);
+            if (file == null) return;
+
+            com.itextpdf.kernel.pdf.PdfWriter writer = new com.itextpdf.kernel.pdf.PdfWriter(file);
+            com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
+            com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf);
+            document.setMargins(20, 20, 20, 20);
+
+            com.itextpdf.kernel.font.PdfFont font = util.PDFFontHelper.createVietnameseFont();
+            com.itextpdf.kernel.font.PdfFont boldFont = util.PDFFontHelper.createVietnameseFont(true);
+
+            // Left-aligned Company Info
+            document.add(new com.itextpdf.layout.element.Paragraph("CÔNG TY TNHH TM DV PHỤ TÙNG Ô TÔ MINH TÂM")
+                    .setFont(boldFont)
+                    .setFontSize(10)
+                    .setMarginBottom(1));
+            document.add(new com.itextpdf.layout.element.Paragraph(
+                    "Ngã tư An Dương Vương và Trương Định, P. Trần Phú, TP. Quảng Ngãi, T. Quảng Ngãi.")
+                    .setFont(font)
+                    .setFontSize(8.5f)
+                    .setMarginBottom(1));
+            document.add(new com.itextpdf.layout.element.Paragraph("MST: 4300899201")
+                    .setFont(font)
+                    .setFontSize(8.5f)
+                    .setMarginBottom(15));
+
+            // Title
+            document.add(new com.itextpdf.layout.element.Paragraph("BÁO CÁO THỐNG KÊ KHO SẢN PHẨM")
+                    .setFont(boldFont).setFontSize(16)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setMarginBottom(2));
+            
+            String monthVal = monthYear.substring(5, 7);
+            String yearVal = monthYear.substring(0, 4);
+            document.add(new com.itextpdf.layout.element.Paragraph("Tháng " + monthVal + " Năm " + yearVal)
+                    .setFont(boldFont).setFontSize(12)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setMarginBottom(15));
+
+            // Metadata
+            String reportTime = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
+                    .format(java.time.LocalDateTime.now());
+            document.add(new com.itextpdf.layout.element.Paragraph("Thời gian lập báo cáo: " + reportTime)
+                    .setFont(font).setFontSize(9).setMarginBottom(2));
+            document.add(new com.itextpdf.layout.element.Paragraph("Người lập báo cáo: Ban quản trị hệ thống (Admin)")
+                    .setFont(font).setFontSize(9).setMarginBottom(15));
+
+            // Table setup: 9 columns
+            float[] colWidths = {25f, 50f, 130f, 35f, 60f, 65f, 75f, 60f, 75f};
+            com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(colWidths);
+            table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+
+            // Header cells helper
+            java.util.function.BiConsumer<String, com.itextpdf.layout.properties.TextAlignment> addHeaderCell = (text, align) -> {
+                com.itextpdf.layout.element.Cell cell = new com.itextpdf.layout.element.Cell()
+                        .add(new com.itextpdf.layout.element.Paragraph(text).setFont(boldFont).setFontSize(8.5f))
+                        .setTextAlignment(align)
+                        .setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(200, 230, 201))
+                        .setPadding(5);
+                table.addHeaderCell(cell);
+            };
+
+            addHeaderCell.accept("STT", com.itextpdf.layout.properties.TextAlignment.CENTER);
+            addHeaderCell.accept("Mã SP", com.itextpdf.layout.properties.TextAlignment.CENTER);
+            addHeaderCell.accept("Tên Sản Phẩm", com.itextpdf.layout.properties.TextAlignment.LEFT);
+            addHeaderCell.accept("ĐVT", com.itextpdf.layout.properties.TextAlignment.CENTER);
+            addHeaderCell.accept("SL Nhập", com.itextpdf.layout.properties.TextAlignment.RIGHT);
+            addHeaderCell.accept("Giá Nhập", com.itextpdf.layout.properties.TextAlignment.RIGHT);
+            addHeaderCell.accept("Giá Trị Nhập", com.itextpdf.layout.properties.TextAlignment.RIGHT);
+            addHeaderCell.accept("Tồn Hiện Tại", com.itextpdf.layout.properties.TextAlignment.RIGHT);
+            addHeaderCell.accept("Giá Trị Tồn", com.itextpdf.layout.properties.TextAlignment.RIGHT);
+
+            double totalImportVal = 0;
+            double totalStockVal = 0;
+            int stt = 1;
+
+            java.util.function.BiConsumer<String, com.itextpdf.layout.properties.TextAlignment> addRowCell = (text, align) -> {
+                com.itextpdf.layout.element.Cell cell = new com.itextpdf.layout.element.Cell()
+                        .add(new com.itextpdf.layout.element.Paragraph(text).setFont(font).setFontSize(8f))
+                        .setTextAlignment(align)
+                        .setPadding(4);
+                table.addCell(cell);
+            };
+
+            for (model.StockStatisticsRow row : rows) {
+                addRowCell.accept(String.valueOf(stt++), com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addRowCell.accept(row.getProductCode(), com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addRowCell.accept(row.getProductName(), com.itextpdf.layout.properties.TextAlignment.LEFT);
+                addRowCell.accept(row.getUnit(), com.itextpdf.layout.properties.TextAlignment.CENTER);
+                
+                String importQtyStr = String.format(row.getImportedQty() % 1 == 0 ? "%,.0f" : "%,.1f", row.getImportedQty());
+                addRowCell.accept(importQtyStr, com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getCostPrice()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getImportedValue()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                
+                String stockQtyStr = String.format(row.getCurrentStock() % 1 == 0 ? "%,.0f" : "%,.1f", row.getCurrentStock());
+                addRowCell.accept(stockQtyStr, com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getCurrentStockValue()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
+
+                totalImportVal += row.getImportedValue();
+                totalStockVal += row.getCurrentStockValue();
+            }
+
+            // Total Row
+            com.itextpdf.layout.element.Cell totalLabelCell = new com.itextpdf.layout.element.Cell(1, 4)
+                    .add(new com.itextpdf.layout.element.Paragraph("TỔNG CỘNG").setFont(boldFont).setFontSize(8.5f))
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(245, 245, 245))
+                    .setPadding(5);
+            table.addCell(totalLabelCell);
+
+            // Empty cells
+            table.addCell(new com.itextpdf.layout.element.Cell().setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(245, 245, 245)));
+            table.addCell(new com.itextpdf.layout.element.Cell().setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(245, 245, 245)));
+
+            // Total Import Value
+            com.itextpdf.layout.element.Cell totalImportCell = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", totalImportVal)).setFont(boldFont).setFontSize(8.5f))
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
+                    .setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(245, 245, 245))
+                    .setPadding(5);
+            table.addCell(totalImportCell);
+
+            // Empty cell for Tồn
+            table.addCell(new com.itextpdf.layout.element.Cell().setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(245, 245, 245)));
+
+            // Total Stock Value
+            com.itextpdf.layout.element.Cell totalStockCell = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", totalStockVal)).setFont(boldFont).setFontSize(8.5f))
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
+                    .setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(245, 245, 245))
+                    .setPadding(5);
+            table.addCell(totalStockCell);
+
+            document.add(table);
+
+            // Signatures Block
+            float[] sigWidths = {260f, 260f, 260f};
+            com.itextpdf.layout.element.Table sigTable = new com.itextpdf.layout.element.Table(sigWidths);
+            sigTable.setMarginTop(25);
+            
+            sigTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Thủ Kho\n(Ký, ghi rõ họ tên)").setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)).setBorder(null));
+            sigTable.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph("Kế Toán Trưởng\n(Ký, ghi rõ họ tên)").setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)).setBorder(null));
+            
+            com.itextpdf.layout.element.Cell bossCell = new com.itextpdf.layout.element.Cell();
+            bossCell.add(new com.itextpdf.layout.element.Paragraph("Giám Đốc\n(Ký, đóng dấu)").setFont(font).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            bossCell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n\nTÂM").setFont(boldFont).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            bossCell.add(new com.itextpdf.layout.element.Paragraph("PHẠM MINH TÂM").setFont(boldFont).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            bossCell.setBorder(null);
+            sigTable.addCell(bossCell);
+            
+            document.add(sigTable);
+            document.close();
+
+            javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
+                    javafx.scene.control.Alert.AlertType.INFORMATION,
+                    "Thành công",
+                    "Xuất báo cáo thống kê kho PDF thành công!\nĐã lưu tại: " + file.getAbsolutePath());
+            alert.showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
+                    javafx.scene.control.Alert.AlertType.ERROR,
+                    "Lỗi",
+                    "Không thể xuất báo cáo PDF: " + e.getMessage());
+            alert.showAndWait();
+        }
+    }
 }
