@@ -250,13 +250,76 @@ public class InventoryHelper {
         colOperator.setCellValueFactory(new PropertyValueFactory<>("operator"));
 
         TableColumn<InventoryReceipt, String> colNotes = new TableColumn<>("Ghi Chú");
-        colNotes.setPrefWidth(160);
+        colNotes.setPrefWidth(150);
         colNotes.setCellValueFactory(new PropertyValueFactory<>("notes"));
 
+        // ---- ACTION COLUMN ----
+        TableColumn<InventoryReceipt, Void> colAction = new TableColumn<>("Thao Tác");
+        colAction.setPrefWidth(95);
+        colAction.setStyle("-fx-alignment: CENTER;");
+        colAction.setSortable(false);
+        colAction.setCellFactory(col -> new TableCell<>() {
+            private final Button btnEdit   = new Button("✏");
+            private final Button btnDelete = new Button("🗑");
+            private final HBox   box       = new HBox(6, btnEdit, btnDelete);
+            {
+                box.setAlignment(javafx.geometry.Pos.CENTER);
+                btnEdit.setStyle(
+                    "-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2;" +
+                    "-fx-font-size: 11px; -fx-padding: 4 8; -fx-background-radius: 6; -fx-cursor: hand;"
+                );
+                btnDelete.setStyle(
+                    "-fx-background-color: #FFEBEE; -fx-text-fill: #D32F2F;" +
+                    "-fx-font-size: 11px; -fx-padding: 4 8; -fx-background-radius: 6; -fx-cursor: hand;"
+                );
+
+                // --- EDIT ---
+                btnEdit.setOnAction(e -> {
+                    InventoryReceipt r = getTableView().getItems().get(getIndex());
+                    showEditDialog(r);
+                });
+
+                // --- DELETE ---
+                btnDelete.setOnAction(e -> {
+                    InventoryReceipt r = getTableView().getItems().get(getIndex());
+                    Alert confirm = AlertHelper.createAlert(
+                        Alert.AlertType.CONFIRMATION,
+                        "Xác Nhận Xoá",
+                        "Bạn có chắc muốn xoá phiếu " +
+                        "NK-" + String.format("%04d", r.getId()) + " không?\n" +
+                        "Tồn kho sản phẩm sẽ được hoàn lại."
+                    );
+                    confirm.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO);
+                    confirm.showAndWait().ifPresent(resp -> {
+                        if (resp == ButtonType.YES) {
+                            InventoryReceiptDAO dao = new InventoryReceiptDAO();
+                            if (dao.deleteReceipt(r.getId())) {
+                                // Revert stock
+                                dao.revertStock(r.getProductId(), r.getQuantity());
+                                // Xóa chi phí biến thiên tương ứng
+                                String receiptCode = "NK-" + String.format("%04d", r.getId());
+                                new dao.FixedExpenseDAO().deleteExpenseByReceiptCode(receiptCode);
+                                loadReceiptsData();
+                            } else {
+                                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi",
+                                    "Không thể xoá phiếu nhập!").showAndWait();
+                            }
+                        }
+                    });
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : box);
+            }
+        });
+
         tableView.getColumns().addAll(
-            colStt, colCode, colDate, colProduct, colQty, colPrice, colTotal, colOperator, colNotes
+            colStt, colCode, colDate, colProduct, colQty, colPrice, colTotal, colOperator, colNotes, colAction
         );
-        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tableView.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(tableView, Priority.ALWAYS);
 
         root.getChildren().addAll(headerTitle, filterBar, summaryCards, tableView);
@@ -343,4 +406,216 @@ public class InventoryHelper {
             lblReceiptCount.setText(count + " phiếu");
         }
     }
+
+    private static void showEditDialog(InventoryReceipt r) {
+        javafx.stage.Stage dialog = new javafx.stage.Stage();
+        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        dialog.setTitle("Sửa Phiếu Nhập – NK-" + String.format("%04d", r.getId()));
+
+        // ===== Outer scroll =====
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: #f8f9fa; -fx-background-color: #f8f9fa;");
+
+        VBox mainContent = new VBox(25);
+        mainContent.setPadding(new Insets(30));
+        mainContent.setStyle("-fx-background-color: #f8f9fa;");
+
+        Label title = new Label("✏ Chỉnh Sửa Phiếu Nhập Kho");
+        title.setStyle("-fx-font-size: 24px; -fx-font-weight: 600; -fx-text-fill: #212121;");
+
+        // ===== Card section =====
+        VBox section = new VBox(20);
+        section.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1;" +
+            "-fx-border-radius: 12;" +
+            "-fx-padding: 30;"
+        );
+
+        Label sectionTitle = new Label("Thông Tin Phiếu Nhập");
+        sectionTitle.setStyle("-fx-font-size: 16px; -fx-text-fill: #1976D2; -fx-font-weight: 700; -fx-padding: 0 0 10 0;");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(20);
+        grid.setVgap(15);
+        ColumnConstraints col0 = new ColumnConstraints();
+        col0.setMinWidth(190);
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setHgrow(Priority.ALWAYS);
+        col1.setFillWidth(true);
+        grid.getColumnConstraints().addAll(col0, col1);
+
+        String labelStyle = "-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;";
+        String fieldStyle = "-fx-background-color: #f5f5f5; -fx-padding: 12px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;";
+        String fieldDisabledStyle = fieldStyle + "-fx-text-fill: #757575;";
+
+        // Row 0: Sản phẩm (read-only)
+        Label lblProd = new Label("Sản phẩm");
+        lblProd.setStyle(labelStyle);
+        TextField txtProd = new TextField(r.getProductName());
+        txtProd.setEditable(false);
+        txtProd.setStyle(fieldDisabledStyle);
+        txtProd.setMaxWidth(Double.MAX_VALUE);
+
+        // Row 1: Đơn giá (read-only)
+        Label lblCost = new Label("Đơn giá nhập (VND)");
+        lblCost.setStyle(labelStyle);
+        TextField txtCost = new TextField(String.format("%,.0f", r.getCostPrice()));
+        txtCost.setEditable(false);
+        txtCost.setStyle(fieldDisabledStyle);
+        txtCost.setMaxWidth(Double.MAX_VALUE);
+
+        // Row 2: Số lượng
+        Label lblQty = new Label("Số lượng nhập *");
+        lblQty.setStyle(labelStyle);
+        TextField txtQty = new TextField(new java.text.DecimalFormat("#.##").format(r.getQuantity()));
+        txtQty.setStyle(fieldStyle);
+        txtQty.setMaxWidth(Double.MAX_VALUE);
+
+        // Row 3: Thành tiền (auto, read-only)
+        Label lblTotal = new Label("Thành tiền (VND)");
+        lblTotal.setStyle(labelStyle);
+        TextField txtTotal = new TextField(String.format("%,.0f", r.getTotalPrice()));
+        txtTotal.setEditable(false);
+        txtTotal.setStyle(fieldStyle + "-fx-font-weight: bold; -fx-text-fill: #2E7D32;");
+        txtTotal.setMaxWidth(Double.MAX_VALUE);
+
+        // Auto-calc total on qty change
+        txtQty.textProperty().addListener((obs, oldVal, newVal) -> {
+            try {
+                double qty = Double.parseDouble(newVal.trim());
+                txtTotal.setText(String.format("%,.0f", r.getCostPrice() * qty));
+            } catch (NumberFormatException ex) {
+                txtTotal.setText("0");
+            }
+        });
+
+        // Row 4: Ngày nhập
+        Label lblDate = new Label("Ngày nhập *");
+        lblDate.setStyle(labelStyle);
+        DatePicker dpDate = new DatePicker();
+        try { dpDate.setValue(java.time.LocalDate.parse(r.getReceiptDate())); } catch (Exception ignored) {}
+        dpDate.setMaxWidth(Double.MAX_VALUE);
+        dpDate.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
+
+        // Row 5: Người thực hiện
+        Label lblOp = new Label("Người thực hiện *");
+        lblOp.setStyle(labelStyle);
+        TextField txtOp = new TextField(r.getOperator());
+        txtOp.setPromptText("Nhập họ tên người thực hiện...");
+        txtOp.setStyle(fieldStyle);
+        txtOp.setMaxWidth(Double.MAX_VALUE);
+
+        // Row 6: Ghi chú
+        Label lblNotes = new Label("Ghi chú");
+        lblNotes.setStyle(labelStyle);
+        TextArea txtNotes = new TextArea(r.getNotes() != null ? r.getNotes() : "");
+        txtNotes.setPromptText("Nhập ghi chú nếu có...");
+        txtNotes.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;");
+        txtNotes.setPrefRowCount(3);
+        txtNotes.setMaxWidth(Double.MAX_VALUE);
+
+        grid.add(lblProd, 0, 0);  grid.add(txtProd, 1, 0);
+        grid.add(lblCost, 0, 1);  grid.add(txtCost, 1, 1);
+        grid.add(lblQty,  0, 2);  grid.add(txtQty,  1, 2);
+        grid.add(lblTotal,0, 3);  grid.add(txtTotal,1, 3);
+        grid.add(lblDate, 0, 4);  grid.add(dpDate,  1, 4);
+        grid.add(lblOp,   0, 5);  grid.add(txtOp,   1, 5);
+        grid.add(lblNotes,0, 6);  grid.add(txtNotes,1, 6);
+
+        section.getChildren().addAll(sectionTitle, grid);
+
+        // ===== Action buttons =====
+        Button btnCancel = new Button("Hủy");
+        btnCancel.setStyle(
+            "-fx-background-color: #f5f5f5;" +
+            "-fx-text-fill: #616161;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 30px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnCancel.setOnAction(e -> dialog.close());
+
+        Button btnSave = new Button("Lưu Thay Đổi");
+        btnSave.setStyle(
+            "-fx-background-color: #1976D2;" +
+            "-fx-text-fill: white;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 12px 30px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+
+        btnSave.setOnAction(e -> {
+            double newQty;
+            try {
+                newQty = Double.parseDouble(txtQty.getText().trim().replace(",", ""));
+                if (newQty <= 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Số lượng không hợp lệ!").showAndWait();
+                return;
+            }
+            if (dpDate.getValue() == null) {
+                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng chọn ngày nhập!").showAndWait();
+                return;
+            }
+            if (txtOp.getText().trim().isEmpty()) {
+                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập người thực hiện!").showAndWait();
+                return;
+            }
+
+            double oldQty  = r.getQuantity();
+            double diffQty = newQty - oldQty;
+
+            r.setQuantity(newQty);
+            r.setTotalPrice(r.getCostPrice() * newQty);
+            r.setReceiptDate(dpDate.getValue().toString());
+            r.setOperator(txtOp.getText().trim());
+            r.setNotes(txtNotes.getText().trim());
+
+            InventoryReceiptDAO dao = new InventoryReceiptDAO();
+            if (dao.updateReceipt(r)) {
+                if (diffQty != 0) {
+                    String stockSql = diffQty > 0
+                        ? "UPDATE products SET stock = stock + ? WHERE id = ?"
+                        : "UPDATE products SET stock = MAX(0, stock + ?) WHERE id = ?";
+                    try (java.sql.Connection conn = util.DatabaseManager.getConnection();
+                         java.sql.PreparedStatement ps = conn.prepareStatement(stockSql)) {
+                        ps.setDouble(1, diffQty);
+                        ps.setInt(2, r.getProductId());
+                        ps.executeUpdate();
+                    } catch (java.sql.SQLException ex) { ex.printStackTrace(); }
+                }
+                AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công",
+                    "Đã cập nhật phiếu nhập kho!").showAndWait();
+                dialog.close();
+                loadReceiptsData();
+            } else {
+                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi",
+                    "Không thể cập nhật phiếu nhập!").showAndWait();
+            }
+        });
+
+        HBox btnBar = new HBox(15, btnCancel, btnSave);
+        btnBar.setAlignment(Pos.CENTER_RIGHT);
+
+        mainContent.getChildren().addAll(title, section, btnBar);
+        scrollPane.setContent(mainContent);
+
+        javafx.scene.Scene scene = new javafx.scene.Scene(scrollPane, 700, 700);
+        try {
+            String css = MainUI.class.getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception ignored) {}
+
+        dialog.setScene(scene);
+        dialog.showAndWait();
+    }
 }
+

@@ -104,4 +104,20 @@ public class FixedExpenseDAO {
         }
         return false;
     }
+
+    /**
+     * Xóa chi phí biến thiên được tạo tự động khi nhập kho.
+     * Tìm theo chuỗi "Mã phiếu nhập: NK-XXXX" trong trường notes.
+     */
+    public boolean deleteExpenseByReceiptCode(String receiptCode) {
+        String sql = "DELETE FROM fixed_expenses WHERE notes LIKE ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, "%" + receiptCode + "%");
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

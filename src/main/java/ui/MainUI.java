@@ -1613,35 +1613,27 @@ public class MainUI extends Application {
         hDesc.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hDesc.setAlignment(Pos.CENTER_LEFT);
         
-        Label hPriceRange = new Label("Khoảng Giá");
-        hPriceRange.setPrefWidth(150);
-        hPriceRange.setMinWidth(150);
-        hPriceRange.setPadding(new Insets(0, 10, 0, 10));
-        hPriceRange.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        hPriceRange.setAlignment(Pos.CENTER_RIGHT);
-        
-        Label hSavings = new Label("Tiết Kiệm");
-        hSavings.setPrefWidth(100);
-        hSavings.setMinWidth(100);
-        hSavings.setPadding(new Insets(0, 10, 0, 10));
-        hSavings.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #4CAF50;");
-        hSavings.setAlignment(Pos.CENTER_RIGHT);
-        
-        Label hStatus = new Label("Trạng Thái");
-        hStatus.setPrefWidth(100);
-        hStatus.setMinWidth(100);
-        hStatus.setPadding(new Insets(0, 10, 0, 10));
-        hStatus.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        hStatus.setAlignment(Pos.CENTER);
-        
+        String[] pkgVehicleTypes   = {"Mini", "Sedan", "CUV", "SUV", "MPV", "Pickup"};
+        String[] pkgVehicleColors   = {"#4CAF50", "#2196F3", "#FF5722", "#9C27B0", "#FF9800", "#607D8B"};
+        int      pkgColW            = 88;
+        tableHeader.getChildren().addAll(hName, hDesc);
+        for (int i = 0; i < pkgVehicleTypes.length; i++) {
+            Label h = new Label(pkgVehicleTypes[i]);
+            h.setPrefWidth(pkgColW);
+            h.setMinWidth(pkgColW);
+            h.setPadding(new Insets(0, 6, 0, 6));
+            h.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: " + pkgVehicleColors[i] + ";");
+            h.setAlignment(Pos.CENTER_RIGHT);
+            tableHeader.getChildren().add(h);
+        }
+
         Label hAction = new Label("Thao Tác");
-        hAction.setPrefWidth(120);
-        hAction.setMinWidth(120);
+        hAction.setPrefWidth(100);
+        hAction.setMinWidth(100);
         hAction.setPadding(new Insets(0, 15, 0, 10));
         hAction.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hAction.setAlignment(Pos.CENTER);
-        
-        tableHeader.getChildren().addAll(hName, hDesc, hPriceRange, hSavings, hStatus, hAction);
+        tableHeader.getChildren().add(hAction);
         HBox.setHgrow(hDesc, Priority.ALWAYS);
         
         // Load data from database
@@ -4187,47 +4179,32 @@ public class MainUI extends Application {
         lblDesc.setAlignment(Pos.CENTER_LEFT);
         lblDesc.setWrapText(true);
         
-        // Price Range (Min - Max)
-        String priceRange = String.format("%.0fđ - %.0fđ", pkg.getPriceMini(), pkg.getPricePickup());
-        Label lblPriceRange = new Label(priceRange);
-        lblPriceRange.setStyle("-fx-font-size: 13px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
-        lblPriceRange.setPrefWidth(150);
-        lblPriceRange.setMinWidth(150);
-        lblPriceRange.setPadding(new Insets(12, 10, 12, 10));
-        lblPriceRange.setAlignment(Pos.CENTER_RIGHT);
-        
-        // Savings
-        Label lblSavings = new Label(String.format("~%.0fđ", pkg.getSavings()));
-        lblSavings.setStyle("-fx-font-size: 13px; -fx-text-fill: #4CAF50; -fx-font-weight: 600;");
-        lblSavings.setPrefWidth(100);
-        lblSavings.setMinWidth(100);
-        lblSavings.setPadding(new Insets(12, 10, 12, 10));
-        lblSavings.setAlignment(Pos.CENTER_RIGHT);
-        
-        // Status
-        Label lblStatus = new Label(pkg.getStatus());
-        lblStatus.setStyle(
-            "-fx-font-size: 11px;" +
-            "-fx-text-fill: " + (pkg.getStatus().equals("Đang bán") ? "#2196F3" : "#757575") + ";" +
-            "-fx-background-color: " + (pkg.getStatus().equals("Đang bán") ? "#E3F2FD" : "#F5F5F5") + ";" +
-            "-fx-padding: 5px 10px;" +
-            "-fx-background-radius: 6;"
-        );
-        lblStatus.setAlignment(Pos.CENTER);
-        
-        HBox statusContainer = new HBox(lblStatus);
-        statusContainer.setAlignment(Pos.CENTER);
-        statusContainer.setPrefWidth(100);
-        statusContainer.setMinWidth(100);
-        statusContainer.setPadding(new Insets(12, 10, 12, 10));
-        
+        // Per-vehicle-type price columns
+        row.getChildren().addAll(nameCell, lblDesc);
+        double[] pkgPrices = {
+            pkg.getPriceMini(), pkg.getPriceSedan(), pkg.getPriceCuv(),
+            pkg.getPriceSuv(), pkg.getPriceMpv(), pkg.getPricePickup()
+        };
+        String[] pkgPriceColors = {"#4CAF50", "#2196F3", "#FF5722", "#9C27B0", "#FF9800", "#607D8B"};
+        int pkgColW = 88;
+        for (int i = 0; i < pkgPrices.length; i++) {
+            String txt = pkgPrices[i] > 0 ? String.format("%,.0f đ", pkgPrices[i]) : "—";
+            Label lbl = new Label(txt);
+            lbl.setStyle("-fx-font-size: 12px; -fx-text-fill: " + pkgPriceColors[i] + "; -fx-font-weight: 600;");
+            lbl.setPrefWidth(pkgColW);
+            lbl.setMinWidth(pkgColW);
+            lbl.setPadding(new Insets(12, 6, 12, 6));
+            lbl.setAlignment(Pos.CENTER_RIGHT);
+            row.getChildren().add(lbl);
+        }
+
         // Actions
         HBox actions = new HBox(6);
         actions.setAlignment(Pos.CENTER);
-        actions.setPrefWidth(120);
-        actions.setMinWidth(120);
+        actions.setPrefWidth(100);
+        actions.setMinWidth(100);
         actions.setPadding(new Insets(12, 15, 12, 10));
-        
+
         Button btnView = new Button("👁");
         btnView.setStyle(
             "-fx-background-color: #F3E5F5;" +
@@ -4239,10 +4216,8 @@ public class MainUI extends Application {
             "-fx-min-width: 28;" +
             "-fx-min-height: 28;"
         );
-        btnView.setOnAction(e -> {
-            showPackageDetails(pkg);
-        });
-        
+        btnView.setOnAction(e -> showPackageDetails(pkg));
+
         Button btnEdit = new Button("✏");
         btnEdit.setStyle(
             "-fx-background-color: #E3F2FD;" +
@@ -4258,7 +4233,7 @@ public class MainUI extends Application {
             PackageForm form = new PackageForm(pkg.getId(), pkg, () -> refreshPackageTable(tableRows));
             form.show();
         });
-        
+
         Button btnDelete = new Button("🗑");
         btnDelete.setStyle(
             "-fx-background-color: #FFEBEE;" +
@@ -4280,10 +4255,9 @@ public class MainUI extends Application {
                 }
             });
         });
-        
+
         actions.getChildren().addAll(btnView, btnEdit, btnDelete);
-        
-        row.getChildren().addAll(nameCell, lblDesc, lblPriceRange, lblSavings, statusContainer, actions);
+        row.getChildren().add(actions);
         HBox.setHgrow(lblDesc, Priority.ALWAYS);
         return row;
     }
@@ -4825,26 +4799,64 @@ public class MainUI extends Application {
             com.itextpdf.kernel.colors.Color blackColor = new com.itextpdf.kernel.colors.DeviceRgb(0, 0, 0);
             com.itextpdf.kernel.colors.Color redColor = new com.itextpdf.kernel.colors.DeviceRgb(218, 37, 29);
             
-            // ===== HEADER: Company Name =====
-            com.itextpdf.layout.element.Paragraph companyName = new com.itextpdf.layout.element.Paragraph(
+            // ===== HEADER: 2-column layout =====
+            // Left(65%): Company info  |  Right(35%): 4 small service ad boxes
+            com.itextpdf.layout.element.Table headerTable = new com.itextpdf.layout.element.Table(
+                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{65f, 35f}));
+            headerTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            headerTable.setMarginBottom(8);
+
+            // --- LEFT CELL: Company info (no wrap) ---
+            com.itextpdf.layout.element.Cell leftCell = new com.itextpdf.layout.element.Cell()
+                .setBorder(null)
+                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+
+            leftCell.add(new com.itextpdf.layout.element.Paragraph(
                 "CÔNG TY TNHH TM DV PHỤ TÙNG Ô TÔ MINH TÂM")
-                .setFont(boldFont)
-                .setFontSize(14)
-                .setFontColor(redColor)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setMarginBottom(2);
-            document.add(companyName);
-            
-            // Address
-            com.itextpdf.layout.element.Paragraph address = new com.itextpdf.layout.element.Paragraph(
+                .setFont(boldFont).setFontSize(12).setFontColor(redColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.LEFT)
+                .setKeepTogether(true)
+                .setMarginBottom(3));
+
+            leftCell.add(new com.itextpdf.layout.element.Paragraph(
                 "Ngã tư Trương Định và An Dương Vương, P. Nghĩa Lộ, tỉnh Quảng Ngãi")
-                .setFont(font)
-                .setFontSize(10)
-                .setFontColor(redColor)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setMarginBottom(8);
-            document.add(address);
-            
+                .setFont(font).setFontSize(8).setFontColor(redColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.LEFT)
+                .setKeepTogether(true)
+                .setMarginBottom(0));
+
+            headerTable.addCell(leftCell);
+
+            // --- RIGHT CELL: 4 service ad boxes in a 2x2 grid (black style) ---
+            com.itextpdf.layout.element.Cell rightCell = new com.itextpdf.layout.element.Cell()
+                .setBorder(null)
+                .setPaddingLeft(6)
+                .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+
+            com.itextpdf.kernel.colors.Color adBorderColor = redColor;
+            com.itextpdf.kernel.colors.Color adTextColor  = redColor;
+
+            com.itextpdf.layout.element.Table adTable = new com.itextpdf.layout.element.Table(
+                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{50f, 50f}));
+            adTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+
+            String[] adLabels = {"PHỤ KIỆN", "CHĂM SÓC", "BẢO DƯỠNG", "ĐỒNG SƠN"};
+            for (String label : adLabels) {
+                com.itextpdf.layout.element.Cell adCell = new com.itextpdf.layout.element.Cell()
+                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(adBorderColor, 0.5f))
+                    .setPadding(3)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
+                adCell.add(new com.itextpdf.layout.element.Paragraph(label)
+                    .setFont(boldFont).setFontSize(7).setFontColor(adTextColor)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+                adTable.addCell(adCell);
+            }
+
+            rightCell.add(adTable);
+            headerTable.addCell(rightCell);
+            document.add(headerTable);
+
             // Title: PHIẾU THI CÔNG
             com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph(
                 "PHIẾU THI CÔNG")
