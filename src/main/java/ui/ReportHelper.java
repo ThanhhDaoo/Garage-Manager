@@ -1953,4 +1953,212 @@ public class ReportHelper {
             alert.showAndWait();
         }
     }
+
+    public static void exportStockStatisticsToExcel(List<model.StockStatisticsRow> rows,
+            String monthYear,
+            javafx.stage.Window owner) {
+        try {
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Lưu Báo Cáo Thống Kê Kho Excel");
+            fileChooser.setInitialFileName("BaoCaoThongKeKho_" + monthYear.replace("-", "_") + "_" + java.time.LocalDate.now() + ".xlsx");
+            fileChooser.getExtensionFilters().add(
+                    new javafx.stage.FileChooser.ExtensionFilter("Excel Files", "*.xlsx"));
+
+            java.io.File file = fileChooser.showSaveDialog(owner);
+            if (file == null) return;
+
+            org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+            org.apache.poi.xssf.usermodel.XSSFSheet sheet = workbook.createSheet("Thong Ke Kho");
+
+            // Fonts & Styles
+            org.apache.poi.xssf.usermodel.XSSFFont titleFont = workbook.createFont();
+            titleFont.setFontName("Arial");
+            titleFont.setFontHeightInPoints((short) 14);
+            titleFont.setBold(true);
+
+            org.apache.poi.xssf.usermodel.XSSFFont headerFont = workbook.createFont();
+            headerFont.setFontName("Arial");
+            headerFont.setFontHeightInPoints((short) 10);
+            headerFont.setBold(true);
+
+            org.apache.poi.xssf.usermodel.XSSFFont boldFont = workbook.createFont();
+            boldFont.setFontName("Arial");
+            boldFont.setFontHeightInPoints((short) 9);
+            boldFont.setBold(true);
+
+            org.apache.poi.xssf.usermodel.XSSFFont normalFont = workbook.createFont();
+            normalFont.setFontName("Arial");
+            normalFont.setFontHeightInPoints((short) 9);
+
+            // Title block
+            org.apache.poi.xssf.usermodel.XSSFRow titleRow = sheet.createRow(0);
+            org.apache.poi.xssf.usermodel.XSSFCell titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("BÁO CÁO THỐNG KÊ KHO SẢN PHẨM");
+            org.apache.poi.xssf.usermodel.XSSFCellStyle titleStyle = workbook.createCellStyle();
+            titleStyle.setFont(titleFont);
+            titleCell.setCellStyle(titleStyle);
+
+            String monthVal = monthYear.substring(5, 7);
+            String yearVal = monthYear.substring(0, 4);
+            org.apache.poi.xssf.usermodel.XSSFRow subtitleRow = sheet.createRow(1);
+            org.apache.poi.xssf.usermodel.XSSFCell subtitleCell = subtitleRow.createCell(0);
+            subtitleCell.setCellValue("Tháng " + monthVal + " Năm " + yearVal);
+            org.apache.poi.xssf.usermodel.XSSFCellStyle subtitleStyle = workbook.createCellStyle();
+            subtitleStyle.setFont(boldFont);
+            subtitleCell.setCellStyle(subtitleStyle);
+
+            org.apache.poi.xssf.usermodel.XSSFRow metaRow = sheet.createRow(2);
+            metaRow.createCell(0).setCellValue("Thời gian lập: " + java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss").format(java.time.LocalDateTime.now()));
+
+            // Header Style
+            org.apache.poi.xssf.usermodel.XSSFCellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new java.awt.Color(200, 230, 201), null));
+            headerStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            headerStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            headerStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            headerStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            headerStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
+
+            // Columns headers
+            String[] headers = {"STT", "Mã SP", "Tên Sản Phẩm", "ĐVT", "SL Nhập Trong Kỳ", "Giá Nhập", "Giá Trị Nhập", "Tồn Hiện Tại", "Giá Trị Tồn"};
+            org.apache.poi.xssf.usermodel.XSSFRow headerRow = sheet.createRow(4);
+            for (int i = 0; i < headers.length; i++) {
+                org.apache.poi.xssf.usermodel.XSSFCell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Cell Styles
+            org.apache.poi.xssf.usermodel.XSSFCellStyle textStyle = workbook.createCellStyle();
+            textStyle.setFont(normalFont);
+            textStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            textStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            textStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+
+            org.apache.poi.xssf.usermodel.XSSFCellStyle centerStyle = workbook.createCellStyle();
+            centerStyle.cloneStyleFrom(textStyle);
+            centerStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
+
+            org.apache.poi.xssf.usermodel.XSSFCellStyle numberStyle = workbook.createCellStyle();
+            numberStyle.cloneStyleFrom(textStyle);
+            numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
+            numberStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.RIGHT);
+
+            int rowIdx = 5;
+            double totalImportVal = 0;
+            double totalStockVal = 0;
+            int stt = 1;
+
+            for (model.StockStatisticsRow r : rows) {
+                org.apache.poi.xssf.usermodel.XSSFRow row = sheet.createRow(rowIdx++);
+
+                org.apache.poi.xssf.usermodel.XSSFCell cell0 = row.createCell(0);
+                cell0.setCellValue(stt++);
+                cell0.setCellStyle(centerStyle);
+
+                org.apache.poi.xssf.usermodel.XSSFCell cell1 = row.createCell(1);
+                cell1.setCellValue(r.getProductCode());
+                cell1.setCellStyle(centerStyle);
+
+                org.apache.poi.xssf.usermodel.XSSFCell cell2 = row.createCell(2);
+                cell2.setCellValue(r.getProductName());
+                cell2.setCellStyle(textStyle);
+
+                org.apache.poi.xssf.usermodel.XSSFCell cell3 = row.createCell(3);
+                cell3.setCellValue(r.getUnit());
+                cell3.setCellStyle(centerStyle);
+
+                org.apache.poi.xssf.usermodel.XSSFCell cell4 = row.createCell(4);
+                cell4.setCellValue(r.getImportedQty());
+                cell4.setCellStyle(numberStyle);
+
+                org.apache.poi.xssf.usermodel.XSSFCell cell5 = row.createCell(5);
+                cell5.setCellValue(r.getCostPrice());
+                cell5.setCellStyle(numberStyle);
+
+                org.apache.poi.xssf.usermodel.XSSFCell cell6 = row.createCell(6);
+                cell6.setCellValue(r.getImportedValue());
+                cell6.setCellStyle(numberStyle);
+
+                org.apache.poi.xssf.usermodel.XSSFCell cell7 = row.createCell(7);
+                cell7.setCellValue(r.getCurrentStock());
+                cell7.setCellStyle(numberStyle);
+
+                org.apache.poi.xssf.usermodel.XSSFCell cell8 = row.createCell(8);
+                cell8.setCellValue(r.getCurrentStockValue());
+                cell8.setCellStyle(numberStyle);
+
+                totalImportVal += r.getImportedValue();
+                totalStockVal += r.getCurrentStockValue();
+            }
+
+            // Total Row
+            org.apache.poi.xssf.usermodel.XSSFRow totalRow = sheet.createRow(rowIdx);
+            org.apache.poi.xssf.usermodel.XSSFCellStyle totalStyle = workbook.createCellStyle();
+            totalStyle.setFont(boldFont);
+            totalStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            totalStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            totalStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            totalStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            totalStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
+
+            // Merge STT to ĐVT
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowIdx, rowIdx, 0, 3));
+            org.apache.poi.xssf.usermodel.XSSFCell totalLabelCell = totalRow.createCell(0);
+            totalLabelCell.setCellValue("TỔNG CỘNG");
+            totalLabelCell.setCellStyle(totalStyle);
+
+            for (int i = 1; i <= 3; i++) {
+                totalRow.createCell(i).setCellStyle(totalStyle);
+            }
+
+            org.apache.poi.xssf.usermodel.XSSFCellStyle totalNumStyle = workbook.createCellStyle();
+            totalNumStyle.cloneStyleFrom(numberStyle);
+            totalNumStyle.setFont(boldFont);
+            totalNumStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+
+            org.apache.poi.xssf.usermodel.XSSFCell cell4 = totalRow.createCell(4);
+            cell4.setCellStyle(totalNumStyle);
+
+            org.apache.poi.xssf.usermodel.XSSFCell cell5 = totalRow.createCell(5);
+            cell5.setCellStyle(totalNumStyle);
+
+            org.apache.poi.xssf.usermodel.XSSFCell cell6 = totalRow.createCell(6);
+            cell6.setCellValue(totalImportVal);
+            cell6.setCellStyle(totalNumStyle);
+
+            org.apache.poi.xssf.usermodel.XSSFCell cell7 = totalRow.createCell(7);
+            cell7.setCellStyle(totalNumStyle);
+
+            org.apache.poi.xssf.usermodel.XSSFCell cell8 = totalRow.createCell(8);
+            cell8.setCellValue(totalStockVal);
+            cell8.setCellStyle(totalNumStyle);
+
+            // Auto-size columns
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // Save workbook
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(file)) {
+                workbook.write(out);
+            }
+
+            javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
+                    javafx.scene.control.Alert.AlertType.INFORMATION,
+                    "Thành công",
+                    "Xuất báo cáo thống kê kho Excel thành công!\nĐã lưu tại: " + file.getAbsolutePath());
+            alert.showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
+                    javafx.scene.control.Alert.AlertType.ERROR,
+                    "Lỗi",
+                    "Không thể xuất báo cáo Excel: " + e.getMessage());
+            alert.showAndWait();
+        }
+    }
 }

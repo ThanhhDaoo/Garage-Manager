@@ -647,7 +647,17 @@ public class DatabaseManager {
                     julyHasData = true;
                 }
             }
-            if (!julyHasData) {
+            // Check if employees table still has allowance_responsibility to recover from
+            boolean empHasResponsibility = false;
+            try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(employees)")) {
+                while (rs.next()) {
+                    if ("allowance_responsibility".equals(rs.getString("name"))) {
+                        empHasResponsibility = true;
+                        break;
+                    }
+                }
+            }
+            if (!julyHasData && empHasResponsibility) {
                 System.out.println("⚠ Đang tự động khôi phục lịch sử tính lương Tháng 07/2026...");
                 String recoverySql = 
                     "INSERT INTO payroll (employee_id, employee_name, pay_month, total_days, actual_work_days, basic_salary, " +

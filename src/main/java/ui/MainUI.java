@@ -2028,7 +2028,20 @@ public class MainUI extends Application {
         btnPdf.setOnMouseEntered(e -> btnPdf.setOpacity(0.9));
         btnPdf.setOnMouseExited(e -> btnPdf.setOpacity(1.0));
 
-        filterBar.getChildren().addAll(txtSearch, lblMonth, cbMonth, lblYear, cbYear, filterSpacer, btnPdf);
+        Button btnExcel = new Button("📊 Xuất Excel");
+        btnExcel.setStyle(
+            "-fx-background-color: #E2F0D9;" +
+            "-fx-text-fill: #385723;" +
+            "-fx-font-size: 14px;" +
+            "-fx-font-weight: 600;" +
+            "-fx-padding: 10px 20px;" +
+            "-fx-background-radius: 8;" +
+            "-fx-cursor: hand;"
+        );
+        btnExcel.setOnMouseEntered(e -> btnExcel.setOpacity(0.9));
+        btnExcel.setOnMouseExited(e -> btnExcel.setOpacity(1.0));
+
+        filterBar.getChildren().addAll(txtSearch, lblMonth, cbMonth, lblYear, cbYear, filterSpacer, btnPdf, btnExcel);
 
         // Summary Cards
         HBox cards = new HBox(20);
@@ -2246,6 +2259,12 @@ public class MainUI extends Application {
             ReportHelper.exportStockStatisticsToPDF(new java.util.ArrayList<>(tableView.getItems()), 
                 cbYear.getValue() + "-" + cbMonth.getValue(), 
                 btnPdf.getScene().getWindow());
+        });
+
+        btnExcel.setOnAction(e -> {
+            ReportHelper.exportStockStatisticsToExcel(new java.util.ArrayList<>(tableView.getItems()), 
+                cbYear.getValue() + "-" + cbMonth.getValue(), 
+                btnExcel.getScene().getWindow());
         });
 
         // Initial load
