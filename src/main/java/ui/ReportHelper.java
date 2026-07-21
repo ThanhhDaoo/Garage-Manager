@@ -1619,7 +1619,7 @@ public class ReportHelper {
             org.apache.poi.xssf.usermodel.XSSFCell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("BÁO CÁO NHẬP KHO THÁNG " + monthYear);
             titleCell.setCellStyle(titleStyle);
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 8));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 7));
 
             // Header Style
             org.apache.poi.xssf.usermodel.XSSFCellStyle headerStyle = workbook.createCellStyle();
@@ -1648,7 +1648,7 @@ public class ReportHelper {
             numberStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.RIGHT);
 
             String[] headers = {
-                "STT", "Mã Phiếu", "Ngày Nhập", "Tên Sản Phẩm", "Số Lượng", "Đơn Giá", "Thành Tiền", "Nhà Cung Cấp", "Người Thực Hiện"
+                "STT", "Mã Phiếu", "Ngày Nhập", "Tên Sản Phẩm", "Số Lượng", "Đơn Giá", "Thành Tiền", "Người Thực Hiện"
             };
             
             org.apache.poi.xssf.usermodel.XSSFRow headerRow = sheet.createRow(2);
@@ -1694,12 +1694,8 @@ public class ReportHelper {
                 cell6.setCellStyle(numberStyle);
                 
                 org.apache.poi.xssf.usermodel.XSSFCell cell7 = row.createCell(7);
-                cell7.setCellValue(r.getProvider() != null ? r.getProvider() : "");
+                cell7.setCellValue(r.getOperator());
                 cell7.setCellStyle(borderStyle);
-                
-                org.apache.poi.xssf.usermodel.XSSFCell cell8 = row.createCell(8);
-                cell8.setCellValue(r.getOperator());
-                cell8.setCellStyle(borderStyle);
                 
                 totalAmount += r.getTotalPrice();
             }
@@ -1732,13 +1728,11 @@ public class ReportHelper {
             totalValStyle.setFont(boldFont);
             totalValCell.setCellStyle(totalValStyle);
             
-            for(int i = 7; i <= 8; i++) {
-                org.apache.poi.xssf.usermodel.XSSFCell cell = totalRow.createCell(i);
-                org.apache.poi.xssf.usermodel.XSSFCellStyle emptyStyle = workbook.createCellStyle();
-                emptyStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-                emptyStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-                cell.setCellStyle(emptyStyle);
-            }
+            org.apache.poi.xssf.usermodel.XSSFCell cell7Empty = totalRow.createCell(7);
+            org.apache.poi.xssf.usermodel.XSSFCellStyle emptyStyle = workbook.createCellStyle();
+            emptyStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            emptyStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            cell7Empty.setCellStyle(emptyStyle);
 
             // Auto-size columns
             for (int i = 0; i < headers.length; i++) {

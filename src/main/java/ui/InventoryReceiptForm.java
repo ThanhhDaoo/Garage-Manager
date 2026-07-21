@@ -27,7 +27,6 @@ public class InventoryReceiptForm {
     private TextField txtQty;
     private TextField txtTotalPrice;
     private DatePicker dpDate;
-    private TextField txtProvider;
     private TextField txtOperator;
     private TextArea txtNotes;
     private Runnable onSave;
@@ -181,14 +180,6 @@ public class InventoryReceiptForm {
         dpDate.setMaxWidth(Double.MAX_VALUE);
         dpDate.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
 
-        // Provider
-        Label lblProvider = new Label("Nhà cung cấp");
-        lblProvider.setStyle(labelStyle);
-        txtProvider = new TextField();
-        txtProvider.setPromptText("Tên nhà cung cấp (nếu có)...");
-        txtProvider.setStyle(fieldStyle);
-        txtProvider.setMaxWidth(Double.MAX_VALUE);
-
         // Operator
         Label lblOperator = new Label("Người thực hiện *");
         lblOperator.setStyle(labelStyle);
@@ -261,9 +252,8 @@ public class InventoryReceiptForm {
         grid.add(lblQty, 0, 2); grid.add(txtQty, 1, 2);
         grid.add(lblTotalPrice, 0, 3); grid.add(txtTotalPrice, 1, 3);
         grid.add(lblDate, 0, 4); grid.add(dpDate, 1, 4);
-        grid.add(lblProvider, 0, 5); grid.add(txtProvider, 1, 5);
-        grid.add(lblOperator, 0, 6); grid.add(txtOperator, 1, 6);
-        grid.add(lblNotes, 0, 7); grid.add(txtNotes, 1, 7);
+        grid.add(lblOperator, 0, 5); grid.add(txtOperator, 1, 5);
+        grid.add(lblNotes, 0, 6); grid.add(txtNotes, 1, 6);
 
         section.getChildren().addAll(sectionTitle, grid);
         return section;
@@ -350,7 +340,7 @@ public class InventoryReceiptForm {
         double cost = p.getCostPrice();
         double total = cost * qty;
         String dateStr = date.toString(); // YYYY-MM-DD
-        String provider = txtProvider.getText().trim();
+        String provider = "";
         String notes = txtNotes.getText().trim();
 
         // 1. Save Inventory Receipt
@@ -369,7 +359,7 @@ public class InventoryReceiptForm {
             expense.setCategory("biến thiên");
             expense.setAmount(total);
             expense.setExpenseMonth(dateStr.substring(0, 7)); // format: YYYY-MM
-            expense.setNotes("Mã phiếu nhập: NK-" + String.format("%04d", receiptId) + ". Người lập: " + operator + (provider.isEmpty() ? "" : ". NCC: " + provider));
+            expense.setNotes("Mã phiếu nhập: NK-" + String.format("%04d", receiptId) + ". Người lập: " + operator);
             new FixedExpenseDAO().addExpense(expense);
 
             AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã lưu phiếu nhập kho và tự động cập nhật tồn kho!").showAndWait();

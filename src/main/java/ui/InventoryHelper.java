@@ -51,14 +51,16 @@ public class InventoryHelper {
         );
 
         txtSearch = new TextField();
-        txtSearch.setPromptText("🔍 Tìm theo tên sản phẩm, mã phiếu, người thực hiện...");
-        txtSearch.setPrefWidth(380);
+        txtSearch.setPromptText("🔍 Tìm kiếm phiếu nhập...");
+        txtSearch.setPrefWidth(260);
+        txtSearch.setMinWidth(200);
         txtSearch.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-padding: 10px 15px;" +
             "-fx-background-radius: 8;" +
             "-fx-border-color: transparent;" +
-            "-fx-font-size: 13px;"
+            "-fx-font-size: 13px;" +
+            "-fx-pref-height: 38px;"
         );
         UIUtils.setupIMEFix(txtSearch);
 
@@ -69,6 +71,7 @@ public class InventoryHelper {
         }
         cbMonth.setValue(String.format("%02d", LocalDate.now().getMonthValue()));
         cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 90px;");
+        cbMonth.setMinWidth(90);
 
         // Year filter
         cbYear = new ComboBox<>();
@@ -78,17 +81,22 @@ public class InventoryHelper {
         }
         cbYear.setValue(String.valueOf(curYear));
         cbYear.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 100px;");
+        cbYear.setMinWidth(100);
 
-        Button btnNewReceipt = new Button("➕ Tạo Phiếu Nhập Kho");
+        Button btnNewReceipt = new Button("➕ Tạo Phiếu Nhập");
         btnNewReceipt.setStyle(
-            "-fx-background-color: #1976D2;" +
+            "-fx-background-color: #2196F3;" +
             "-fx-text-fill: white;" +
             "-fx-font-weight: bold;" +
             "-fx-font-size: 13px;" +
-            "-fx-padding: 10 18;" +
+            "-fx-padding: 10px 20px;" +
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
+        btnNewReceipt.setMinWidth(165);
+        btnNewReceipt.setPrefHeight(38);
+        btnNewReceipt.setOnMouseEntered(e -> btnNewReceipt.setOpacity(0.9));
+        btnNewReceipt.setOnMouseExited(e -> btnNewReceipt.setOpacity(1.0));
         btnNewReceipt.setOnAction(e -> {
             Window owner = contentArea.getScene().getWindow();
             new InventoryReceiptForm(() -> loadReceiptsData()).show();
@@ -99,14 +107,18 @@ public class InventoryHelper {
 
         Button btnPdf = new Button("📄 Xuất PDF");
         btnPdf.setStyle(
-            "-fx-background-color: #FFE0B2;" +
-            "-fx-text-fill: #E65100;" +
+            "-fx-background-color: #E8F5E9;" +
+            "-fx-text-fill: #2E7D32;" +
             "-fx-font-weight: bold;" +
             "-fx-font-size: 13px;" +
-            "-fx-padding: 10 16;" +
+            "-fx-padding: 10px 18px;" +
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
+        btnPdf.setMinWidth(115);
+        btnPdf.setPrefHeight(38);
+        btnPdf.setOnMouseEntered(e -> btnPdf.setOpacity(0.9));
+        btnPdf.setOnMouseExited(e -> btnPdf.setOpacity(1.0));
         btnPdf.setOnAction(e -> {
             String monthStr = cbYear.getValue() + "-" + cbMonth.getValue();
             ReportHelper.exportInventoryToPDF(filteredData, monthStr, contentArea.getScene().getWindow());
@@ -118,17 +130,21 @@ public class InventoryHelper {
             "-fx-text-fill: #2E7D32;" +
             "-fx-font-weight: bold;" +
             "-fx-font-size: 13px;" +
-            "-fx-padding: 10 16;" +
+            "-fx-padding: 10px 18px;" +
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
+        btnExcel.setMinWidth(125);
+        btnExcel.setPrefHeight(38);
+        btnExcel.setOnMouseEntered(e -> btnExcel.setOpacity(0.9));
+        btnExcel.setOnMouseExited(e -> btnExcel.setOpacity(1.0));
         btnExcel.setOnAction(e -> {
             String monthStr = cbYear.getValue() + "-" + cbMonth.getValue();
             ReportHelper.exportInventoryToExcel(filteredData, monthStr, contentArea.getScene().getWindow());
         });
 
         filterBar.getChildren().addAll(
-            txtSearch, new Label("Tháng:"), cbMonth, new Label("Năm:"), cbYear, btnNewReceipt, spacer, btnPdf, btnExcel
+            txtSearch, cbMonth, cbYear, btnNewReceipt, spacer, btnPdf, btnExcel
         );
 
         // Summary Cards
@@ -229,10 +245,6 @@ public class InventoryHelper {
             }
         });
 
-        TableColumn<InventoryReceipt, String> colProvider = new TableColumn<>("Nhà Cung Cấp");
-        colProvider.setPrefWidth(130);
-        colProvider.setCellValueFactory(new PropertyValueFactory<>("provider"));
-
         TableColumn<InventoryReceipt, String> colOperator = new TableColumn<>("Người Thực Hiện");
         colOperator.setPrefWidth(120);
         colOperator.setCellValueFactory(new PropertyValueFactory<>("operator"));
@@ -242,7 +254,7 @@ public class InventoryHelper {
         colNotes.setCellValueFactory(new PropertyValueFactory<>("notes"));
 
         tableView.getColumns().addAll(
-            colStt, colCode, colDate, colProduct, colQty, colPrice, colTotal, colProvider, colOperator, colNotes
+            colStt, colCode, colDate, colProduct, colQty, colPrice, colTotal, colOperator, colNotes
         );
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(tableView, Priority.ALWAYS);
@@ -307,7 +319,6 @@ public class InventoryHelper {
                 if (r.getProductName().toLowerCase().contains(q) ||
                     ("nk-" + String.format("%04d", r.getId())).contains(q) ||
                     r.getOperator().toLowerCase().contains(q) ||
-                    (r.getProvider() != null && r.getProvider().toLowerCase().contains(q)) ||
                     (r.getNotes() != null && r.getNotes().toLowerCase().contains(q))) {
                     list.add(r);
                 }
