@@ -1468,18 +1468,30 @@ public class ReportHelper {
             com.itextpdf.kernel.font.PdfFont font = util.PDFFontHelper.createVietnameseFont();
             com.itextpdf.kernel.font.PdfFont boldFont = util.PDFFontHelper.createVietnameseFont(true);
 
-            // Left-aligned Company Info
-            document.add(new com.itextpdf.layout.element.Paragraph("HỆ THỐNG QUẢN LÝ MTPROAUTO")
-                    .setFont(boldFont).setFontSize(10).setMarginBottom(1));
-            document.add(new com.itextpdf.layout.element.Paragraph("Địa chỉ: Ngã tư An Dương Vương và Trương Định, TP. Quảng Ngãi")
-                    .setFont(font).setFontSize(8.5f).setMarginBottom(15));
+            // Left-aligned Company Info (matching the design in other PDFs)
+            document.add(new com.itextpdf.layout.element.Paragraph("CÔNG TY TNHH TM DV PHỤ TÙNG Ô TÔ MINH TÂM")
+                    .setFont(boldFont)
+                    .setFontSize(10)
+                    .setMarginBottom(1));
+            document.add(new com.itextpdf.layout.element.Paragraph(
+                    "Ngã tư An Dương Vương và Trương Định, P. Trần Phú, TP. Quảng Ngãi, T. Quảng Ngãi.")
+                    .setFont(font)
+                    .setFontSize(8.5f)
+                    .setMarginBottom(1));
+            document.add(new com.itextpdf.layout.element.Paragraph("MST: 4300899201")
+                    .setFont(font)
+                    .setFontSize(8.5f)
+                    .setMarginBottom(15));
 
             // Title
             document.add(new com.itextpdf.layout.element.Paragraph("BÁO CÁO NHẬP KHO THEO THÁNG")
                     .setFont(boldFont).setFontSize(16)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
                     .setMarginBottom(2));
-            document.add(new com.itextpdf.layout.element.Paragraph("Tháng: " + monthYear)
+            
+            String monthVal = monthYear.substring(5, 7);
+            String yearVal = monthYear.substring(0, 4);
+            document.add(new com.itextpdf.layout.element.Paragraph("Tháng " + monthVal + " Năm " + yearVal)
                     .setFont(boldFont).setFontSize(12)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
                     .setMarginBottom(15));
@@ -1502,7 +1514,7 @@ public class ReportHelper {
                 com.itextpdf.layout.element.Cell cell = new com.itextpdf.layout.element.Cell()
                         .add(new com.itextpdf.layout.element.Paragraph(text).setFont(boldFont).setFontSize(9))
                         .setTextAlignment(align)
-                        .setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(240, 240, 240))
+                        .setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(200, 230, 201))
                         .setPadding(5);
                 table.addHeaderCell(cell);
             };
@@ -1617,7 +1629,9 @@ public class ReportHelper {
 
             org.apache.poi.xssf.usermodel.XSSFRow titleRow = sheet.createRow(0);
             org.apache.poi.xssf.usermodel.XSSFCell titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("BÁO CÁO NHẬP KHO THÁNG " + monthYear);
+            String monthVal = monthYear.substring(5, 7);
+            String yearVal = monthYear.substring(0, 4);
+            titleCell.setCellValue("BÁO CÁO NHẬP KHO THÁNG " + monthVal + " NĂM " + yearVal);
             titleCell.setCellStyle(titleStyle);
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 7));
 
@@ -1632,7 +1646,7 @@ public class ReportHelper {
             headerStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             headerStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
             headerStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
-            headerStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)240, (byte)240, (byte)240}, null));
+            headerStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)200, (byte)230, (byte)201}, null));
             headerStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
 
             // Row style
