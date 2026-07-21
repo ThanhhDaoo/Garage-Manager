@@ -31,7 +31,8 @@ public class InvoiceItemDAO {
                     rs.getDouble("total_price"),
                     itemId,
                     rs.getString("category"),
-                    rs.getDouble("cost_price")
+                    rs.getDouble("cost_price"),
+                    rs.getInt("is_hidden")
                 );
                 items.add(item);
             }
@@ -42,8 +43,8 @@ public class InvoiceItemDAO {
     }
     
     public boolean addInvoiceItem(InvoiceItem item) {
-        String sql = "INSERT INTO invoice_items (invoice_id, item_type, item_name, quantity, unit_price, total_price, item_id, category, cost_price) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO invoice_items (invoice_id, item_type, item_name, quantity, unit_price, total_price, item_id, category, cost_price, is_hidden) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -61,6 +62,7 @@ public class InvoiceItemDAO {
             }
             pstmt.setString(8, item.getCategory());
             pstmt.setDouble(9, item.getCostPrice());
+            pstmt.setInt(10, item.getIsHidden());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

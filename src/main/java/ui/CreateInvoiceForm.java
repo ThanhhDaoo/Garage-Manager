@@ -57,6 +57,7 @@ public class CreateInvoiceForm {
     private String preselectedItemName;
     private model.Appointment fromAppointment;
     private model.Invoice existingInvoice;
+    private boolean isLoadingInvoice = false;
 
     public CreateInvoiceForm() {
     }
@@ -226,6 +227,7 @@ public class CreateInvoiceForm {
 
     private void loadExistingInvoiceItems() {
         if (existingInvoice == null) return;
+        isLoadingInvoice = true;
         try {
             InvoiceItemService itemService = new InvoiceItemService();
             List<model.InvoiceItem> items = itemService.getItemsByInvoiceId(existingInvoice.getId());
@@ -240,7 +242,7 @@ public class CreateInvoiceForm {
                 } else if ("package".equals(item.getItemType())) {
                     addSelectedPackage(item.getItemId() != null ? item.getItemId() : 0, item.getItemName(), item.getUnitPrice());
                 } else if ("product".equals(item.getItemType())) {
-                    addSelectedProduct(item.getItemId() != null ? item.getItemId() : 0, item.getItemName(), item.getUnitPrice(), item.getQuantity());
+                    addSelectedProduct(item.getItemId() != null ? item.getItemId() : 0, item.getItemName(), item.getUnitPrice(), item.getQuantity(), item.getIsHidden());
                 }
             }
             
@@ -257,6 +259,8 @@ public class CreateInvoiceForm {
             recalculateTotal();
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            isLoadingInvoice = false;
         }
     }
 
@@ -971,6 +975,7 @@ public class CreateInvoiceForm {
         addSelectedService(serviceId, name, price);
     }
 
+    @SuppressWarnings("unchecked")
     private void addSelectedService(int serviceId, String name, String price) {
         if (!selectedServicesBox.getChildren().isEmpty() && selectedServicesBox.getChildren().get(0) instanceof Label) {
             selectedServicesBox.getChildren().clear();
@@ -992,9 +997,64 @@ public class CreateInvoiceForm {
         item.put("hbox", selectedItem);
         selectedServices.add(item);
 
+        // Tự động nạp vật tư liên kết định mức ngầm
+        if (!isLoadingInvoice) {
+            try {
+                model.Service svcObj = new dao.ServiceDAO().getServiceById(serviceId);
+                if (svcObj != null && svcObj.getLinkedProductId() != null && svcObj.getLinkedProductQty() != null && svcObj.getLinkedProductQty() > 0) {
+                    model.Product p = new dao.ProductDAO().getProductById(svcObj.getLinkedProductId());
+                    if (p != null) {
+                        List<Map<String, Object>> linked = (List<Map<String, Object>>) item.get("linkedProducts");
+                        VBox linkedList = (VBox) selectedItem.getProperties().get("linkedList");
+                        if (linkedList != null) {
+                            HBox pRow = new HBox(10);
+                            pRow.setAlignment(Pos.CENTER_LEFT);
+                            pRow.setPadding(new Insets(2, 0, 2, 0));
+                            Label lblPInfo = new Label();
+                            lblPInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #424242;");
+
+                            // Add to database tracker
+                            Map<String, Object> prodMap = new HashMap<>();
+                            prodMap.put("id", p.getId());
+                            prodMap.put("name", p.getName());
+                            prodMap.put("unitPrice", 0.0); // 0đ vì tính vào dịch vụ
+                            prodMap.put("quantity", svcObj.getLinkedProductQty());
+                            prodMap.put("totalPrice", 0.0);
+                            prodMap.put("label", lblPInfo);
+                            prodMap.put("unit", p.getUnit());
+                            prodMap.put("isHidden", 1); // Ẩn khi in mặc định
+                            linked.add(prodMap);
+
+                            CheckBox chkHide = new CheckBox("Ẩn khi in");
+                            chkHide.setStyle("-fx-font-size: 10px; -fx-text-fill: #d32f2f;");
+                            chkHide.setSelected(true);
+                            chkHide.setOnAction(hideEvt -> {
+                                prodMap.put("isHidden", chkHide.isSelected() ? 1 : 0);
+                            });
+
+                            Button btnDelP = new Button("✕");
+                            btnDelP.setStyle(
+                                    "-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-cursor: hand; -fx-font-size: 11px;");
+                            btnDelP.setOnAction(delEvt -> {
+                                linkedList.getChildren().remove(pRow);
+                                linked.remove(prodMap);
+                                recalculateTotal();
+                            });
+
+                            pRow.getChildren().addAll(lblPInfo, chkHide, btnDelP);
+                            linkedList.getChildren().add(pRow);
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
         recalculateTotal();
     }
 
+    @SuppressWarnings("unchecked")
     private void addSelectedService(int serviceId, String name, double unitPrice) {
         if (!selectedServicesBox.getChildren().isEmpty() && selectedServicesBox.getChildren().get(0) instanceof Label) {
             selectedServicesBox.getChildren().clear();
@@ -1013,6 +1073,60 @@ public class CreateInvoiceForm {
 
         item.put("hbox", selectedItem);
         selectedServices.add(item);
+
+        // Tự động nạp vật tư liên kết định mức ngầm
+        if (!isLoadingInvoice) {
+            try {
+                model.Service svcObj = new dao.ServiceDAO().getServiceById(serviceId);
+                if (svcObj != null && svcObj.getLinkedProductId() != null && svcObj.getLinkedProductQty() != null && svcObj.getLinkedProductQty() > 0) {
+                    model.Product p = new dao.ProductDAO().getProductById(svcObj.getLinkedProductId());
+                    if (p != null) {
+                        List<Map<String, Object>> linked = (List<Map<String, Object>>) item.get("linkedProducts");
+                        VBox linkedList = (VBox) selectedItem.getProperties().get("linkedList");
+                        if (linkedList != null) {
+                            HBox pRow = new HBox(10);
+                            pRow.setAlignment(Pos.CENTER_LEFT);
+                            pRow.setPadding(new Insets(2, 0, 2, 0));
+                            Label lblPInfo = new Label();
+                            lblPInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #424242;");
+
+                            // Add to database tracker
+                            Map<String, Object> prodMap = new HashMap<>();
+                            prodMap.put("id", p.getId());
+                            prodMap.put("name", p.getName());
+                            prodMap.put("unitPrice", 0.0); // 0đ vì tính vào dịch vụ
+                            prodMap.put("quantity", svcObj.getLinkedProductQty());
+                            prodMap.put("totalPrice", 0.0);
+                            prodMap.put("label", lblPInfo);
+                            prodMap.put("unit", p.getUnit());
+                            prodMap.put("isHidden", 1); // Ẩn khi in mặc định
+                            linked.add(prodMap);
+
+                            CheckBox chkHide = new CheckBox("Ẩn khi in");
+                            chkHide.setStyle("-fx-font-size: 10px; -fx-text-fill: #d32f2f;");
+                            chkHide.setSelected(true);
+                            chkHide.setOnAction(hideEvt -> {
+                                prodMap.put("isHidden", chkHide.isSelected() ? 1 : 0);
+                            });
+
+                            Button btnDelP = new Button("✕");
+                            btnDelP.setStyle(
+                                    "-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-cursor: hand; -fx-font-size: 11px;");
+                            btnDelP.setOnAction(delEvt -> {
+                                linkedList.getChildren().remove(pRow);
+                                linked.remove(prodMap);
+                                recalculateTotal();
+                            });
+
+                            pRow.getChildren().addAll(lblPInfo, chkHide, btnDelP);
+                            linkedList.getChildren().add(pRow);
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
 
         recalculateTotal();
     }
@@ -1130,16 +1244,59 @@ public class CreateInvoiceForm {
         HBox addLinkForm = new HBox(8);
         addLinkForm.setAlignment(Pos.CENTER_LEFT);
 
+        TextField txtSearch = new TextField();
+        txtSearch.setPromptText("🔍 Tìm vật tư...");
+        txtSearch.setPrefWidth(120);
+        txtSearch.setStyle("-fx-font-size: 11px;");
+        UIUtils.setupIMEFix(txtSearch);
+
         ComboBox<model.Product> cbProducts = new ComboBox<>();
         cbProducts.setPromptText("Chọn vật tư/dầu nhớt...");
         cbProducts.setPrefWidth(220);
         cbProducts.setStyle("-fx-font-size: 11px;");
+        
+        List<model.Product> allProducts = new java.util.ArrayList<>();
         // Load products into ComboBox
         try {
-            List<model.Product> productList = new dao.ProductDAO().getAllProducts();
-            cbProducts.getItems().addAll(productList);
+            allProducts.addAll(new dao.ProductDAO().getAllProducts());
+            cbProducts.getItems().addAll(allProducts);
         } catch (Exception ex) {
         }
+
+        txtSearch.textProperty().addListener((obs, oldVal, newVal) -> {
+            model.Product currentSelection = cbProducts.getValue();
+            if (newVal == null || newVal.trim().isEmpty()) {
+                cbProducts.getItems().setAll(allProducts);
+            } else {
+                String search = newVal.toLowerCase().trim();
+                List<model.Product> filtered = new java.util.ArrayList<>();
+                for (model.Product p : allProducts) {
+                    if (p.getName().toLowerCase().contains(search)) {
+                        filtered.add(p);
+                    }
+                }
+                cbProducts.getItems().setAll(filtered);
+                if (!cbProducts.isShowing() && txtSearch.isFocused()) {
+                    cbProducts.show();
+                }
+            }
+            if (currentSelection != null && cbProducts.getItems().contains(currentSelection)) {
+                cbProducts.setValue(currentSelection);
+            } else {
+                cbProducts.setValue(null);
+            }
+        });
+
+        txtSearch.setOnKeyPressed(event -> {
+            if (event.getCode() == javafx.scene.input.KeyCode.DOWN) {
+                cbProducts.requestFocus();
+                cbProducts.show();
+            }
+        });
+
+        cbProducts.setOnHiding(event -> {
+            txtSearch.clear();
+        });
 
         // Cell factory to display product name and unit price
         cbProducts.setCellFactory(lv -> new ListCell<>() {
@@ -1246,7 +1403,15 @@ public class CreateInvoiceForm {
             prodMap.put("totalPrice", selectedProd.getPrice() * qty);
             prodMap.put("label", lblPInfo);
             prodMap.put("unit", selectedProd.getUnit());
+            prodMap.put("isHidden", 0); // Default to 0 when manually added
             linked.add(prodMap);
+
+            CheckBox chkHide = new CheckBox("Ẩn khi in");
+            chkHide.setStyle("-fx-font-size: 10px; -fx-text-fill: #d32f2f;");
+            chkHide.setSelected(false);
+            chkHide.setOnAction(hideEvt -> {
+                prodMap.put("isHidden", chkHide.isSelected() ? 1 : 0);
+            });
 
             Button btnDelP = new Button("✕");
             btnDelP.setStyle(
@@ -1257,7 +1422,7 @@ public class CreateInvoiceForm {
                 recalculateTotal();
             });
 
-            pRow.getChildren().addAll(lblPInfo, btnDelP);
+            pRow.getChildren().addAll(lblPInfo, chkHide, btnDelP);
             linkedList.getChildren().add(pRow);
 
             // Reset fields
@@ -1267,10 +1432,11 @@ public class CreateInvoiceForm {
             recalculateTotal();
         });
 
-        addLinkForm.getChildren().addAll(cbProducts, lblQty, txtQty, btnAddLink);
+        addLinkForm.getChildren().addAll(txtSearch, cbProducts, lblQty, txtQty, btnAddLink);
         linkedBox.getChildren().addAll(lblLinkedTitle, linkedList, addLinkForm);
 
         container.getChildren().addAll(topRow, subtotalRow, linkedBox);
+        container.getProperties().put("linkedList", linkedList);
         return container;
     }
 
@@ -1387,16 +1553,59 @@ public class CreateInvoiceForm {
         HBox addLinkForm = new HBox(8);
         addLinkForm.setAlignment(Pos.CENTER_LEFT);
 
+        TextField txtSearch = new TextField();
+        txtSearch.setPromptText("🔍 Tìm vật tư...");
+        txtSearch.setPrefWidth(120);
+        txtSearch.setStyle("-fx-font-size: 11px;");
+        UIUtils.setupIMEFix(txtSearch);
+
         ComboBox<model.Product> cbProducts = new ComboBox<>();
         cbProducts.setPromptText("Chọn vật tư/dầu nhớt...");
         cbProducts.setPrefWidth(220);
         cbProducts.setStyle("-fx-font-size: 11px;");
+        
+        List<model.Product> allProducts = new java.util.ArrayList<>();
         // Load products into ComboBox
         try {
-            List<model.Product> productList = new dao.ProductDAO().getAllProducts();
-            cbProducts.getItems().addAll(productList);
+            allProducts.addAll(new dao.ProductDAO().getAllProducts());
+            cbProducts.getItems().addAll(allProducts);
         } catch (Exception ex) {
         }
+
+        txtSearch.textProperty().addListener((obs, oldVal, newVal) -> {
+            model.Product currentSelection = cbProducts.getValue();
+            if (newVal == null || newVal.trim().isEmpty()) {
+                cbProducts.getItems().setAll(allProducts);
+            } else {
+                String search = newVal.toLowerCase().trim();
+                List<model.Product> filtered = new java.util.ArrayList<>();
+                for (model.Product p : allProducts) {
+                    if (p.getName().toLowerCase().contains(search)) {
+                        filtered.add(p);
+                    }
+                }
+                cbProducts.getItems().setAll(filtered);
+                if (!cbProducts.isShowing() && txtSearch.isFocused()) {
+                    cbProducts.show();
+                }
+            }
+            if (currentSelection != null && cbProducts.getItems().contains(currentSelection)) {
+                cbProducts.setValue(currentSelection);
+            } else {
+                cbProducts.setValue(null);
+            }
+        });
+
+        txtSearch.setOnKeyPressed(event -> {
+            if (event.getCode() == javafx.scene.input.KeyCode.DOWN) {
+                cbProducts.requestFocus();
+                cbProducts.show();
+            }
+        });
+
+        cbProducts.setOnHiding(event -> {
+            txtSearch.clear();
+        });
 
         // Cell factory to display product name and unit price
         cbProducts.setCellFactory(lv -> new ListCell<>() {
@@ -1503,7 +1712,15 @@ public class CreateInvoiceForm {
             prodMap.put("totalPrice", selectedProd.getPrice() * qty);
             prodMap.put("label", lblPInfo);
             prodMap.put("unit", selectedProd.getUnit());
+            prodMap.put("isHidden", 0); // Default to 0 when manually added
             linked.add(prodMap);
+
+            CheckBox chkHide = new CheckBox("Ẩn khi in");
+            chkHide.setStyle("-fx-font-size: 10px; -fx-text-fill: #d32f2f;");
+            chkHide.setSelected(false);
+            chkHide.setOnAction(hideEvt -> {
+                prodMap.put("isHidden", chkHide.isSelected() ? 1 : 0);
+            });
 
             Button btnDelP = new Button("✕");
             btnDelP.setStyle(
@@ -1514,7 +1731,7 @@ public class CreateInvoiceForm {
                 recalculateTotal();
             });
 
-            pRow.getChildren().addAll(lblPInfo, btnDelP);
+            pRow.getChildren().addAll(lblPInfo, chkHide, btnDelP);
             linkedList.getChildren().add(pRow);
 
             // Reset fields
@@ -1524,7 +1741,7 @@ public class CreateInvoiceForm {
             recalculateTotal();
         });
 
-        addLinkForm.getChildren().addAll(cbProducts, lblQty, txtQty, btnAddLink);
+        addLinkForm.getChildren().addAll(txtSearch, cbProducts, lblQty, txtQty, btnAddLink);
         linkedBox.getChildren().addAll(lblLinkedTitle, linkedList, addLinkForm);
 
         container.getChildren().addAll(topRow, subtotalRow, linkedBox);
@@ -1593,33 +1810,14 @@ public class CreateInvoiceForm {
     }
 
     private void addSelectedProduct(int productId, String name, String price, double quantity) {
-        if (!selectedProductsBox.getChildren().isEmpty() && selectedProductsBox.getChildren().get(0) instanceof Label) {
-            selectedProductsBox.getChildren().clear();
-        }
-
-        String formattedQty = new java.text.DecimalFormat("#.##").format(quantity);
-        String displayText = name + " (x" + formattedQty + ")";
-        double unitPrice = parsePrice(price);
-        double itemTotal = unitPrice * quantity;
-        String displayPrice = formatPrice(itemTotal);
-
-        VBox selectedItem = createSelectedItem(displayText, displayPrice, itemTotal);
-        selectedProductsBox.getChildren().add(selectedItem);
-
-        // Track for database
-        Map<String, Object> item = new HashMap<>();
-        item.put("id", productId);
-        item.put("name", name);
-        item.put("unitPrice", unitPrice);
-        item.put("quantity", quantity);
-        item.put("totalPrice", itemTotal);
-        item.put("hbox", selectedItem);
-        selectedProducts.add(item);
-
-        recalculateTotal();
+        addSelectedProduct(productId, name, parsePrice(price), quantity, 0);
     }
 
     private void addSelectedProduct(int productId, String name, double unitPrice, double quantity) {
+        addSelectedProduct(productId, name, unitPrice, quantity, 0);
+    }
+
+    private void addSelectedProduct(int productId, String name, double unitPrice, double quantity, int isHidden) {
         if (!selectedProductsBox.getChildren().isEmpty() && selectedProductsBox.getChildren().get(0) instanceof Label) {
             selectedProductsBox.getChildren().clear();
         }
@@ -1629,9 +1827,6 @@ public class CreateInvoiceForm {
         double itemTotal = unitPrice * quantity;
         String displayPrice = formatPrice(itemTotal);
 
-        VBox selectedItem = createSelectedItem(displayText, displayPrice, itemTotal);
-        selectedProductsBox.getChildren().add(selectedItem);
-
         // Track for database
         Map<String, Object> item = new HashMap<>();
         item.put("id", productId);
@@ -1639,13 +1834,17 @@ public class CreateInvoiceForm {
         item.put("unitPrice", unitPrice);
         item.put("quantity", quantity);
         item.put("totalPrice", itemTotal);
+        item.put("isHidden", isHidden);
+
+        VBox selectedItem = createSelectedItem(item, displayText, displayPrice, itemTotal);
+        selectedProductsBox.getChildren().add(selectedItem);
         item.put("hbox", selectedItem);
         selectedProducts.add(item);
 
         recalculateTotal();
     }
 
-    private VBox createSelectedItem(String name, String price, double basePrice) {
+    private VBox createSelectedItem(Map<String, Object> productMap, String name, String price, double basePrice) {
         VBox container = new VBox(4);
         container.setPadding(new Insets(8));
         container.setStyle(
@@ -1721,6 +1920,14 @@ public class CreateInvoiceForm {
         container.getProperties().put("discountCombo", itemDiscountCombo);
         container.getProperties().put("customDiscountField", txtCustomDiscount);
 
+        CheckBox chkHide = new CheckBox("Ẩn khi in");
+        chkHide.setStyle("-fx-font-size: 11px; -fx-text-fill: #f44336;");
+        boolean initialHidden = productMap.get("isHidden") != null && (Integer) productMap.get("isHidden") == 1;
+        chkHide.setSelected(initialHidden);
+        chkHide.setOnAction(hideEvt -> {
+            productMap.put("isHidden", chkHide.isSelected() ? 1 : 0);
+        });
+
         Button btnRemove = new Button("✕");
         btnRemove.setStyle(
                 "-fx-background-color: #ffebee;" +
@@ -1753,7 +1960,7 @@ public class CreateInvoiceForm {
         });
 
         topRow.getChildren().addAll(lblName, spacer, discLabel, itemDiscountCombo, customDiscLabel, txtCustomDiscount,
-                btnRemove);
+                chkHide, btnRemove);
 
         // === Bottom row: Price breakdown ===
         HBox bottomRow = new HBox(12);
@@ -2042,7 +2249,8 @@ public class CreateInvoiceForm {
                             afterDisc,
                             sId > 0 ? sId : null,
                             category,
-                            costPrice);
+                            costPrice,
+                            0);
 
                     // Save linked products
                     List<Map<String, Object>> linked = (List<Map<String, Object>>) service.get("linkedProducts");
@@ -2071,6 +2279,7 @@ public class CreateInvoiceForm {
                             } catch (Exception ex) {
                             }
 
+                            int isHidden = product.containsKey("isHidden") ? ((Number) product.get("isHidden")).intValue() : 0;
                             itemService.addInvoiceItem(
                                     invoiceId,
                                     "product",
@@ -2080,7 +2289,8 @@ public class CreateInvoiceForm {
                                     pTotalPrice,
                                     prId,
                                     pCategory,
-                                    pCostPrice);
+                                    pCostPrice,
+                                    isHidden);
 
                             // Reduce stock
                             new service.ProductService().reduceStock(prId, pQty);
@@ -2119,7 +2329,8 @@ public class CreateInvoiceForm {
                             afterDisc,
                             pId > 0 ? pId : null,
                             category,
-                            costPrice);
+                            costPrice,
+                            0);
 
                     // Save linked products for package
                     List<Map<String, Object>> pkgLinked = (List<Map<String, Object>>) pkg.get("linkedProducts");
@@ -2148,6 +2359,7 @@ public class CreateInvoiceForm {
                             } catch (Exception ex) {
                             }
  
+                            int isHidden = product.containsKey("isHidden") ? ((Number) product.get("isHidden")).intValue() : 0;
                             itemService.addInvoiceItem(
                                     invoiceId,
                                     "product",
@@ -2157,7 +2369,8 @@ public class CreateInvoiceForm {
                                     pTotalPrice,
                                     prId,
                                     pCategory,
-                                    pCostPrice);
+                                    pCostPrice,
+                                    isHidden);
  
                             // Reduce stock
                             new service.ProductService().reduceStock(prId, pQty);
@@ -2179,7 +2392,7 @@ public class CreateInvoiceForm {
                         try {
                             model.Product prodObj = new dao.ProductDAO().getProductById(prId);
                             if (prodObj != null) {
-                                if (prodObj.getCategory() != null)
+                                    if (prodObj.getCategory() != null)
                                     category = prodObj.getCategory();
                                 costPrice = prodObj.getCostPrice();
                             }
@@ -2187,6 +2400,7 @@ public class CreateInvoiceForm {
                         }
                     }
 
+                    int isHidden = product.containsKey("isHidden") ? ((Number) product.get("isHidden")).intValue() : 0;
                     itemService.addInvoiceItem(
                             invoiceId,
                             "product",
@@ -2196,7 +2410,8 @@ public class CreateInvoiceForm {
                             afterDisc,
                             prId > 0 ? prId : null,
                             category,
-                            costPrice);
+                            costPrice,
+                            isHidden);
 
                     // Reduce stock for this product
                     ProductService productService = new ProductService();

@@ -1446,4 +1446,323 @@ public class ReportHelper {
             alert.showAndWait();
         }
     }
+
+    public static void exportInventoryToPDF(List<model.InventoryReceipt> receipts,
+            String monthYear,
+            javafx.stage.Window owner) {
+        try {
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Lưu Báo Cáo Nhập Kho PDF");
+            fileChooser.setInitialFileName("BaoCaoNhapKho_" + monthYear.replace("-", "_") + "_" + java.time.LocalDate.now() + ".pdf");
+            fileChooser.getExtensionFilters().add(
+                    new javafx.stage.FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
+
+            java.io.File file = fileChooser.showSaveDialog(owner);
+            if (file == null) return;
+
+            com.itextpdf.kernel.pdf.PdfWriter writer = new com.itextpdf.kernel.pdf.PdfWriter(file);
+            com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
+            com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf);
+            document.setMargins(20, 20, 20, 20);
+
+            com.itextpdf.kernel.font.PdfFont font = util.PDFFontHelper.createVietnameseFont();
+            com.itextpdf.kernel.font.PdfFont boldFont = util.PDFFontHelper.createVietnameseFont(true);
+
+            // Left-aligned Company Info
+            document.add(new com.itextpdf.layout.element.Paragraph("HỆ THỐNG QUẢN LÝ MTPROAUTO")
+                    .setFont(boldFont).setFontSize(10).setMarginBottom(1));
+            document.add(new com.itextpdf.layout.element.Paragraph("Địa chỉ: Ngã tư An Dương Vương và Trương Định, TP. Quảng Ngãi")
+                    .setFont(font).setFontSize(8.5f).setMarginBottom(15));
+
+            // Title
+            document.add(new com.itextpdf.layout.element.Paragraph("BÁO CÁO NHẬP KHO THEO THÁNG")
+                    .setFont(boldFont).setFontSize(16)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setMarginBottom(2));
+            document.add(new com.itextpdf.layout.element.Paragraph("Tháng: " + monthYear)
+                    .setFont(boldFont).setFontSize(12)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setMarginBottom(15));
+
+            // Metadata
+            String reportTime = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
+                    .format(java.time.LocalDateTime.now());
+            document.add(new com.itextpdf.layout.element.Paragraph("Thời gian lập báo cáo: " + reportTime)
+                    .setFont(font).setFontSize(9).setMarginBottom(2));
+            document.add(new com.itextpdf.layout.element.Paragraph("Người lập báo cáo: Ban quản trị hệ thống (Admin)")
+                    .setFont(font).setFontSize(9).setMarginBottom(15));
+
+            // Table setup: 8 columns
+            float[] colWidths = {30f, 60f, 70f, 130f, 50f, 70f, 80f, 80f};
+            com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(colWidths);
+            table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+
+            // Header cells helper
+            java.util.function.BiConsumer<String, com.itextpdf.layout.properties.TextAlignment> addHeaderCell = (text, align) -> {
+                com.itextpdf.layout.element.Cell cell = new com.itextpdf.layout.element.Cell()
+                        .add(new com.itextpdf.layout.element.Paragraph(text).setFont(boldFont).setFontSize(9))
+                        .setTextAlignment(align)
+                        .setBackgroundColor(new com.itextpdf.kernel.colors.DeviceRgb(240, 240, 240))
+                        .setPadding(5);
+                table.addHeaderCell(cell);
+            };
+
+            addHeaderCell.accept("STT", com.itextpdf.layout.properties.TextAlignment.CENTER);
+            addHeaderCell.accept("Mã Phiếu", com.itextpdf.layout.properties.TextAlignment.CENTER);
+            addHeaderCell.accept("Ngày Nhập", com.itextpdf.layout.properties.TextAlignment.CENTER);
+            addHeaderCell.accept("Tên Sản Phẩm", com.itextpdf.layout.properties.TextAlignment.LEFT);
+            addHeaderCell.accept("SL Nhập", com.itextpdf.layout.properties.TextAlignment.RIGHT);
+            addHeaderCell.accept("Giá Nhập", com.itextpdf.layout.properties.TextAlignment.RIGHT);
+            addHeaderCell.accept("Thành Tiền", com.itextpdf.layout.properties.TextAlignment.RIGHT);
+            addHeaderCell.accept("Người Thực Hiện", com.itextpdf.layout.properties.TextAlignment.LEFT);
+
+            double totalAmount = 0;
+            int stt = 1;
+
+            java.util.function.BiConsumer<String, com.itextpdf.layout.properties.TextAlignment> addRowCell = (text, align) -> {
+                com.itextpdf.layout.element.Cell cell = new com.itextpdf.layout.element.Cell()
+                        .add(new com.itextpdf.layout.element.Paragraph(text).setFont(font).setFontSize(8.5f))
+                        .setTextAlignment(align)
+                        .setPadding(4);
+                table.addCell(cell);
+            };
+
+            for (model.InventoryReceipt r : receipts) {
+                addRowCell.accept(String.valueOf(stt++), com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addRowCell.accept("NK-" + String.format("%04d", r.getId()), com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addRowCell.accept(r.getReceiptDate(), com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addRowCell.accept(r.getProductName(), com.itextpdf.layout.properties.TextAlignment.LEFT);
+                addRowCell.accept(new java.text.DecimalFormat("#.##").format(r.getQuantity()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f đ", r.getCostPrice()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f đ", r.getTotalPrice()), com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(r.getOperator(), com.itextpdf.layout.properties.TextAlignment.LEFT);
+
+                totalAmount += r.getTotalPrice();
+            }
+
+            // Total row
+            com.itextpdf.layout.element.Cell totalLabelCell = new com.itextpdf.layout.element.Cell(1, 6)
+                    .add(new com.itextpdf.layout.element.Paragraph("TỔNG CỘNG GIÁ TRỊ NHẬP KHO THÁNG:").setFont(boldFont).setFontSize(9))
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
+                    .setPadding(5);
+            table.addCell(totalLabelCell);
+
+            com.itextpdf.layout.element.Cell totalValueCell = new com.itextpdf.layout.element.Cell(1, 2)
+                    .add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f đ", totalAmount)).setFont(boldFont).setFontSize(9))
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
+                    .setPadding(5);
+            table.addCell(totalValueCell);
+
+            document.add(table);
+            
+            // Signature section
+            document.add(new com.itextpdf.layout.element.Paragraph("\n\n"));
+            com.itextpdf.layout.element.Table sigTable = new com.itextpdf.layout.element.Table(2);
+            sigTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            
+            com.itextpdf.layout.element.Cell sigCell1 = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph("Người lập báo cáo\n(Ký và ghi rõ họ tên)").setFont(boldFont).setFontSize(9))
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setBorder(null);
+            com.itextpdf.layout.element.Cell sigCell2 = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph("Chủ doanh nghiệp\n(Ký và đóng dấu)").setFont(boldFont).setFontSize(9))
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setBorder(null);
+            
+            sigTable.addCell(sigCell1);
+            sigTable.addCell(sigCell2);
+            document.add(sigTable);
+
+            document.close();
+
+            javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
+                    javafx.scene.control.Alert.AlertType.INFORMATION,
+                    "Thành công",
+                    "Xuất báo cáo nhập kho PDF thành công!\nĐã lưu tại: " + file.getAbsolutePath());
+            alert.showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
+                    javafx.scene.control.Alert.AlertType.ERROR,
+                    "Lỗi",
+                    "Không thể xuất báo cáo PDF: " + e.getMessage());
+            alert.showAndWait();
+        }
+    }
+
+    public static void exportInventoryToExcel(List<model.InventoryReceipt> receipts,
+            String monthYear,
+            javafx.stage.Window owner) {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Lưu Báo Cáo Nhập Kho Excel");
+        fileChooser.setInitialFileName("BaoCaoNhapKho_" + monthYear.replace("-", "_") + "_" + java.time.LocalDate.now() + ".xlsx");
+        fileChooser.getExtensionFilters().add(
+                new javafx.stage.FileChooser.ExtensionFilter("Excel Workbook", "*.xlsx"));
+
+        java.io.File file = fileChooser.showSaveDialog(owner);
+        if (file == null) return;
+
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            org.apache.poi.xssf.usermodel.XSSFSheet sheet = workbook.createSheet("Báo cáo nhập kho");
+            sheet.setDisplayGridlines(true);
+
+            // Title Style
+            org.apache.poi.xssf.usermodel.XSSFCellStyle titleStyle = workbook.createCellStyle();
+            org.apache.poi.xssf.usermodel.XSSFFont titleFont = workbook.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 16);
+            titleStyle.setFont(titleFont);
+            titleStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
+
+            org.apache.poi.xssf.usermodel.XSSFRow titleRow = sheet.createRow(0);
+            org.apache.poi.xssf.usermodel.XSSFCell titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("BÁO CÁO NHẬP KHO THÁNG " + monthYear);
+            titleCell.setCellStyle(titleStyle);
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 8));
+
+            // Header Style
+            org.apache.poi.xssf.usermodel.XSSFCellStyle headerStyle = workbook.createCellStyle();
+            org.apache.poi.xssf.usermodel.XSSFFont headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
+            headerStyle.setVerticalAlignment(org.apache.poi.ss.usermodel.VerticalAlignment.CENTER);
+            headerStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            headerStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            headerStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            headerStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            headerStyle.setFillForegroundColor(new org.apache.poi.xssf.usermodel.XSSFColor(new byte[]{(byte)240, (byte)240, (byte)240}, null));
+            headerStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
+
+            // Row style
+            org.apache.poi.xssf.usermodel.XSSFCellStyle borderStyle = workbook.createCellStyle();
+            borderStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            borderStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            borderStyle.setBorderLeft(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            borderStyle.setBorderRight(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+
+            org.apache.poi.xssf.usermodel.XSSFCellStyle numberStyle = workbook.createCellStyle();
+            numberStyle.cloneStyleFrom(borderStyle);
+            numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
+            numberStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.RIGHT);
+
+            String[] headers = {
+                "STT", "Mã Phiếu", "Ngày Nhập", "Tên Sản Phẩm", "Số Lượng", "Đơn Giá", "Thành Tiền", "Nhà Cung Cấp", "Người Thực Hiện"
+            };
+            
+            org.apache.poi.xssf.usermodel.XSSFRow headerRow = sheet.createRow(2);
+            for (int i = 0; i < headers.length; i++) {
+                org.apache.poi.xssf.usermodel.XSSFCell c = headerRow.createCell(i);
+                c.setCellValue(headers[i]);
+                c.setCellStyle(headerStyle);
+            }
+
+            int rowIndex = 3;
+            int stt = 1;
+            double totalAmount = 0;
+
+            for (model.InventoryReceipt r : receipts) {
+                org.apache.poi.xssf.usermodel.XSSFRow row = sheet.createRow(rowIndex++);
+                
+                org.apache.poi.xssf.usermodel.XSSFCell cell0 = row.createCell(0);
+                cell0.setCellValue(stt++);
+                cell0.setCellStyle(borderStyle);
+                
+                org.apache.poi.xssf.usermodel.XSSFCell cell1 = row.createCell(1);
+                cell1.setCellValue("NK-" + String.format("%04d", r.getId()));
+                cell1.setCellStyle(borderStyle);
+                
+                org.apache.poi.xssf.usermodel.XSSFCell cell2 = row.createCell(2);
+                cell2.setCellValue(r.getReceiptDate());
+                cell2.setCellStyle(borderStyle);
+                
+                org.apache.poi.xssf.usermodel.XSSFCell cell3 = row.createCell(3);
+                cell3.setCellValue(r.getProductName());
+                cell3.setCellStyle(borderStyle);
+                
+                org.apache.poi.xssf.usermodel.XSSFCell cell4 = row.createCell(4);
+                cell4.setCellValue(r.getQuantity());
+                cell4.setCellStyle(borderStyle);
+                
+                org.apache.poi.xssf.usermodel.XSSFCell cell5 = row.createCell(5);
+                cell5.setCellValue(r.getCostPrice());
+                cell5.setCellStyle(numberStyle);
+                
+                org.apache.poi.xssf.usermodel.XSSFCell cell6 = row.createCell(6);
+                cell6.setCellValue(r.getTotalPrice());
+                cell6.setCellStyle(numberStyle);
+                
+                org.apache.poi.xssf.usermodel.XSSFCell cell7 = row.createCell(7);
+                cell7.setCellValue(r.getProvider() != null ? r.getProvider() : "");
+                cell7.setCellStyle(borderStyle);
+                
+                org.apache.poi.xssf.usermodel.XSSFCell cell8 = row.createCell(8);
+                cell8.setCellValue(r.getOperator());
+                cell8.setCellStyle(borderStyle);
+                
+                totalAmount += r.getTotalPrice();
+            }
+
+            // Total row
+            org.apache.poi.xssf.usermodel.XSSFRow totalRow = sheet.createRow(rowIndex);
+            org.apache.poi.xssf.usermodel.XSSFCell totalLabelCell = totalRow.createCell(0);
+            totalLabelCell.setCellValue("TỔNG CỘNG GIÁ TRỊ NHẬP KHO");
+            
+            org.apache.poi.xssf.usermodel.XSSFCellStyle totalLabelStyle = workbook.createCellStyle();
+            org.apache.poi.xssf.usermodel.XSSFFont boldFont = workbook.createFont();
+            boldFont.setBold(true);
+            totalLabelStyle.setFont(boldFont);
+            totalLabelStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.RIGHT);
+            totalLabelStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            totalLabelStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+            totalLabelCell.setCellStyle(totalLabelStyle);
+            
+            // Fill borders for empty cells in total row
+            for(int i = 1; i <= 5; i++) {
+                org.apache.poi.xssf.usermodel.XSSFCell cell = totalRow.createCell(i);
+                cell.setCellStyle(totalLabelStyle);
+            }
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowIndex, rowIndex, 0, 5));
+
+            org.apache.poi.xssf.usermodel.XSSFCell totalValCell = totalRow.createCell(6);
+            totalValCell.setCellValue(totalAmount);
+            org.apache.poi.xssf.usermodel.XSSFCellStyle totalValStyle = workbook.createCellStyle();
+            totalValStyle.cloneStyleFrom(numberStyle);
+            totalValStyle.setFont(boldFont);
+            totalValCell.setCellStyle(totalValStyle);
+            
+            for(int i = 7; i <= 8; i++) {
+                org.apache.poi.xssf.usermodel.XSSFCell cell = totalRow.createCell(i);
+                org.apache.poi.xssf.usermodel.XSSFCellStyle emptyStyle = workbook.createCellStyle();
+                emptyStyle.setBorderTop(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+                emptyStyle.setBorderBottom(org.apache.poi.ss.usermodel.BorderStyle.THIN);
+                cell.setCellStyle(emptyStyle);
+            }
+
+            // Auto-size columns
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // Save workbook
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(file)) {
+                workbook.write(out);
+            }
+
+            javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
+                    javafx.scene.control.Alert.AlertType.INFORMATION,
+                    "Thành công",
+                    "Xuất báo cáo nhập kho Excel thành công!\nĐã lưu tại: " + file.getAbsolutePath());
+            alert.showAndWait();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            javafx.scene.control.Alert alert = util.AlertHelper.createAlert(
+                    javafx.scene.control.Alert.AlertType.ERROR,
+                    "Lỗi",
+                    "Không thể xuất báo cáo Excel: " + e.getMessage());
+            alert.showAndWait();
+        }
+    }
 }

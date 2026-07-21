@@ -15,10 +15,12 @@ public class ServiceDAO {
         try (Connection conn = DatabaseManager.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
-            
+             
             while (rs.next()) {
                 int linkedIdVal = rs.getInt("linked_product_id");
                 Integer linkedProductId = rs.wasNull() ? null : linkedIdVal;
+                double linkedQtyVal = rs.getDouble("linked_product_qty");
+                Double linkedProductQty = rs.wasNull() ? 0.0 : linkedQtyVal;
                 Service service = new Service(
                     rs.getInt("id"),
                     rs.getString("name"),
@@ -31,7 +33,8 @@ public class ServiceDAO {
                     rs.getDouble("price_pickup"),
                     rs.getString("category"),
                     rs.getDouble("cost_price"),
-                    linkedProductId
+                    linkedProductId,
+                    linkedProductQty
                 );
                 services.add(service);
             }
@@ -46,13 +49,15 @@ public class ServiceDAO {
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
+             
             pstmt.setInt(1, id);
             ResultSet rs = pstmt.executeQuery();
             
             if (rs.next()) {
                 int linkedIdVal = rs.getInt("linked_product_id");
                 Integer linkedProductId = rs.wasNull() ? null : linkedIdVal;
+                double linkedQtyVal = rs.getDouble("linked_product_qty");
+                Double linkedProductQty = rs.wasNull() ? 0.0 : linkedQtyVal;
                 return new Service(
                     rs.getInt("id"),
                     rs.getString("name"),
@@ -65,7 +70,8 @@ public class ServiceDAO {
                     rs.getDouble("price_pickup"),
                     rs.getString("category"),
                     rs.getDouble("cost_price"),
-                    linkedProductId
+                    linkedProductId,
+                    linkedProductQty
                 );
             }
         } catch (SQLException e) {
@@ -75,7 +81,7 @@ public class ServiceDAO {
     }
     
     public boolean addService(Service service) {
-        String sql = "INSERT INTO services (name, description, price_mini, price_sedan, price_cuv, price_suv, price_mpv, price_pickup, category, cost_price, linked_product_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO services (name, description, price_mini, price_sedan, price_cuv, price_suv, price_mpv, price_pickup, category, cost_price, linked_product_id, linked_product_qty) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -94,6 +100,11 @@ public class ServiceDAO {
                 pstmt.setInt(11, service.getLinkedProductId());
             } else {
                 pstmt.setNull(11, java.sql.Types.INTEGER);
+            }
+            if (service.getLinkedProductQty() != null) {
+                pstmt.setDouble(12, service.getLinkedProductQty());
+            } else {
+                pstmt.setDouble(12, 0.0);
             }
             
             return pstmt.executeUpdate() > 0;
@@ -104,7 +115,7 @@ public class ServiceDAO {
     }
     
     public boolean updateService(Service service) {
-        String sql = "UPDATE services SET name = ?, description = ?, price_mini = ?, price_sedan = ?, price_cuv = ?, price_suv = ?, price_mpv = ?, price_pickup = ?, category = ?, cost_price = ?, linked_product_id = ? WHERE id = ?";
+        String sql = "UPDATE services SET name = ?, description = ?, price_mini = ?, price_sedan = ?, price_cuv = ?, price_suv = ?, price_mpv = ?, price_pickup = ?, category = ?, cost_price = ?, linked_product_id = ?, linked_product_qty = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -124,7 +135,12 @@ public class ServiceDAO {
             } else {
                 pstmt.setNull(11, java.sql.Types.INTEGER);
             }
-            pstmt.setInt(12, service.getId());
+            if (service.getLinkedProductQty() != null) {
+                pstmt.setDouble(12, service.getLinkedProductQty());
+            } else {
+                pstmt.setDouble(12, 0.0);
+            }
+            pstmt.setInt(13, service.getId());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

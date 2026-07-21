@@ -155,3 +155,18 @@ CREATE TABLE IF NOT EXISTS fixed_expenses (
     notes TEXT,
     created_at TEXT DEFAULT (datetime('now','localtime'))
 );
+
+CREATE TABLE IF NOT EXISTS inventory_receipts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    product_name TEXT NOT NULL,
+    quantity REAL NOT NULL,
+    cost_price REAL NOT NULL,
+    total_price REAL NOT NULL,
+    receipt_date TEXT NOT NULL,
+    provider TEXT,
+    notes TEXT,
+    operator TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);

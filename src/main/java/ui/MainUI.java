@@ -180,6 +180,7 @@ public class MainUI extends Application {
         Button btnService = createModernMenuButton("🛠", "Dịch Vụ", "#2196F3", false);
         Button btnPackage = createModernMenuButton("📦", "Gói Dịch Vụ", "#2196F3", false);
         Button btnProduct = createModernMenuButton("🛒", "Sản Phẩm", "#2196F3", false);
+        Button btnInventory = createModernMenuButton("📥", "Quản Lý Nhập Kho", "#2196F3", false);
         Button btnHR = createModernMenuButton("👥", "Nhân Sự", "#2196F3", false);
         Button btnExpense = createModernMenuButton("💰", "Quản Lý Chi Phí", "#2196F3", false);
         Button btnReport = createModernMenuButton("📈", "Báo Cáo", "#2196F3", false);
@@ -214,6 +215,11 @@ public class MainUI extends Application {
             setActiveButton(btnProduct);
             showProductManagement();
         });
+        btnInventory.setOnAction(e -> {
+            resetMenuButtons();
+            setActiveButton(btnInventory);
+            showInventoryManagement();
+        });
         btnReport.setOnAction(e -> {
             resetMenuButtons();
             setActiveButton(btnReport);
@@ -245,7 +251,7 @@ public class MainUI extends Application {
 
         sidebar.getChildren().addAll(
             btnDashboard, btnAppointment, btnInvoice, btnService, 
-            btnPackage, btnProduct, btnHR, btnExpense, btnReport, spacer, btnLogout
+            btnPackage, btnProduct, btnInventory, btnHR, btnExpense, btnReport, spacer, btnLogout
         );
 
         return sidebar;
@@ -4212,8 +4218,8 @@ public class MainUI extends Application {
                 Label lblIcon = new Label(itemTypeIcon);
                 lblIcon.setStyle("-fx-font-size: 14px;");
                 
-                Label lblName = new Label(item.getItemName());
-                lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
+                Label lblName = new Label(item.getItemName() + (item.getIsHidden() == 1 ? " (Ẩn khi in)" : ""));
+                lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: " + (item.getIsHidden() == 1 ? "#d32f2f" : "#424242") + "; -fx-font-weight: 500;");
                 lblName.setPrefWidth(280); // Slightly increased width
                 
                 Label lblQty = new Label("x" + new java.text.DecimalFormat("#.##").format(item.getQuantity()));
@@ -4422,6 +4428,8 @@ public class MainUI extends Application {
             // Load invoice items
             service.InvoiceItemService itemService = new service.InvoiceItemService();
             List<model.InvoiceItem> items = itemService.getItemsByInvoiceId(invoice.getId());
+            // Loại bỏ các vật tư/sản phẩm bị đánh dấu ẩn khi in
+            items.removeIf(item -> item.getIsHidden() == 1);
             
             // Create file chooser
             javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
@@ -5919,6 +5927,11 @@ public class MainUI extends Application {
     private void showExpenseManagement() {
         currentView = "expense";
         ExpenseHelper.showExpenseManagement(this, contentArea);
+    }
+
+    private void showInventoryManagement() {
+        currentView = "inventory";
+        InventoryHelper.showInventoryManagement(this, contentArea);
     }
 
     private VBox createEmployeeTab() {

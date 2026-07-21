@@ -87,6 +87,13 @@ public class EmployeeForm {
         GridPane grid = new GridPane();
         grid.setHgap(20);
         grid.setVgap(15);
+        
+        ColumnConstraints col0 = new ColumnConstraints();
+        col0.setMinWidth(180);
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setHgrow(Priority.ALWAYS);
+        col1.setFillWidth(true);
+        grid.getColumnConstraints().addAll(col0, col1);
 
         String labelStyle = "-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;";
         String fieldStyle = "-fx-background-color: #f5f5f5; -fx-padding: 12px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;";
@@ -97,6 +104,7 @@ public class EmployeeForm {
         txtCode = new TextField(isEdit ? employee.getEmployeeCode() : generateNextEmployeeCode());
         txtCode.setEditable(false);
         txtCode.setPrefWidth(300);
+        txtCode.setMaxWidth(Double.MAX_VALUE);
         txtCode.setStyle(fieldStyle);
 
         Label lblName = new Label("Họ tên *");
@@ -104,6 +112,7 @@ public class EmployeeForm {
         txtName = new TextField(isEdit ? employee.getName() : "");
         txtName.setPromptText("Nhập họ tên...");
         txtName.setPrefWidth(300);
+        txtName.setMaxWidth(Double.MAX_VALUE);
         txtName.setStyle(fieldStyle);
 
         Label lblPhone = new Label("Số điện thoại");
@@ -111,6 +120,7 @@ public class EmployeeForm {
         txtPhone = new TextField(isEdit ? employee.getPhone() : "");
         txtPhone.setPromptText("Nhập số điện thoại...");
         txtPhone.setPrefWidth(300);
+        txtPhone.setMaxWidth(Double.MAX_VALUE);
         txtPhone.setStyle(fieldStyle);
 
         Label lblAddress = new Label("Địa chỉ");
@@ -118,12 +128,14 @@ public class EmployeeForm {
         txtAddress = new TextField(isEdit ? employee.getAddress() : "");
         txtAddress.setPromptText("Nhập địa chỉ...");
         txtAddress.setPrefWidth(300);
+        txtAddress.setMaxWidth(Double.MAX_VALUE);
         txtAddress.setStyle(fieldStyle);
 
         Label lblDob = new Label("Ngày sinh");
         lblDob.setStyle(labelStyle);
         dpDob = new DatePicker();
         dpDob.setPrefWidth(300);
+        dpDob.setMaxWidth(Double.MAX_VALUE);
         dpDob.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
         if (isEdit && employee.getDob() != null && !employee.getDob().isEmpty()) {
             try { dpDob.setValue(LocalDate.parse(employee.getDob())); } catch (Exception ex) {}
@@ -135,11 +147,13 @@ public class EmployeeForm {
         cbGender.getItems().addAll("Nam", "Nữ", "Khác");
         cbGender.setValue(isEdit && employee.getGender() != null ? employee.getGender() : "Nam");
         cbGender.setStyle(comboStyle);
+        cbGender.setMaxWidth(Double.MAX_VALUE);
 
         Label lblStartDate = new Label("Ngày vào làm");
         lblStartDate.setStyle(labelStyle);
         dpStartDate = new DatePicker();
         dpStartDate.setPrefWidth(300);
+        dpStartDate.setMaxWidth(Double.MAX_VALUE);
         dpStartDate.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
         if (isEdit && employee.getStartDate() != null && !employee.getStartDate().isEmpty()) {
             try { dpStartDate.setValue(LocalDate.parse(employee.getStartDate())); } catch (Exception ex) {}
@@ -154,12 +168,14 @@ public class EmployeeForm {
         cbPosition.setValue(isEdit && employee.getPosition() != null ? employee.getPosition() : "Kỹ thuật viên");
         cbPosition.setEditable(true);
         cbPosition.setStyle(comboStyle);
+        cbPosition.setMaxWidth(Double.MAX_VALUE);
 
         Label lblSalary = new Label("Lương cơ bản *");
         lblSalary.setStyle(labelStyle);
         txtSalary = new TextField(isEdit ? String.format("%.0f", employee.getBasicSalary()) : "0");
         txtSalary.setPromptText("Nhập mức lương cơ bản...");
         txtSalary.setPrefWidth(300);
+        txtSalary.setMaxWidth(Double.MAX_VALUE);
         txtSalary.setStyle(fieldStyle);
 
         grid.add(lblCode, 0, 0); grid.add(txtCode, 1, 0);

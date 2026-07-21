@@ -84,6 +84,13 @@ public class ExpenseForm {
         GridPane grid = new GridPane();
         grid.setHgap(20);
         grid.setVgap(15);
+        
+        ColumnConstraints col0 = new ColumnConstraints();
+        col0.setMinWidth(180);
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setHgrow(Priority.ALWAYS);
+        col1.setFillWidth(true);
+        grid.getColumnConstraints().addAll(col0, col1);
 
         String labelStyle = "-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;";
         String fieldStyle = "-fx-background-color: #f5f5f5; -fx-padding: 12px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;";
@@ -94,6 +101,7 @@ public class ExpenseForm {
         txtName = new TextField(isEdit ? expense.getExpenseName() : "");
         txtName.setPromptText("Nhập tên khoản mục chi phí (ví dụ: Tiền wifi, Tiền thuê đất...)");
         txtName.setPrefWidth(300);
+        txtName.setMaxWidth(Double.MAX_VALUE);
         txtName.setStyle(fieldStyle);
 
         Label lblCategory = new Label("Phân loại chi phí *");
@@ -103,12 +111,14 @@ public class ExpenseForm {
         cbCategory.setValue(isEdit && expense.getCategory() != null ? expense.getCategory() : "cố định");
         cbCategory.setEditable(false);
         cbCategory.setStyle(comboStyle);
+        cbCategory.setMaxWidth(Double.MAX_VALUE);
 
         Label lblAmount = new Label("Số tiền (VNĐ) *");
         lblAmount.setStyle(labelStyle);
         txtAmount = new TextField(isEdit ? String.format("%.0f", expense.getAmount()) : "");
         txtAmount.setPromptText("Nhập số tiền...");
         txtAmount.setPrefWidth(300);
+        txtAmount.setMaxWidth(Double.MAX_VALUE);
         txtAmount.setStyle(fieldStyle);
 
         Label lblPeriod = new Label("Tháng/Năm *");
@@ -135,8 +145,13 @@ public class ExpenseForm {
 
         cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-pref-height: 44px; -fx-pref-width: 140px;");
         cbYear.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-pref-height: 44px; -fx-pref-width: 140px;");
+        cbMonth.setMaxWidth(Double.MAX_VALUE);
+        cbYear.setMaxWidth(Double.MAX_VALUE);
 
         HBox periodBox = new HBox(20);
+        periodBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(cbMonth, Priority.ALWAYS);
+        HBox.setHgrow(cbYear, Priority.ALWAYS);
         periodBox.getChildren().addAll(cbMonth, cbYear);
 
         Label lblNotes = new Label("Ghi chú");
@@ -144,6 +159,7 @@ public class ExpenseForm {
         txtNotes = new TextField(isEdit ? expense.getNotes() : "");
         txtNotes.setPromptText("Nhập ghi chú (nếu có)...");
         txtNotes.setPrefWidth(300);
+        txtNotes.setMaxWidth(Double.MAX_VALUE);
         txtNotes.setStyle(fieldStyle);
 
         grid.add(lblName, 0, 0); grid.add(txtName, 1, 0);

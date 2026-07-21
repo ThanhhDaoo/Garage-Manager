@@ -17,29 +17,39 @@ public class ServiceService {
     
     public boolean addService(String name, String description, double priceMini, double priceSedan, 
                              double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice) {
-        return addService(name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, null);
+        return addService(name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, null, 0.0);
     }
 
     public boolean addService(String name, String description, double priceMini, double priceSedan, 
                              double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice, Integer linkedProductId) {
+        return addService(name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, linkedProductId, 0.0);
+    }
+
+    public boolean addService(String name, String description, double priceMini, double priceSedan, 
+                             double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice, Integer linkedProductId, Double linkedProductQty) {
         if (name == null || name.trim().isEmpty()) {
             return false;
         }
-        Service service = new Service(0, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, linkedProductId);
+        Service service = new Service(0, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, linkedProductId, linkedProductQty);
         return serviceDAO.addService(service);
     }
     
     public boolean updateService(int id, String name, String description, double priceMini, double priceSedan,
                                 double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice) {
-        return updateService(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, null);
+        return updateService(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, null, 0.0);
     }
 
     public boolean updateService(int id, String name, String description, double priceMini, double priceSedan,
                                 double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice, Integer linkedProductId) {
+        return updateService(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, linkedProductId, 0.0);
+    }
+
+    public boolean updateService(int id, String name, String description, double priceMini, double priceSedan,
+                                double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice, Integer linkedProductId, Double linkedProductQty) {
         if (name == null || name.trim().isEmpty()) {
             return false;
         }
-        Service service = new Service(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, linkedProductId);
+        Service service = new Service(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, linkedProductId, linkedProductQty);
         return serviceDAO.updateService(service);
     }
     

@@ -426,6 +426,23 @@ public class DatabaseManager {
                     System.err.println("⚠ Không thể thêm cột linked_product_id: " + e.getMessage());
                 }
             }
+            
+            boolean hasLinkedProductQty = false;
+            try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(services)")) {
+                while (rs.next()) {
+                    if ("linked_product_qty".equals(rs.getString("name"))) {
+                        hasLinkedProductQty = true;
+                    }
+                }
+            }
+            if (!hasLinkedProductQty) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE services ADD COLUMN linked_product_qty REAL DEFAULT 0.0;");
+                    System.out.println("✓ Đã thêm cột linked_product_qty vào bảng services.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột linked_product_qty: " + e.getMessage());
+                }
+            }
 
             // Tự động di trú bảng packages
             boolean hasPackageCategory = false;
@@ -514,6 +531,23 @@ public class DatabaseManager {
                     System.out.println("✓ Đã thêm cột cost_price vào bảng invoice_items.");
                 } catch (SQLException e) {
                     System.err.println("⚠ Không thể thêm cột cost_price vào invoice_items: " + e.getMessage());
+                }
+            }
+            
+            boolean hasIsHidden = false;
+            try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(invoice_items)")) {
+                while (rs.next()) {
+                    if ("is_hidden".equals(rs.getString("name"))) {
+                        hasIsHidden = true;
+                    }
+                }
+            }
+            if (!hasIsHidden) {
+                try (Statement alterStmt = conn.createStatement()) {
+                    alterStmt.execute("ALTER TABLE invoice_items ADD COLUMN is_hidden INTEGER DEFAULT 0;");
+                    System.out.println("✓ Đã thêm cột is_hidden vào bảng invoice_items.");
+                } catch (SQLException e) {
+                    System.err.println("⚠ Không thể thêm cột is_hidden vào invoice_items: " + e.getMessage());
                 }
             }
 

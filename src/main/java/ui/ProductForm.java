@@ -105,6 +105,11 @@ public class ProductForm {
         grid.setHgap(20);
         grid.setVgap(20);
         
+        ColumnConstraints col = new ColumnConstraints();
+        col.setHgrow(Priority.ALWAYS);
+        col.setFillWidth(true);
+        grid.getColumnConstraints().add(col);
+        
         // Product name
         Label lblName = new Label("Tên sản phẩm *");
         lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
@@ -118,6 +123,7 @@ public class ProductForm {
             "-fx-font-size: 14px;"
         );
         txtName.setPrefWidth(400);
+        txtName.setMaxWidth(Double.MAX_VALUE);
         if (isEdit && productName != null) {
             txtName.setText(productName);
         }
@@ -169,6 +175,7 @@ public class ProductForm {
         );
         txtDesc.setPrefRowCount(3);
         txtDesc.setPrefWidth(400);
+        txtDesc.setMaxWidth(Double.MAX_VALUE);
         
         // Price
         Label lblPrice = new Label("Giá bán *");
@@ -183,6 +190,7 @@ public class ProductForm {
             "-fx-font-size: 14px;"
         );
         txtPrice.setPrefWidth(400);
+        txtPrice.setMaxWidth(Double.MAX_VALUE);
         txtPrice.focusedProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue) { // Lost focus
                 String text = txtPrice.getText().trim();
@@ -212,6 +220,7 @@ public class ProductForm {
             "-fx-font-size: 14px;"
         );
         txtCostPrice.setPrefWidth(400);
+        txtCostPrice.setMaxWidth(Double.MAX_VALUE);
         txtCostPrice.focusedProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue) { // Lost focus
                 String text = txtCostPrice.getText().trim();
@@ -233,9 +242,11 @@ public class ProductForm {
         lblStock.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
         
         HBox stockBox = new HBox(10);
+        stockBox.setAlignment(Pos.CENTER_LEFT);
         txtStock = new TextField();
         txtStock.setPromptText("0");
         txtStock.setPrefWidth(150);
+        txtStock.setMaxWidth(Double.MAX_VALUE);
         txtStock.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-padding: 12px 15px;" +
@@ -264,6 +275,7 @@ public class ProductForm {
         txtUnit = new TextField();
         txtUnit.setPromptText("chai, hộp, cái...");
         txtUnit.setPrefWidth(150);
+        txtUnit.setMaxWidth(Double.MAX_VALUE);
         txtUnit.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-padding: 12px 15px;" +
@@ -276,6 +288,8 @@ public class ProductForm {
         }
         UIUtils.setupIMEFix(txtUnit);
         
+        HBox.setHgrow(txtStock, Priority.ALWAYS);
+        HBox.setHgrow(txtUnit, Priority.ALWAYS);
         stockBox.getChildren().addAll(txtStock, lblUnit, txtUnit);
         
         // Min stock alert
@@ -292,6 +306,7 @@ public class ProductForm {
             "-fx-font-family: 'Times New Roman';"
         );
         txtMinStock.setPrefWidth(400);
+        txtMinStock.setMaxWidth(Double.MAX_VALUE);
         txtMinStock.focusedProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue) { // Lost focus
                 String text = txtMinStock.getText().trim();

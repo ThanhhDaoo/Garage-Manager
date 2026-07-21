@@ -167,4 +167,18 @@ public class ProductDAO {
         }
         return false;
     }
+
+    public boolean updateProductStock(int id, double stock) {
+        String sql = "UPDATE products SET stock = ? WHERE id = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setDouble(1, stock);
+            pstmt.setInt(2, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

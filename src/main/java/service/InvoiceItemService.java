@@ -17,13 +17,19 @@ public class InvoiceItemService {
     
     public boolean addInvoiceItem(int invoiceId, String itemType, String itemName, 
                                   double quantity, double unitPrice, double totalPrice) {
-        return addInvoiceItem(invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, null, null, 0.0);
+        return addInvoiceItem(invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, null, null, 0.0, 0);
     }
 
     public boolean addInvoiceItem(int invoiceId, String itemType, String itemName, 
                                   double quantity, double unitPrice, double totalPrice,
                                   Integer itemId, String category, double costPrice) {
-        InvoiceItem item = new InvoiceItem(0, invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, itemId, category, costPrice);
+        return addInvoiceItem(invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, itemId, category, costPrice, 0);
+    }
+
+    public boolean addInvoiceItem(int invoiceId, String itemType, String itemName, 
+                                  double quantity, double unitPrice, double totalPrice,
+                                  Integer itemId, String category, double costPrice, int isHidden) {
+        InvoiceItem item = new InvoiceItem(0, invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, itemId, category, costPrice, isHidden);
         return invoiceItemDAO.addInvoiceItem(item);
     }
     

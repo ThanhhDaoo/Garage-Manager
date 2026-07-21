@@ -13,6 +13,7 @@ public class Service {
     private String category;
     private double costPrice;
     private Integer linkedProductId;
+    private Double linkedProductQty;
     
     // Keep old fields for backward compatibility
     @Deprecated
@@ -25,18 +26,18 @@ public class Service {
     // Constructor with 6 vehicle types
     public Service(int id, String name, String description, double priceMini, double priceSedan, 
                    double priceCuv, double priceSuv, double priceMpv, double pricePickup) {
-        this(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, "rửa xe", 0.0, null);
+        this(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, "rửa xe", 0.0, null, 0.0);
     }
 
     // Constructor with 6 vehicle types + category + costPrice
     public Service(int id, String name, String description, double priceMini, double priceSedan, 
                    double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice) {
-        this(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, null);
+        this(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, null, 0.0);
     }
 
     // Main constructor with all fields
     public Service(int id, String name, String description, double priceMini, double priceSedan, 
-                   double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice, Integer linkedProductId) {
+                   double priceCuv, double priceSuv, double priceMpv, double pricePickup, String category, double costPrice, Integer linkedProductId, Double linkedProductQty) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -49,6 +50,7 @@ public class Service {
         this.category = category;
         this.costPrice = costPrice;
         this.linkedProductId = linkedProductId;
+        this.linkedProductQty = linkedProductQty != null ? linkedProductQty : 0.0;
     }
 
 
@@ -140,5 +142,12 @@ public class Service {
     }
     public void setLinkedProductId(Integer linkedProductId) {
         this.linkedProductId = linkedProductId;
+    }
+
+    public Double getLinkedProductQty() {
+        return linkedProductQty;
+    }
+    public void setLinkedProductQty(Double linkedProductQty) {
+        this.linkedProductQty = linkedProductQty;
     }
 }

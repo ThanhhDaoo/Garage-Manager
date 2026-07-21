@@ -103,6 +103,11 @@ public class PackageForm {
         grid.setHgap(20);
         grid.setVgap(15);
         
+        ColumnConstraints col = new ColumnConstraints();
+        col.setHgrow(Priority.ALWAYS);
+        col.setFillWidth(true);
+        grid.getColumnConstraints().add(col);
+        
         // Package name
         Label lblName = new Label("Tên gói dịch vụ *");
         lblName.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-font-family: 'Times New Roman';");
@@ -117,6 +122,7 @@ public class PackageForm {
             "-fx-font-family: 'Times New Roman';"
         );
         txtName.setPrefWidth(500);
+        txtName.setMaxWidth(Double.MAX_VALUE);
         if (isEdit && existingPackage != null) {
             txtName.setText(existingPackage.getName());
         }
@@ -136,6 +142,7 @@ public class PackageForm {
         );
         txtDesc.setPrefRowCount(3);
         txtDesc.setPrefWidth(500);
+        txtDesc.setMaxWidth(Double.MAX_VALUE);
         if (isEdit && existingPackage != null) {
             txtDesc.setText(existingPackage.getDescription());
         }
@@ -155,6 +162,7 @@ public class PackageForm {
             "-fx-pref-width: 500px;" +
             "-fx-font-family: 'Times New Roman';"
         );
+        cbCategory.setMaxWidth(Double.MAX_VALUE);
         cbCategory.setValue(isEdit && existingPackage != null && existingPackage.getCategory() != null ? existingPackage.getCategory() : "chăm sóc");
         
         // Cost Price
@@ -171,6 +179,7 @@ public class PackageForm {
             "-fx-font-family: 'Times New Roman';"
         );
         txtCostPrice.setPrefWidth(500);
+        txtCostPrice.setMaxWidth(Double.MAX_VALUE);
         if (isEdit && existingPackage != null) {
             txtCostPrice.setText(String.format("%.0f", existingPackage.getCostPrice()));
         } else {

@@ -11,18 +11,25 @@ public class InvoiceItem {
     private Integer itemId;
     private String category;
     private double costPrice;
+    private int isHidden;
 
     public InvoiceItem() {}
 
     // Constructor with defaults
     public InvoiceItem(int id, int invoiceId, String itemType, String itemName, 
                        double quantity, double unitPrice, double totalPrice) {
-        this(id, invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, null, null, 0.0);
+        this(id, invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, null, null, 0.0, 0);
     }
 
     // Main constructor
     public InvoiceItem(int id, int invoiceId, String itemType, String itemName, 
                        double quantity, double unitPrice, double totalPrice, Integer itemId, String category, double costPrice) {
+        this(id, invoiceId, itemType, itemName, quantity, unitPrice, totalPrice, itemId, category, costPrice, 0);
+    }
+
+    // Main constructor with isHidden
+    public InvoiceItem(int id, int invoiceId, String itemType, String itemName, 
+                       double quantity, double unitPrice, double totalPrice, Integer itemId, String category, double costPrice, int isHidden) {
         this.id = id;
         this.invoiceId = invoiceId;
         this.itemType = itemType;
@@ -33,6 +40,7 @@ public class InvoiceItem {
         this.itemId = itemId;
         this.category = category;
         this.costPrice = costPrice;
+        this.isHidden = isHidden;
     }
 
     public int getId() { return id; }
@@ -64,4 +72,7 @@ public class InvoiceItem {
 
     public double getCostPrice() { return costPrice; }
     public void setCostPrice(double costPrice) { this.costPrice = costPrice; }
+
+    public int getIsHidden() { return isHidden; }
+    public void setIsHidden(int isHidden) { this.isHidden = isHidden; }
 }
