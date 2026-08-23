@@ -4554,9 +4554,13 @@ public class MainUI extends Application {
             "-fx-padding: 20;"
         );
         
-        Label customerTitle = new Label("Thông Tin Khách Hàng");
+        Label customerTitle = new Label("Thông Tin Khách Hàng & Hóa Đơn");
         customerTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #212121;");
         
+        String createdDateStr = invoice.getCreatedAt() != null && !invoice.getCreatedAt().trim().isEmpty() ? invoice.getCreatedAt() : "N/A";
+        Label lblCreatedDate = new Label("📅 Ngày tạo hóa đơn: " + createdDateStr);
+        lblCreatedDate.setStyle("-fx-font-size: 14px; -fx-text-fill: #1976D2; -fx-font-weight: 600;");
+
         Label lblCustomer = new Label("Tên: " + invoice.getCustomerName());
         lblCustomer.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
         
@@ -4569,7 +4573,7 @@ public class MainUI extends Application {
         Label lblVehicle = new Label("Loại xe: " + (invoice.getVehicleType() != null ? invoice.getVehicleType() : "N/A"));
         lblVehicle.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
         
-        customerSection.getChildren().addAll(customerTitle, lblCustomer, lblPhone, lblPlate, lblVehicle);
+        customerSection.getChildren().addAll(customerTitle, lblCreatedDate, lblCustomer, lblPhone, lblPlate, lblVehicle);
         
         // Invoice items section
         VBox itemsSection = new VBox(12);
