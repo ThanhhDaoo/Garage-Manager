@@ -352,9 +352,9 @@ public class MainUI extends Application {
     }
 
     private boolean matchesTimeFilters(String dateStr, String period, String month, String year) {
-        boolean hasPeriodFilter = period != null && !period.contains("Tất cả");
-        boolean hasYearFilter = year != null && !year.contains("Tất cả");
-        boolean hasMonthFilter = month != null && !month.contains("Tất cả");
+        boolean hasPeriodFilter = period != null && !period.trim().isEmpty() && !period.contains("Tất cả");
+        boolean hasYearFilter = year != null && !year.trim().isEmpty() && !year.contains("Tất cả");
+        boolean hasMonthFilter = month != null && !month.trim().isEmpty() && !month.contains("Tất cả");
 
         // Nếu không chọn lọc mốc thời gian nào thì trả về true cho tất cả hóa đơn
         if (!hasPeriodFilter && !hasYearFilter && !hasMonthFilter) {
@@ -363,37 +363,42 @@ public class MainUI extends Application {
 
         if (dateStr == null || dateStr.trim().isEmpty()) return false;
         try {
-            LocalDate date = LocalDate.parse(dateStr.substring(0, 10));
+            String cleanDateStr = dateStr.split("[ T]")[0];
+            if (cleanDateStr.length() < 10) return false;
+
+            LocalDate date = LocalDate.parse(cleanDateStr);
             LocalDate today = LocalDate.now();
             
             if (hasPeriodFilter) {
+                boolean periodMatch = false;
                 if (period.equals("Tuần này")) {
                     LocalDate startOfWeek = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
                     LocalDate endOfWeek = today.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY));
-                    return !date.isBefore(startOfWeek) && !date.isAfter(endOfWeek);
+                    periodMatch = !date.isBefore(startOfWeek) && !date.isAfter(endOfWeek);
                 } else if (period.equals("Tháng này")) {
-                    return date.getYear() == today.getYear() && date.getMonthValue() == today.getMonthValue();
+                    periodMatch = date.getYear() == today.getYear() && date.getMonthValue() == today.getMonthValue();
                 } else if (period.equals("Quý này")) {
                     int currentQuarter = (today.getMonthValue() - 1) / 3 + 1;
                     int dateQuarter = (date.getMonthValue() - 1) / 3 + 1;
-                    return date.getYear() == today.getYear() && dateQuarter == currentQuarter;
+                    periodMatch = date.getYear() == today.getYear() && dateQuarter == currentQuarter;
                 } else if (period.equals("Năm nay")) {
-                    return date.getYear() == today.getYear();
+                    periodMatch = date.getYear() == today.getYear();
                 }
+                if (!periodMatch) return false;
             }
             
             if (hasYearFilter) {
-                int targetYear = Integer.parseInt(year);
+                int targetYear = Integer.parseInt(year.trim());
                 if (date.getYear() != targetYear) return false;
             }
             if (hasMonthFilter) {
-                int targetMonth = Integer.parseInt(month.replace("Tháng ", ""));
+                int targetMonth = Integer.parseInt(month.replace("Tháng ", "").trim());
                 if (date.getMonthValue() != targetMonth) return false;
             }
             
             return true;
         } catch (Exception e) {
-            return true;
+            return false;
         }
     }
 
@@ -839,7 +844,15 @@ public class MainUI extends Application {
         // Filter by status
         if (status != null && !status.trim().isEmpty() && !status.contains("Tất cả")) {
             invoices = invoices.stream()
-                .filter(i -> status.equalsIgnoreCase(i.getStatus()))
+                .filter(i -> {
+                    String invStatus = i.getStatus();
+                    if ("Đã thanh toán".equalsIgnoreCase(status)) {
+                        return "paid".equalsIgnoreCase(invStatus) || "Đã thanh toán".equalsIgnoreCase(invStatus);
+                    } else if ("Chưa thanh toán".equalsIgnoreCase(status)) {
+                        return invStatus == null || "nhap".equalsIgnoreCase(invStatus) || "unpaid".equalsIgnoreCase(invStatus) || "Chưa thanh toán".equalsIgnoreCase(invStatus) || (!"paid".equalsIgnoreCase(invStatus) && !"Đã thanh toán".equalsIgnoreCase(invStatus));
+                    }
+                    return status.equalsIgnoreCase(invStatus);
+                })
                 .collect(java.util.stream.Collectors.toList());
         }
         
@@ -970,11 +983,12 @@ public class MainUI extends Application {
         lblTotal.setPadding(new Insets(12, 5, 12, 5));
         lblTotal.setAlignment(Pos.CENTER_RIGHT);
         
-        Label lblStatus = new Label(status.equals("nhap") ? "Chưa thanh toán" : "Đã thanh toán");
+        boolean isPaid = "paid".equalsIgnoreCase(status) || "Đã thanh toán".equalsIgnoreCase(status);
+        Label lblStatus = new Label(isPaid ? "Đã thanh toán" : "Chưa thanh toán");
         lblStatus.setStyle(
             "-fx-font-size: 12px;" +
-            "-fx-text-fill: " + (status.equals("nhap") ? "#f44336" : "#4CAF50") + ";" +
-            "-fx-background-color: " + (status.equals("nhap") ? "#FFEBEE" : "#E8F5E9") + ";" +
+            "-fx-text-fill: " + (isPaid ? "#4CAF50" : "#f44336") + ";" +
+            "-fx-background-color: " + (isPaid ? "#E8F5E9" : "#FFEBEE") + ";" +
             "-fx-padding: 4px 10px;" +
             "-fx-background-radius: 6;"
         );
@@ -2443,7 +2457,6 @@ public class MainUI extends Application {
         
         // Calculate stats
         double totalRevenue = allInvoices.stream()
-            .filter(inv -> inv.getStatus().equals("paid"))
             .mapToDouble(Invoice::getTotalAmount)
             .sum();
         
@@ -3059,7 +3072,7 @@ public class MainUI extends Application {
                 String periodStr = targetYearStr + "-" + monthKey;
                 
                 List<Invoice> monthInvoices = invoicesList.stream()
-                    .filter(inv -> inv.getStatus().equals("paid") && inv.getCreatedAt() != null && inv.getCreatedAt().startsWith(periodStr))
+                    .filter(inv -> inv.getCreatedAt() != null && inv.getCreatedAt().startsWith(periodStr))
                     .collect(java.util.stream.Collectors.toList());
                 
                 double mWash = 0, mCare = 0, mAcc = 0, mPaint = 0;

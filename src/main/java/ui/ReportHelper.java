@@ -36,7 +36,6 @@ public class ReportHelper {
         try {
             // Calculate stats
             double totalRevenue = filteredInvoices.stream()
-                    .filter(inv -> inv.getStatus().equals("paid"))
                     .mapToDouble(Invoice::getTotalAmount)
                     .sum();
 

@@ -115,64 +115,7 @@ public class ExpenseHelper {
         root.getChildren().addAll(topBar, tableContainer);
         contentArea.getChildren().add(root);
 
-        // Refresh action
-        Runnable refreshList = () -> {
-            tableRows.getChildren().clear();
-            FixedExpenseService service = new FixedExpenseService();
-            String monthStr = cbYear.getValue() + "-" + cbMonth.getValue();
-            List<FixedExpense> list = service.getAllExpensesByMonth(monthStr);
-            String query = searchField.getText().toLowerCase().trim();
-
-            double totalAmount = 0;
-            int stt = 1;
-            for (FixedExpense exp : list) {
-                if (query.isEmpty() || exp.getExpenseName().toLowerCase().contains(query)) {
-                    totalAmount += exp.getAmount();
-
-                    HBox row = new HBox(0);
-                    row.setAlignment(Pos.CENTER_LEFT);
-                    row.setPadding(new Insets(12, 10, 12, 10));
-                    row.setStyle("-fx-background-color: white; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
-
-                    Label rStt = createLabel(String.valueOf(stt++), 60, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
-                    Label rName = createLabel(exp.getExpenseName(), 250, Pos.CENTER_LEFT, "-fx-font-weight: 500; -fx-text-fill: #212121; -fx-font-size: 13px;");
-                    Label rCategory = createLabel(exp.getCategory() != null ? exp.getCategory() : "-", 140, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
-                    Label rAmount = createLabel(String.format("%,.0f đ", exp.getAmount()), 140, Pos.CENTER_LEFT, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
-                    Label rNotes = createLabel(exp.getNotes() != null && !exp.getNotes().isEmpty() ? exp.getNotes() : "-", 180, Pos.CENTER_LEFT, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
-
-                    HBox actions = new HBox(8);
-                    actions.setPrefWidth(100);
-                    actions.setMinWidth(100);
-                    actions.setMaxWidth(100);
-                    actions.setAlignment(Pos.CENTER);
-
-                    Button btnEdit = new Button("✏");
-                    btnEdit.setStyle("-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2; -fx-font-size: 13px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
-                    btnEdit.setOnAction(e -> {
-                        ExpenseForm form = new ExpenseForm(exp, () -> searchField.setText(searchField.getText())); // Triggers refresh
-                        form.show();
-                    });
-
-                    Button btnDelete = new Button("🗑");
-                    btnDelete.setStyle("-fx-background-color: #FFEBEE; -fx-text-fill: #D32F2F; -fx-font-size: 13px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
-                    btnDelete.setOnAction(e -> {
-                        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Bạn có chắc muốn xóa khoản chi phí \"" + exp.getExpenseName() + "\"?", ButtonType.YES, ButtonType.NO);
-                        confirm.setHeaderText(null);
-                        confirm.showAndWait().ifPresent(res -> {
-                            if (res == ButtonType.YES) {
-                                new FixedExpenseService().deleteExpense(exp.getId());
-                                searchField.setText(searchField.getText()); // Triggers refresh
-                            }
-                        });
-                    });
-
-                    actions.getChildren().addAll(btnEdit, btnDelete);
-                    row.getChildren().addAll(rStt, rName, rCategory, rAmount, rNotes, actions);
-                    tableRows.getChildren().add(row);
-                }
-            }
-            lblTotal.setText(String.format("%,.0f đ", totalAmount));
-        };
+        Runnable refreshList = () -> refreshExpenseList(tableRows, searchField, cbMonth, cbYear, lblTotal);
 
         // Wire event handlers
         searchField.textProperty().addListener((obs, oldVal, newVal) -> refreshList.run());
@@ -189,6 +132,66 @@ public class ExpenseHelper {
 
         // Initial load
         refreshList.run();
+    }
+
+    private static void refreshExpenseList(VBox tableRows, TextField searchField, ComboBox<String> cbMonth, ComboBox<String> cbYear, Label lblTotal) {
+        tableRows.getChildren().clear();
+        FixedExpenseService service = new FixedExpenseService();
+        String monthStr = cbYear.getValue() + "-" + cbMonth.getValue();
+        List<FixedExpense> list = service.getAllExpensesByMonth(monthStr);
+        String query = searchField.getText().toLowerCase().trim();
+
+        Runnable refreshSelf = () -> refreshExpenseList(tableRows, searchField, cbMonth, cbYear, lblTotal);
+
+        double totalAmount = 0;
+        int stt = 1;
+        for (FixedExpense exp : list) {
+            if (query.isEmpty() || exp.getExpenseName().toLowerCase().contains(query)) {
+                totalAmount += exp.getAmount();
+
+                HBox row = new HBox(0);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.setPadding(new Insets(12, 10, 12, 10));
+                row.setStyle("-fx-background-color: white; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
+
+                Label rStt = createLabel(String.valueOf(stt++), 60, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+                Label rName = createLabel(exp.getExpenseName(), 250, Pos.CENTER_LEFT, "-fx-font-weight: 500; -fx-text-fill: #212121; -fx-font-size: 13px;");
+                Label rCategory = createLabel(exp.getCategory() != null ? exp.getCategory() : "-", 140, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
+                Label rAmount = createLabel(String.format("%,.0f đ", exp.getAmount()), 140, Pos.CENTER_LEFT, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
+                Label rNotes = createLabel(exp.getNotes() != null && !exp.getNotes().isEmpty() ? exp.getNotes() : "-", 180, Pos.CENTER_LEFT, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+
+                HBox actions = new HBox(8);
+                actions.setPrefWidth(100);
+                actions.setMinWidth(100);
+                actions.setMaxWidth(100);
+                actions.setAlignment(Pos.CENTER);
+
+                Button btnEdit = new Button("✏");
+                btnEdit.setStyle("-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2; -fx-font-size: 13px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
+                btnEdit.setOnAction(e -> {
+                    ExpenseForm form = new ExpenseForm(exp, refreshSelf);
+                    form.show();
+                });
+
+                Button btnDelete = new Button("🗑");
+                btnDelete.setStyle("-fx-background-color: #FFEBEE; -fx-text-fill: #D32F2F; -fx-font-size: 13px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
+                btnDelete.setOnAction(e -> {
+                    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Bạn có chắc muốn xóa khoản chi phí \"" + exp.getExpenseName() + "\"?", ButtonType.YES, ButtonType.NO);
+                    confirm.setHeaderText(null);
+                    confirm.showAndWait().ifPresent(res -> {
+                        if (res == ButtonType.YES) {
+                            new FixedExpenseService().deleteExpense(exp.getId());
+                            refreshSelf.run();
+                        }
+                    });
+                });
+
+                actions.getChildren().addAll(btnEdit, btnDelete);
+                row.getChildren().addAll(rStt, rName, rCategory, rAmount, rNotes, actions);
+                tableRows.getChildren().add(row);
+            }
+        }
+        lblTotal.setText(String.format("%,.0f đ", totalAmount));
     }
 
     private static Label createLabel(String text, double width, Pos alignment, String style) {
