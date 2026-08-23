@@ -592,6 +592,14 @@ public class InventoryHelper {
                         ps.executeUpdate();
                     } catch (java.sql.SQLException ex) { ex.printStackTrace(); }
                 }
+                
+                // Đồng bộ cập nhật chi phí biến thiên tương ứng
+                String receiptCode = "NK-" + String.format("%04d", r.getId());
+                String newExpenseName = "Nhập kho: " + r.getProductName() + " (SL: " + new java.text.DecimalFormat("#.##").format(r.getQuantity()) + ")";
+                String newMonth = r.getReceiptDate().substring(0, 7); // format: YYYY-MM
+                String newNotes = "Mã phiếu nhập: NK-" + String.format("%04d", r.getId()) + ". Người lập: " + r.getOperator();
+                new dao.FixedExpenseDAO().updateExpenseByReceiptCode(receiptCode, newExpenseName, r.getTotalPrice(), newMonth, newNotes);
+
                 AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công",
                     "Đã cập nhật phiếu nhập kho!").showAndWait();
                 dialog.close();

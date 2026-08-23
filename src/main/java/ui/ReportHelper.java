@@ -282,6 +282,7 @@ public class ReportHelper {
             model.DailyReportRow row = new model.DailyReportRow(
                     stt++,
                     dateFormatted,
+                    inv.getCustomerName() != null ? inv.getCustomerName() : "",
                     inv.getLicensePlate() != null ? inv.getLicensePlate() : "",
                     servicesDesc,
                     revWash,
@@ -374,7 +375,7 @@ public class ReportHelper {
             org.apache.poi.xssf.usermodel.XSSFRow row1 = sheet.createRow(1);
 
             String[] r0Headers = {
-                    "STT", "Ngày/Tháng", "Tên xe", "Tên dịch vụ",
+                    "STT", "Ngày/Tháng", "Tên khách hàng", "Biển số xe", "Hạng mục dịch vụ",
                     "DOANH THU", "", "", "",
                     "TỔNG DT THỰC NHẬN", "VAT", "Phương thức thanh toán",
                     "CHI PHÍ", "", "", "",
@@ -383,7 +384,7 @@ public class ReportHelper {
             };
 
             String[] r1Headers = {
-                    "", "", "", "",
+                    "", "", "", "", "",
                     "Rửa xe", "Chăm sóc", "Phụ kiện", "Sơn",
                     "", "", "",
                     "Chi phí rửa xe", "Chi phí chăm sóc", "Chi phí phụ kiện", "Chi phí sơn",
@@ -398,10 +399,10 @@ public class ReportHelper {
                 org.apache.poi.xssf.usermodel.XSSFCell cell1 = row1.createCell(i);
                 cell1.setCellValue(r1Headers[i]);
 
-                if (i >= 4 && i <= 7) {
+                if (i >= 5 && i <= 8) {
                     cell0.setCellStyle(yellowHeaderStyle);
                     cell1.setCellStyle(yellowHeaderStyle);
-                } else if ((i >= 11 && i <= 14) || (i >= 15 && i <= 18)) {
+                } else if ((i >= 12 && i <= 15) || (i >= 16 && i <= 19)) {
                     cell0.setCellStyle(greenHeaderStyle);
                     cell1.setCellStyle(greenHeaderStyle);
                 } else {
@@ -414,44 +415,46 @@ public class ReportHelper {
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 1, 1));
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 2, 2));
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 3, 3));
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 4, 7));
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 8, 8));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 4, 4));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 5, 8));
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 9, 9));
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 10, 10));
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 11, 14));
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 15, 18));
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 19, 19));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 11, 11));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 12, 15));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 16, 19));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 1, 20, 20));
 
             int rowIndex = 2;
             for (model.DailyReportRow data : rows) {
                 org.apache.poi.xssf.usermodel.XSSFRow r = sheet.createRow(rowIndex++);
                 r.createCell(0).setCellValue(data.getStt());
                 r.createCell(1).setCellValue(data.getDate());
-                r.createCell(2).setCellValue(data.getLicensePlate());
-                r.createCell(3).setCellValue(data.getServices());
+                r.createCell(2).setCellValue(data.getCustomerName());
+                r.createCell(3).setCellValue(data.getLicensePlate());
+                r.createCell(4).setCellValue(data.getServices());
 
-                r.createCell(4).setCellValue(data.getRevenueWash());
-                r.createCell(5).setCellValue(data.getRevenueCare());
-                r.createCell(6).setCellValue(data.getRevenueAccessory());
-                r.createCell(7).setCellValue(data.getRevenuePaint());
-                r.createCell(8).setCellValue(data.getTotalRevenue());
-                r.createCell(9).setCellValue(data.getVat());
-                r.createCell(10).setCellValue(data.getPaymentMethod());
-                r.createCell(11).setCellValue(data.getCostWash());
-                r.createCell(12).setCellValue(data.getCostCare());
-                r.createCell(13).setCellValue(data.getCostAccessory());
-                r.createCell(14).setCellValue(data.getCostPaint());
-                r.createCell(15).setCellValue(data.getProfitWash());
-                r.createCell(16).setCellValue(data.getProfitCare());
-                r.createCell(17).setCellValue(data.getProfitAccessory());
-                r.createCell(18).setCellValue(data.getProfitPaint());
-                r.createCell(19).setCellValue(data.getNotes());
+                r.createCell(5).setCellValue(data.getRevenueWash());
+                r.createCell(6).setCellValue(data.getRevenueCare());
+                r.createCell(7).setCellValue(data.getRevenueAccessory());
+                r.createCell(8).setCellValue(data.getRevenuePaint());
+                r.createCell(9).setCellValue(data.getTotalRevenue());
+                r.createCell(10).setCellValue(data.getVat());
+                r.createCell(11).setCellValue(data.getPaymentMethod());
+                r.createCell(12).setCellValue(data.getCostWash());
+                r.createCell(13).setCellValue(data.getCostCare());
+                r.createCell(14).setCellValue(data.getCostAccessory());
+                r.createCell(15).setCellValue(data.getCostPaint());
+                r.createCell(16).setCellValue(data.getProfitWash());
+                r.createCell(17).setCellValue(data.getProfitCare());
+                r.createCell(18).setCellValue(data.getProfitAccessory());
+                r.createCell(19).setCellValue(data.getProfitPaint());
+                r.createCell(20).setCellValue(data.getNotes());
 
-                for (int col = 0; col <= 19; col++) {
+                for (int col = 0; col <= 20; col++) {
                     org.apache.poi.xssf.usermodel.XSSFCell c = r.getCell(col);
                     if (c == null)
                         c = r.createCell(col);
-                    if (col == 10 || col == 1 || col == 2 || col == 3 || col == 19) {
+                    if (col == 11 || col == 1 || col == 2 || col == 3 || col == 4 || col == 20) {
                         c.setCellStyle(borderStyle);
                     } else if (col == 0) {
                         c.setCellStyle(borderStyle);
@@ -587,7 +590,7 @@ public class ReportHelper {
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
                     .setMarginBottom(5));
 
-            float[] columnWidths = { 15f, 35f, 35f, 70f, 35f, 38f, 38f, 35f, 40f, 35f, 20f, 35f, 38f, 38f, 35f, 35f,
+            float[] columnWidths = { 15f, 35f, 45f, 35f, 70f, 35f, 38f, 38f, 35f, 40f, 35f, 20f, 35f, 38f, 38f, 35f, 35f,
                     38f, 38f, 35f, 50f };
             com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(columnWidths);
             table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
@@ -610,7 +613,14 @@ public class ReportHelper {
                     .setPadding(3));
 
             table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
-                    .add(new com.itextpdf.layout.element.Paragraph("Tên xe").setFont(boldFont).setFontSize(8))
+                    .add(new com.itextpdf.layout.element.Paragraph("Tên KH").setFont(boldFont).setFontSize(8))
+                    .setBackgroundColor(headerBg)
+                    .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                    .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
+                    .setPadding(3));
+
+            table.addHeaderCell(new com.itextpdf.layout.element.Cell(2, 1)
+                    .add(new com.itextpdf.layout.element.Paragraph("Biển số").setFont(boldFont).setFontSize(8))
                     .setBackgroundColor(headerBg)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
                     .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE)
@@ -708,6 +718,7 @@ public class ReportHelper {
             for (model.DailyReportRow row : rows) {
                 addBodyCell.accept(String.valueOf(row.getStt()), com.itextpdf.layout.properties.TextAlignment.CENTER);
                 addBodyCell.accept(row.getDate(), com.itextpdf.layout.properties.TextAlignment.CENTER);
+                addBodyCell.accept(row.getCustomerName(), com.itextpdf.layout.properties.TextAlignment.LEFT);
                 addBodyCell.accept(row.getLicensePlate(), com.itextpdf.layout.properties.TextAlignment.LEFT);
                 addBodyCell.accept(row.getServices(), com.itextpdf.layout.properties.TextAlignment.LEFT);
 

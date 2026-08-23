@@ -3,6 +3,7 @@ package model;
 public class DailyReportRow {
     private int stt;
     private String date;
+    private String customerName;
     private String licensePlate;
     private String services;
     private double revenueWash;
@@ -24,13 +25,14 @@ public class DailyReportRow {
 
     public DailyReportRow() {}
 
-    public DailyReportRow(int stt, String date, String licensePlate, String services, 
+    public DailyReportRow(int stt, String date, String customerName, String licensePlate, String services, 
                           double revenueWash, double revenueCare, double revenueAccessory, double revenuePaint,
                           double totalRevenue, double vat, String paymentMethod, 
                           double costWash, double costCare, double costAccessory, double costPaint,
                           double profitWash, double profitCare, double profitAccessory, double profitPaint, String notes) {
         this.stt = stt;
         this.date = date;
+        this.customerName = customerName;
         this.licensePlate = licensePlate;
         this.services = services;
         this.revenueWash = revenueWash;
@@ -51,11 +53,24 @@ public class DailyReportRow {
         this.notes = notes;
     }
 
+    public DailyReportRow(int stt, String date, String licensePlate, String services, 
+                          double revenueWash, double revenueCare, double revenueAccessory, double revenuePaint,
+                          double totalRevenue, double vat, String paymentMethod, 
+                          double costWash, double costCare, double costAccessory, double costPaint,
+                          double profitWash, double profitCare, double profitAccessory, double profitPaint, String notes) {
+        this(stt, date, "", licensePlate, services, revenueWash, revenueCare, revenueAccessory, revenuePaint,
+             totalRevenue, vat, paymentMethod, costWash, costCare, costAccessory, costPaint,
+             profitWash, profitCare, profitAccessory, profitPaint, notes);
+    }
+
     public int getStt() { return stt; }
     public void setStt(int stt) { this.stt = stt; }
 
     public String getDate() { return date; }
     public void setDate(String date) { this.date = date; }
+
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
 
     public String getLicensePlate() { return licensePlate; }
     public void setLicensePlate(String licensePlate) { this.licensePlate = licensePlate; }

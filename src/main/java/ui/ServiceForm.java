@@ -36,8 +36,13 @@ public class ServiceForm {
     private TextField txtPriceSuv;
     private TextField txtPriceMpv;
     private TextField txtPricePickup;
+    private TextField txtCostMini;
+    private TextField txtCostSedan;
+    private TextField txtCostCuv;
+    private TextField txtCostSuv;
+    private TextField txtCostMpv;
+    private TextField txtCostPickup;
     private ComboBox<String> cbCategory;
-    private TextField txtCostPrice;
     private ComboBox<ProductWrapper> cbLinkedProduct;
     private TextField txtLinkedQty;
     private TextField txtSearchLinkedProduct;
@@ -64,6 +69,9 @@ public class ServiceForm {
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle(isEdit ? "Sửa Dịch Vụ" : "Thêm Dịch Vụ Mới");
         
+        BorderPane root = new BorderPane();
+        root.setStyle("-fx-background-color: #f8f9fa;");
+
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: #f8f9fa; -fx-background-color: #f8f9fa;");
@@ -79,13 +87,22 @@ public class ServiceForm {
         // Form Section
         VBox formSection = createFormSection();
         
-        // Action Buttons
-        HBox actionButtons = createActionButtons();
-        
-        mainContent.getChildren().addAll(title, formSection, actionButtons);
+        mainContent.getChildren().addAll(title, formSection);
         scrollPane.setContent(mainContent);
         
-        Scene scene = new Scene(scrollPane, 750, 800);
+        // Action Buttons (Fixed at bottom)
+        HBox actionButtons = createActionButtons();
+        actionButtons.setPadding(new Insets(15, 30, 15, 30));
+        actionButtons.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1 0 0 0;"
+        );
+
+        root.setCenter(scrollPane);
+        root.setBottom(actionButtons);
+
+        Scene scene = new Scene(root, 750, 750);
         try {
             String css = getClass().getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);
@@ -168,27 +185,6 @@ public class ServiceForm {
         );
         cbCategory.setMaxWidth(Double.MAX_VALUE);
 
-        // Cost Price TextField
-        Label lblCostPrice = new Label("Chi phí vật tư / giá vốn mặc định (VNĐ) *");
-        lblCostPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
-        txtCostPrice = new TextField();
-        txtCostPrice.setPromptText("Nhập chi phí vật tư bỏ ra cho dịch vụ này...");
-        txtCostPrice.setStyle(
-            "-fx-background-color: #f5f5f5;" +
-            "-fx-padding: 12px 15px;" +
-            "-fx-background-radius: 8;" +
-            "-fx-border-color: transparent;" +
-            "-fx-font-size: 14px;"
-        );
-        txtCostPrice.setPrefWidth(400);
-        txtCostPrice.setMaxWidth(Double.MAX_VALUE);
-        if (isEdit && existingService != null) {
-            txtCostPrice.setText(String.format("%.0f", existingService.getCostPrice()));
-        } else {
-            txtCostPrice.setText("0");
-        }
-        UIUtils.setupIMEFix(txtCostPrice);
-        
         // Linked Product ComboBox
         Label lblLinkedProduct = new Label("Vật tư/Sản phẩm tiêu hao đi kèm");
         lblLinkedProduct.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
@@ -312,7 +308,7 @@ public class ServiceForm {
         lblLinkedQty.managedProperty().bind(txtLinkedQty.visibleProperty());
         
         // Price section header
-        Label lblPriceHeader = new Label("💰 Bảng Giá Theo Loại Xe (Tích chọn để nhập giá)");
+        Label lblPriceHeader = new Label("💰 Bảng Giá Theo Loại Xe (Tích chọn để nhập giá bán & chi phí vật tư)");
         lblPriceHeader.setStyle("-fx-font-size: 16px; -fx-text-fill: #1976D2; -fx-font-weight: 700; -fx-padding: 10 0 5 0;");
         
         // Price list container
@@ -320,14 +316,33 @@ public class ServiceForm {
         priceListContainer.setStyle("-fx-background-color: #FAFAFA; -fx-padding: 20; -fx-background-radius: 10; -fx-border-color: #E0E0E0; -fx-border-radius: 10;");
         priceListContainer.setMaxWidth(Double.MAX_VALUE);
         
-        // Price for Mini
+        // Table Header Row for Vehicle Pricing
+        HBox headerRow = new HBox(12);
+        headerRow.setAlignment(Pos.CENTER_LEFT);
+        headerRow.setStyle("-fx-padding: 0 0 10 0; -fx-border-color: #E0E0E0; -fx-border-width: 0 0 1 0;");
+
+        Label colVehicle = new Label("Loại Xe");
+        colVehicle.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #424242; -fx-min-width: 90;");
+
+        Label colPrice = new Label("Giá Bán Dịch Vụ (VNĐ)");
+        colPrice.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #1976D2;");
+        HBox.setHgrow(colPrice, Priority.ALWAYS);
+        colPrice.setMaxWidth(Double.MAX_VALUE);
+
+        Label colCost = new Label("Chi Phí Vật Tư / Giá Vốn (VNĐ)");
+        colCost.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #D84315;");
+        HBox.setHgrow(colCost, Priority.ALWAYS);
+        colCost.setMaxWidth(Double.MAX_VALUE);
+
+        headerRow.getChildren().addAll(colVehicle, colPrice, colCost);
+        priceListContainer.getChildren().add(headerRow);
+        
+        // Price & Cost for Mini
         chkMini = new CheckBox("Mini");
-        chkMini.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120;");
+        chkMini.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90;");
         txtPriceMini = new TextField();
-        txtPriceMini.setPromptText("Nhập giá (VD: 40000)");
-        txtPriceMini.setStyle("-fx-background-color: #E3F2FD; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;");
-        txtPriceMini.setPrefWidth(300);
-        txtPriceMini.setMaxWidth(Double.MAX_VALUE);
+        txtPriceMini.setPromptText("Giá bán (VD: 40000)");
+        txtPriceMini.setStyle("-fx-background-color: #E3F2FD; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
         txtPriceMini.visibleProperty().bind(chkMini.selectedProperty());
         txtPriceMini.managedProperty().bind(chkMini.selectedProperty());
         txtPriceMini.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -342,25 +357,45 @@ public class ServiceForm {
             }
         });
         UIUtils.setupIMEFix(txtPriceMini);
-        HBox miniBox = new HBox(15);
+
+        txtCostMini = new TextField();
+        txtCostMini.setPromptText("Chi phí vật tư (VD: 10000)");
+        txtCostMini.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
+        txtCostMini.visibleProperty().bind(chkMini.selectedProperty());
+        txtCostMini.managedProperty().bind(chkMini.selectedProperty());
+        txtCostMini.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostMini.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostMini.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostMini);
+
+        HBox miniBox = new HBox(12);
         miniBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(txtPriceMini, Priority.ALWAYS);
-        miniBox.getChildren().addAll(chkMini, txtPriceMini);
+        HBox.setHgrow(txtCostMini, Priority.ALWAYS);
+        miniBox.getChildren().addAll(chkMini, txtPriceMini, txtCostMini);
         if (isEdit && existingService != null && existingService.getPriceMini() > 0) {
             chkMini.setSelected(true);
             txtPriceMini.setText(String.format("%.0f", existingService.getPriceMini()));
+            txtCostMini.setText(String.format("%.0f", existingService.getCostPriceMini() > 0 ? existingService.getCostPriceMini() : existingService.getCostPrice()));
         } else {
             chkMini.setSelected(false);
+            txtCostMini.setText("0");
         }
         
-        // Price for Sedan
+        // Price & Cost for Sedan
         chkSedan = new CheckBox("Sedan");
-        chkSedan.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120;");
+        chkSedan.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90;");
         txtPriceSedan = new TextField();
-        txtPriceSedan.setPromptText("Nhập giá (VD: 50000)");
-        txtPriceSedan.setStyle("-fx-background-color: #E8F5E9; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;");
-        txtPriceSedan.setPrefWidth(300);
-        txtPriceSedan.setMaxWidth(Double.MAX_VALUE);
+        txtPriceSedan.setPromptText("Giá bán (VD: 50000)");
+        txtPriceSedan.setStyle("-fx-background-color: #E8F5E9; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
         txtPriceSedan.visibleProperty().bind(chkSedan.selectedProperty());
         txtPriceSedan.managedProperty().bind(chkSedan.selectedProperty());
         txtPriceSedan.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -375,25 +410,45 @@ public class ServiceForm {
             }
         });
         UIUtils.setupIMEFix(txtPriceSedan);
-        HBox sedanBox = new HBox(15);
+
+        txtCostSedan = new TextField();
+        txtCostSedan.setPromptText("Chi phí vật tư (VD: 15000)");
+        txtCostSedan.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
+        txtCostSedan.visibleProperty().bind(chkSedan.selectedProperty());
+        txtCostSedan.managedProperty().bind(chkSedan.selectedProperty());
+        txtCostSedan.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostSedan.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostSedan.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostSedan);
+
+        HBox sedanBox = new HBox(12);
         sedanBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(txtPriceSedan, Priority.ALWAYS);
-        sedanBox.getChildren().addAll(chkSedan, txtPriceSedan);
+        HBox.setHgrow(txtCostSedan, Priority.ALWAYS);
+        sedanBox.getChildren().addAll(chkSedan, txtPriceSedan, txtCostSedan);
         if (isEdit && existingService != null && existingService.getPriceSedan() > 0) {
             chkSedan.setSelected(true);
             txtPriceSedan.setText(String.format("%.0f", existingService.getPriceSedan()));
+            txtCostSedan.setText(String.format("%.0f", existingService.getCostPriceSedan() > 0 ? existingService.getCostPriceSedan() : existingService.getCostPrice()));
         } else {
             chkSedan.setSelected(false);
+            txtCostSedan.setText("0");
         }
         
-        // Price for CUV
+        // Price & Cost for CUV
         chkCuv = new CheckBox("CUV");
-        chkCuv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120;");
+        chkCuv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90;");
         txtPriceCuv = new TextField();
-        txtPriceCuv.setPromptText("Nhập giá (VD: 75000)");
-        txtPriceCuv.setStyle("-fx-background-color: #FFF3E0; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;");
-        txtPriceCuv.setPrefWidth(300);
-        txtPriceCuv.setMaxWidth(Double.MAX_VALUE);
+        txtPriceCuv.setPromptText("Giá bán (VD: 75000)");
+        txtPriceCuv.setStyle("-fx-background-color: #FFF3E0; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
         txtPriceCuv.visibleProperty().bind(chkCuv.selectedProperty());
         txtPriceCuv.managedProperty().bind(chkCuv.selectedProperty());
         txtPriceCuv.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -408,25 +463,45 @@ public class ServiceForm {
             }
         });
         UIUtils.setupIMEFix(txtPriceCuv);
-        HBox cuvBox = new HBox(15);
+
+        txtCostCuv = new TextField();
+        txtCostCuv.setPromptText("Chi phí vật tư (VD: 20000)");
+        txtCostCuv.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
+        txtCostCuv.visibleProperty().bind(chkCuv.selectedProperty());
+        txtCostCuv.managedProperty().bind(chkCuv.selectedProperty());
+        txtCostCuv.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostCuv.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostCuv.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostCuv);
+
+        HBox cuvBox = new HBox(12);
         cuvBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(txtPriceCuv, Priority.ALWAYS);
-        cuvBox.getChildren().addAll(chkCuv, txtPriceCuv);
+        HBox.setHgrow(txtCostCuv, Priority.ALWAYS);
+        cuvBox.getChildren().addAll(chkCuv, txtPriceCuv, txtCostCuv);
         if (isEdit && existingService != null && existingService.getPriceCuv() > 0) {
             chkCuv.setSelected(true);
             txtPriceCuv.setText(String.format("%.0f", existingService.getPriceCuv()));
+            txtCostCuv.setText(String.format("%.0f", existingService.getCostPriceCuv() > 0 ? existingService.getCostPriceCuv() : existingService.getCostPrice()));
         } else {
             chkCuv.setSelected(false);
+            txtCostCuv.setText("0");
         }
         
-        // Price for SUV
+        // Price & Cost for SUV
         chkSuv = new CheckBox("SUV");
-        chkSuv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120;");
+        chkSuv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90;");
         txtPriceSuv = new TextField();
-        txtPriceSuv.setPromptText("Nhập giá (VD: 100000)");
-        txtPriceSuv.setStyle("-fx-background-color: #FCE4EC; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;");
-        txtPriceSuv.setPrefWidth(300);
-        txtPriceSuv.setMaxWidth(Double.MAX_VALUE);
+        txtPriceSuv.setPromptText("Giá bán (VD: 100000)");
+        txtPriceSuv.setStyle("-fx-background-color: #FCE4EC; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
         txtPriceSuv.visibleProperty().bind(chkSuv.selectedProperty());
         txtPriceSuv.managedProperty().bind(chkSuv.selectedProperty());
         txtPriceSuv.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -441,25 +516,45 @@ public class ServiceForm {
             }
         });
         UIUtils.setupIMEFix(txtPriceSuv);
-        HBox suvBox = new HBox(15);
+
+        txtCostSuv = new TextField();
+        txtCostSuv.setPromptText("Chi phí vật tư (VD: 25000)");
+        txtCostSuv.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
+        txtCostSuv.visibleProperty().bind(chkSuv.selectedProperty());
+        txtCostSuv.managedProperty().bind(chkSuv.selectedProperty());
+        txtCostSuv.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostSuv.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostSuv.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostSuv);
+
+        HBox suvBox = new HBox(12);
         suvBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(txtPriceSuv, Priority.ALWAYS);
-        suvBox.getChildren().addAll(chkSuv, txtPriceSuv);
+        HBox.setHgrow(txtCostSuv, Priority.ALWAYS);
+        suvBox.getChildren().addAll(chkSuv, txtPriceSuv, txtCostSuv);
         if (isEdit && existingService != null && existingService.getPriceSuv() > 0) {
             chkSuv.setSelected(true);
             txtPriceSuv.setText(String.format("%.0f", existingService.getPriceSuv()));
+            txtCostSuv.setText(String.format("%.0f", existingService.getCostPriceSuv() > 0 ? existingService.getCostPriceSuv() : existingService.getCostPrice()));
         } else {
             chkSuv.setSelected(false);
+            txtCostSuv.setText("0");
         }
         
-        // Price for MPV
+        // Price & Cost for MPV
         chkMpv = new CheckBox("MPV");
-        chkMpv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120;");
+        chkMpv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90;");
         txtPriceMpv = new TextField();
-        txtPriceMpv.setPromptText("Nhập giá (VD: 105000)");
-        txtPriceMpv.setStyle("-fx-background-color: #E0F7FA; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;");
-        txtPriceMpv.setPrefWidth(300);
-        txtPriceMpv.setMaxWidth(Double.MAX_VALUE);
+        txtPriceMpv.setPromptText("Giá bán (VD: 105000)");
+        txtPriceMpv.setStyle("-fx-background-color: #E0F7FA; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
         txtPriceMpv.visibleProperty().bind(chkMpv.selectedProperty());
         txtPriceMpv.managedProperty().bind(chkMpv.selectedProperty());
         txtPriceMpv.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -474,25 +569,45 @@ public class ServiceForm {
             }
         });
         UIUtils.setupIMEFix(txtPriceMpv);
-        HBox mpvBox = new HBox(15);
+
+        txtCostMpv = new TextField();
+        txtCostMpv.setPromptText("Chi phí vật tư (VD: 28000)");
+        txtCostMpv.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
+        txtCostMpv.visibleProperty().bind(chkMpv.selectedProperty());
+        txtCostMpv.managedProperty().bind(chkMpv.selectedProperty());
+        txtCostMpv.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostMpv.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostMpv.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostMpv);
+
+        HBox mpvBox = new HBox(12);
         mpvBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(txtPriceMpv, Priority.ALWAYS);
-        mpvBox.getChildren().addAll(chkMpv, txtPriceMpv);
+        HBox.setHgrow(txtCostMpv, Priority.ALWAYS);
+        mpvBox.getChildren().addAll(chkMpv, txtPriceMpv, txtCostMpv);
         if (isEdit && existingService != null && existingService.getPriceMpv() > 0) {
             chkMpv.setSelected(true);
             txtPriceMpv.setText(String.format("%.0f", existingService.getPriceMpv()));
+            txtCostMpv.setText(String.format("%.0f", existingService.getCostPriceMpv() > 0 ? existingService.getCostPriceMpv() : existingService.getCostPrice()));
         } else {
             chkMpv.setSelected(false);
+            txtCostMpv.setText("0");
         }
         
-        // Price for Pickup
+        // Price & Cost for Pickup
         chkPickup = new CheckBox("Pickup");
-        chkPickup.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120;");
+        chkPickup.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90;");
         txtPricePickup = new TextField();
-        txtPricePickup.setPromptText("Nhập giá (VD: 110000)");
-        txtPricePickup.setStyle("-fx-background-color: #F3E5F5; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;");
-        txtPricePickup.setPrefWidth(300);
-        txtPricePickup.setMaxWidth(Double.MAX_VALUE);
+        txtPricePickup.setPromptText("Giá bán (VD: 110000)");
+        txtPricePickup.setStyle("-fx-background-color: #F3E5F5; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
         txtPricePickup.visibleProperty().bind(chkPickup.selectedProperty());
         txtPricePickup.managedProperty().bind(chkPickup.selectedProperty());
         txtPricePickup.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -507,15 +622,37 @@ public class ServiceForm {
             }
         });
         UIUtils.setupIMEFix(txtPricePickup);
-        HBox pickupBox = new HBox(15);
+
+        txtCostPickup = new TextField();
+        txtCostPickup.setPromptText("Chi phí vật tư (VD: 30000)");
+        txtCostPickup.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px;");
+        txtCostPickup.visibleProperty().bind(chkPickup.selectedProperty());
+        txtCostPickup.managedProperty().bind(chkPickup.selectedProperty());
+        txtCostPickup.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostPickup.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostPickup.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostPickup);
+
+        HBox pickupBox = new HBox(12);
         pickupBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(txtPricePickup, Priority.ALWAYS);
-        pickupBox.getChildren().addAll(chkPickup, txtPricePickup);
+        HBox.setHgrow(txtCostPickup, Priority.ALWAYS);
+        pickupBox.getChildren().addAll(chkPickup, txtPricePickup, txtCostPickup);
         if (isEdit && existingService != null && existingService.getPricePickup() > 0) {
             chkPickup.setSelected(true);
             txtPricePickup.setText(String.format("%.0f", existingService.getPricePickup()));
+            txtCostPickup.setText(String.format("%.0f", existingService.getCostPricePickup() > 0 ? existingService.getCostPricePickup() : existingService.getCostPrice()));
         } else {
             chkPickup.setSelected(false);
+            txtCostPickup.setText("0");
         }
         
         priceListContainer.getChildren().addAll(miniBox, sedanBox, cuvBox, suvBox, mpvBox, pickupBox);
@@ -545,8 +682,6 @@ public class ServiceForm {
         grid.add(txtDesc, 0, row++);
         grid.add(lblCategory, 0, row++);
         grid.add(cbCategory, 0, row++);
-        grid.add(lblCostPrice, 0, row++);
-        grid.add(txtCostPrice, 0, row++);
         grid.add(lblLinkedProduct, 0, row++);
         grid.add(linkedProductSearchBox, 0, row++);
         grid.add(lblLinkedQty, 0, row++);
@@ -600,6 +735,7 @@ public class ServiceForm {
             }
             
             double priceMini = 0;
+            double costMini = 0;
             if (chkMini.isSelected()) {
                 String val = txtPriceMini.getText().trim();
                 if (val.isEmpty()) {
@@ -612,9 +748,14 @@ public class ServiceForm {
                     showAlert("Lỗi", "Giá xe Mini phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String costVal = txtCostMini.getText().trim().replaceAll("[^\\d.]", "");
+                if (!costVal.isEmpty()) {
+                    try { costMini = Double.parseDouble(costVal); } catch (Exception ex) {}
+                }
             }
             
             double priceSedan = 0;
+            double costSedan = 0;
             if (chkSedan.isSelected()) {
                 String val = txtPriceSedan.getText().trim();
                 if (val.isEmpty()) {
@@ -627,9 +768,14 @@ public class ServiceForm {
                     showAlert("Lỗi", "Giá xe Sedan phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String costVal = txtCostSedan.getText().trim().replaceAll("[^\\d.]", "");
+                if (!costVal.isEmpty()) {
+                    try { costSedan = Double.parseDouble(costVal); } catch (Exception ex) {}
+                }
             }
             
             double priceCuv = 0;
+            double costCuv = 0;
             if (chkCuv.isSelected()) {
                 String val = txtPriceCuv.getText().trim();
                 if (val.isEmpty()) {
@@ -642,9 +788,14 @@ public class ServiceForm {
                     showAlert("Lỗi", "Giá xe CUV phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String costVal = txtCostCuv.getText().trim().replaceAll("[^\\d.]", "");
+                if (!costVal.isEmpty()) {
+                    try { costCuv = Double.parseDouble(costVal); } catch (Exception ex) {}
+                }
             }
             
             double priceSuv = 0;
+            double costSuv = 0;
             if (chkSuv.isSelected()) {
                 String val = txtPriceSuv.getText().trim();
                 if (val.isEmpty()) {
@@ -657,9 +808,14 @@ public class ServiceForm {
                     showAlert("Lỗi", "Giá xe SUV phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String costVal = txtCostSuv.getText().trim().replaceAll("[^\\d.]", "");
+                if (!costVal.isEmpty()) {
+                    try { costSuv = Double.parseDouble(costVal); } catch (Exception ex) {}
+                }
             }
             
             double priceMpv = 0;
+            double costMpv = 0;
             if (chkMpv.isSelected()) {
                 String val = txtPriceMpv.getText().trim();
                 if (val.isEmpty()) {
@@ -672,9 +828,14 @@ public class ServiceForm {
                     showAlert("Lỗi", "Giá xe MPV phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String costVal = txtCostMpv.getText().trim().replaceAll("[^\\d.]", "");
+                if (!costVal.isEmpty()) {
+                    try { costMpv = Double.parseDouble(costVal); } catch (Exception ex) {}
+                }
             }
             
             double pricePickup = 0;
+            double costPickup = 0;
             if (chkPickup.isSelected()) {
                 String val = txtPricePickup.getText().trim();
                 if (val.isEmpty()) {
@@ -687,16 +848,17 @@ public class ServiceForm {
                     showAlert("Lỗi", "Giá xe Pickup phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String costVal = txtCostPickup.getText().trim().replaceAll("[^\\d.]", "");
+                if (!costVal.isEmpty()) {
+                    try { costPickup = Double.parseDouble(costVal); } catch (Exception ex) {}
+                }
             }
             
             try {
                 String name = txtName.getText().trim();
                 String desc = txtDesc.getText().trim();
                 String category = cbCategory.getValue() != null ? cbCategory.getValue().trim() : "rửa xe";
-                double costPrice = 0;
-                try {
-                    costPrice = Double.parseDouble(txtCostPrice.getText().trim().replaceAll("[^\\d.]", ""));
-                } catch (Exception ex) {}
+                double defaultCostPrice = costSedan > 0 ? costSedan : (costMini > 0 ? costMini : (costCuv > 0 ? costCuv : (costSuv > 0 ? costSuv : (costMpv > 0 ? costMpv : costPickup))));
                 
                 Integer linkedProductId = null;
                 double linkedProductQty = 0.0;
@@ -716,9 +878,9 @@ public class ServiceForm {
                 boolean success;
                 
                 if (isEdit) {
-                    success = serviceService.updateService(serviceId, name, desc, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, linkedProductId, linkedProductQty);
+                    success = serviceService.updateService(serviceId, name, desc, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, costMini, costSedan, costCuv, costSuv, costMpv, costPickup, category, defaultCostPrice, linkedProductId, linkedProductQty);
                 } else {
-                    success = serviceService.addService(name, desc, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, category, costPrice, linkedProductId, linkedProductQty);
+                    success = serviceService.addService(name, desc, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, costMini, costSedan, costCuv, costSuv, costMpv, costPickup, category, defaultCostPrice, linkedProductId, linkedProductQty);
                 }
                 
                 if (success) {

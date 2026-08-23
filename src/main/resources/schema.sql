@@ -13,6 +13,12 @@ CREATE TABLE IF NOT EXISTS services (
     price_mpv REAL NOT NULL DEFAULT 0,
     category TEXT NOT NULL DEFAULT 'rửa xe',
     cost_price REAL NOT NULL DEFAULT 0,
+    cost_price_mini REAL NOT NULL DEFAULT 0,
+    cost_price_sedan REAL NOT NULL DEFAULT 0,
+    cost_price_cuv REAL NOT NULL DEFAULT 0,
+    cost_price_suv REAL NOT NULL DEFAULT 0,
+    cost_price_mpv REAL NOT NULL DEFAULT 0,
+    cost_price_pickup REAL NOT NULL DEFAULT 0,
     linked_product_id INTEGER
 );
 
@@ -31,7 +37,13 @@ CREATE TABLE IF NOT EXISTS packages (
     price_pickup REAL NOT NULL DEFAULT 0,
     price_mpv REAL NOT NULL DEFAULT 0,
     category TEXT NOT NULL DEFAULT 'chăm sóc',
-    cost_price REAL NOT NULL DEFAULT 0
+    cost_price REAL NOT NULL DEFAULT 0,
+    cost_price_mini REAL NOT NULL DEFAULT 0,
+    cost_price_sedan REAL NOT NULL DEFAULT 0,
+    cost_price_cuv REAL NOT NULL DEFAULT 0,
+    cost_price_suv REAL NOT NULL DEFAULT 0,
+    cost_price_mpv REAL NOT NULL DEFAULT 0,
+    cost_price_pickup REAL NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS products (

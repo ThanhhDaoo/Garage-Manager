@@ -23,6 +23,7 @@ import java.util.Map;
 public class CreateInvoiceForm {
 
     private Stage stage;
+    private ScrollPane mainScrollPane;
     private VBox selectedServicesBox;
     private VBox selectedPackagesBox;
     private VBox selectedProductsBox;
@@ -34,6 +35,7 @@ public class CreateInvoiceForm {
     private ToggleGroup carTypeGroup;
     private VBox servicesContainer;
     private VBox packagesContainer;
+    private VBox productsBoxRef;
     private VBox currentServiceContent;
     private TextField txtName;
     private TextField txtPhone;
@@ -42,6 +44,19 @@ public class CreateInvoiceForm {
     private TextField txtNotes;
     private ComboBox<String> cbPaymentMethod;
     private Runnable onInvoiceCreated;
+
+    private void preserveScrollPosition(Runnable action) {
+        if (mainScrollPane != null) {
+            double vval = mainScrollPane.getVvalue();
+            mainScrollPane.requestFocus();
+            if (action != null) {
+                action.run();
+            }
+            javafx.application.Platform.runLater(() -> mainScrollPane.setVvalue(vval));
+        } else if (action != null) {
+            action.run();
+        }
+    }
 
     // Track selected items for saving to database
     private List<Map<String, Object>> selectedServices = new ArrayList<>();
@@ -98,9 +113,12 @@ public class CreateInvoiceForm {
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle(existingInvoice != null ? "Sửa Hóa Đơn #" + String.format("%05d", existingInvoice.getId()) : "Tạo Hóa Đơn Mới");
 
-        ScrollPane scrollPane = new ScrollPane();
-        scrollPane.setFitToWidth(true);
-        scrollPane.setStyle("-fx-background: #f8f9fa; -fx-background-color: #f8f9fa;");
+        BorderPane root = new BorderPane();
+        root.setStyle("-fx-background-color: #f8f9fa;");
+
+        mainScrollPane = new ScrollPane();
+        mainScrollPane.setFitToWidth(true);
+        mainScrollPane.setStyle("-fx-background: #f8f9fa; -fx-background-color: #f8f9fa;");
 
         VBox mainContent = new VBox(25);
         mainContent.setPadding(new Insets(30));
@@ -122,20 +140,28 @@ public class CreateInvoiceForm {
         // Summary Section
         VBox summarySection = createSummarySection();
 
-        // Action Buttons
-        HBox actionButtons = createActionButtons();
-
         mainContent.getChildren().addAll(
                 title,
                 customerSection,
                 servicesSection,
                 productsSection,
-                summarySection,
-                actionButtons);
+                summarySection);
 
-        scrollPane.setContent(mainContent);
+        mainScrollPane.setContent(mainContent);
 
-        Scene scene = new Scene(scrollPane, 1000, 700);
+        // Action Buttons (Fixed at bottom)
+        HBox actionButtons = createActionButtons();
+        actionButtons.setPadding(new Insets(15, 30, 15, 30));
+        actionButtons.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1 0 0 0;"
+        );
+
+        root.setCenter(mainScrollPane);
+        root.setBottom(actionButtons);
+
+        Scene scene = new Scene(root, 1050, 800);
         try {
             String css = getClass().getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);
@@ -331,14 +357,6 @@ public class CreateInvoiceForm {
                         "-fx-border-color: transparent;" +
                         "-fx-font-size: 14px;");
         txtPlate.setPrefWidth(300);
-        txtPlate.focusedProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue) { // Lost focus
-                String text = txtPlate.getText();
-                if (text != null && !text.equals(text.toUpperCase())) {
-                    txtPlate.setText(text.toUpperCase());
-                }
-            }
-        });
         UIUtils.setupIMEFix(txtPlate);
 
         // Address field - Create completely independent TextField
@@ -460,6 +478,56 @@ public class CreateInvoiceForm {
         grid.add(txtNotes, 1, 5);
         grid.add(lblPaymentMethod, 0, 6);
         grid.add(cbPaymentMethod, 1, 6);
+
+        // Hàm tự động điền thông tin khách hàng từ hóa đơn cũ dựa trên biển số xe
+        Runnable autoFillCustomer = () -> {
+            String plate = txtPlate.getText().trim();
+            if (plate.length() >= 3) {
+                try {
+                    model.Invoice lastInv = new dao.InvoiceDAO().getLatestInvoiceByLicensePlate(plate);
+                    if (lastInv != null) {
+                        if (txtName.getText().trim().isEmpty() && lastInv.getCustomerName() != null) {
+                            txtName.setText(lastInv.getCustomerName());
+                        }
+                        if (txtPhone.getText().trim().isEmpty() && lastInv.getPhone() != null) {
+                            txtPhone.setText(lastInv.getPhone());
+                        }
+                        if (txtAddress.getText().trim().isEmpty() && lastInv.getAddress() != null) {
+                            txtAddress.setText(lastInv.getAddress());
+                        }
+                        
+                        String vt = lastInv.getVehicleType();
+                        if (vt != null) {
+                            vt = vt.trim().toLowerCase();
+                            if (vt.contains("mini")) rbMini.setSelected(true);
+                            else if (vt.contains("sedan")) rbSedan.setSelected(true);
+                            else if (vt.contains("cuv")) rbCUV.setSelected(true);
+                            else if (vt.contains("suv")) rbSUV.setSelected(true);
+                            else if (vt.contains("mpv")) rbMPV.setSelected(true);
+                            else if (vt.contains("pickup")) rbPickup.setSelected(true);
+                        }
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        };
+
+        // Kích hoạt ngay lập tức khi người dùng nhập từ bàn phím
+        txtPlate.textProperty().addListener((obs, oldVal, newVal) -> {
+            autoFillCustomer.run();
+        });
+
+        // Kích hoạt khi mất focus (bấm Tab hoặc click chuột sang ô khác)
+        txtPlate.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) { // Khi mất focus
+                String plate = txtPlate.getText().trim();
+                if (!plate.isEmpty()) {
+                    txtPlate.setText(plate.toUpperCase());
+                }
+                autoFillCustomer.run();
+            }
+        });
 
         section.getChildren().addAll(sectionTitle, grid);
         return section;
@@ -650,6 +718,7 @@ public class CreateInvoiceForm {
 
         // Available products - Load from database
         VBox productsBox = new VBox(10);
+        productsBoxRef = productsBox;
         loadProductsFromDatabase(productsBox);
 
         txtSearchProduct.textProperty().addListener((obs, oldVal, newVal) -> {
@@ -709,10 +778,14 @@ public class CreateInvoiceForm {
                         "-fx-background-radius: 6;" +
                         "-fx-cursor: hand;");
 
-        btnAdd.setOnAction(e -> {
+        btnAdd.setOnAction(e -> preserveScrollPosition(() -> {
             String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
             addSelectedService(id, name, currentPrice);
-        });
+        }));
+
+        item.getProperties().put("id", id);
+        item.getProperties().put("name", name);
+        item.getProperties().put("btnAdd", btnAdd);
 
         item.getChildren().addAll(info, spacer, btnAdd);
         return item;
@@ -864,10 +937,14 @@ public class CreateInvoiceForm {
                         "-fx-background-radius: 6;" +
                         "-fx-cursor: hand;");
 
-        btnAdd.setOnAction(e -> {
+        btnAdd.setOnAction(e -> preserveScrollPosition(() -> {
             String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
             addSelectedPackage(id, name, currentPrice);
-        });
+        }));
+
+        item.getProperties().put("id", id);
+        item.getProperties().put("name", name);
+        item.getProperties().put("btnAdd", btnAdd);
 
         item.getChildren().addAll(info, spacer, btnAdd);
         return item;
@@ -933,7 +1010,7 @@ public class CreateInvoiceForm {
             txtProductQty.setDisable(true);
         }
 
-        btnAdd.setOnAction(e -> {
+        btnAdd.setOnAction(e -> preserveScrollPosition(() -> {
             double qty = 1.0;
             try {
                 qty = Double.parseDouble(txtProductQty.getText().trim());
@@ -954,7 +1031,12 @@ public class CreateInvoiceForm {
                 return;
             }
             addSelectedProduct(product.getId(), name, price, qty);
-        });
+        }));
+
+        item.getProperties().put("id", product.getId());
+        item.getProperties().put("name", name);
+        item.getProperties().put("maxStock", maxStock);
+        item.getProperties().put("btnAdd", btnAdd);
 
         item.getChildren().addAll(info, spacer, txtProductQty, btnAdd);
         return item;
@@ -1035,11 +1117,11 @@ public class CreateInvoiceForm {
                             Button btnDelP = new Button("✕");
                             btnDelP.setStyle(
                                     "-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-cursor: hand; -fx-font-size: 11px;");
-                            btnDelP.setOnAction(delEvt -> {
+                            btnDelP.setOnAction(delEvt -> preserveScrollPosition(() -> {
                                 linkedList.getChildren().remove(pRow);
                                 linked.remove(prodMap);
                                 recalculateTotal();
-                            });
+                            }));
 
                             pRow.getChildren().addAll(lblPInfo, chkHide, btnDelP);
                             linkedList.getChildren().add(pRow);
@@ -1112,11 +1194,11 @@ public class CreateInvoiceForm {
                             Button btnDelP = new Button("✕");
                             btnDelP.setStyle(
                                     "-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-cursor: hand; -fx-font-size: 11px;");
-                            btnDelP.setOnAction(delEvt -> {
+                            btnDelP.setOnAction(delEvt -> preserveScrollPosition(() -> {
                                 linkedList.getChildren().remove(pRow);
                                 linked.remove(prodMap);
                                 recalculateTotal();
-                            });
+                            }));
 
                             pRow.getChildren().addAll(lblPInfo, chkHide, btnDelP);
                             linkedList.getChildren().add(pRow);
@@ -1197,7 +1279,7 @@ public class CreateInvoiceForm {
                         "-fx-text-fill: #d32f2f;" +
                         "-fx-cursor: hand;" +
                         "-fx-font-size: 14px;");
-        btnDelete.setOnAction(e -> {
+        btnDelete.setOnAction(e -> preserveScrollPosition(() -> {
             selectedServicesBox.getChildren().remove(container);
             selectedServices.remove(serviceMap);
             if (selectedServicesBox.getChildren().isEmpty()) {
@@ -1206,7 +1288,7 @@ public class CreateInvoiceForm {
                 selectedServicesBox.getChildren().add(emptyLabel);
             }
             recalculateTotal();
-        });
+        }));
 
         topRow.getChildren().addAll(lblName, spacer, discLabel, itemDiscountCombo, customDiscLabel, txtCustomDiscount,
                 btnDelete);
@@ -1416,11 +1498,11 @@ public class CreateInvoiceForm {
             Button btnDelP = new Button("✕");
             btnDelP.setStyle(
                     "-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-cursor: hand; -fx-font-size: 11px;");
-            btnDelP.setOnAction(delEvt -> {
+            btnDelP.setOnAction(delEvt -> preserveScrollPosition(() -> {
                 linkedList.getChildren().remove(pRow);
                 linked.remove(prodMap);
                 recalculateTotal();
-            });
+            }));
 
             pRow.getChildren().addAll(lblPInfo, chkHide, btnDelP);
             linkedList.getChildren().add(pRow);
@@ -1506,7 +1588,7 @@ public class CreateInvoiceForm {
                         "-fx-text-fill: #d32f2f;" +
                         "-fx-cursor: hand;" +
                         "-fx-font-size: 14px;");
-        btnDelete.setOnAction(e -> {
+        btnDelete.setOnAction(e -> preserveScrollPosition(() -> {
             selectedPackagesBox.getChildren().remove(container);
             selectedPackages.remove(packageMap);
             if (selectedPackagesBox.getChildren().isEmpty()) {
@@ -1515,7 +1597,7 @@ public class CreateInvoiceForm {
                 selectedPackagesBox.getChildren().add(emptyLabel);
             }
             recalculateTotal();
-        });
+        }));
 
         topRow.getChildren().addAll(lblName, spacer, discLabel, itemDiscountCombo, customDiscLabel, txtCustomDiscount,
                 btnDelete);
@@ -1725,11 +1807,11 @@ public class CreateInvoiceForm {
             Button btnDelP = new Button("✕");
             btnDelP.setStyle(
                     "-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-cursor: hand; -fx-font-size: 11px;");
-            btnDelP.setOnAction(delEvt -> {
+            btnDelP.setOnAction(delEvt -> preserveScrollPosition(() -> {
                 linkedList.getChildren().remove(pRow);
                 linked.remove(prodMap);
                 recalculateTotal();
-            });
+            }));
 
             pRow.getChildren().addAll(lblPInfo, chkHide, btnDelP);
             linkedList.getChildren().add(pRow);
@@ -1937,7 +2019,7 @@ public class CreateInvoiceForm {
                         "-fx-background-radius: 4;" +
                         "-fx-cursor: hand;");
 
-        btnRemove.setOnAction(e -> {
+        btnRemove.setOnAction(e -> preserveScrollPosition(() -> {
             VBox parent = (VBox) container.getParent();
             parent.getChildren().remove(container);
 
@@ -1957,7 +2039,7 @@ public class CreateInvoiceForm {
             }
 
             recalculateTotal();
-        });
+        }));
 
         topRow.getChildren().addAll(lblName, spacer, discLabel, itemDiscountCombo, customDiscLabel, txtCustomDiscount,
                 chkHide, btnRemove);
@@ -2234,7 +2316,7 @@ public class CreateInvoiceForm {
                             if (svcObj != null) {
                                 if (svcObj.getCategory() != null)
                                     category = svcObj.getCategory();
-                                costPrice = svcObj.getCostPrice();
+                                costPrice = svcObj.getCostPriceByVehicleType(vehicleType);
                             }
                         } catch (Exception ex) {
                         }
@@ -2269,7 +2351,7 @@ public class CreateInvoiceForm {
                                 if (prodObj != null) {
                                     if (prodObj.getCategory() != null)
                                         pCategory = prodObj.getCategory();
-                                    pCostPrice = prodObj.getCostPrice();
+                                    pCostPrice = costPrice > 0 ? 0.0 : prodObj.getCostPrice();
                                     
                                     // Gộp đơn vị bán vào tên sản phẩm để hiển thị
                                     if (prodObj.getUnit() != null && !prodObj.getUnit().trim().isEmpty()) {
@@ -2314,7 +2396,7 @@ public class CreateInvoiceForm {
                             if (pkgObj != null) {
                                 if (pkgObj.getCategory() != null)
                                     category = pkgObj.getCategory();
-                                costPrice = pkgObj.getCostPrice();
+                                costPrice = pkgObj.getCostPriceByVehicleType(vehicleType);
                             }
                         } catch (Exception ex) {
                         }
@@ -2349,7 +2431,7 @@ public class CreateInvoiceForm {
                                 if (prodObj != null) {
                                     if (prodObj.getCategory() != null)
                                         pCategory = prodObj.getCategory();
-                                    pCostPrice = prodObj.getCostPrice();
+                                    pCostPrice = costPrice > 0 ? 0.0 : prodObj.getCostPrice();
                                     
                                     // Gộp đơn vị bán vào tên sản phẩm để hiển thị
                                     if (prodObj.getUnit() != null && !prodObj.getUnit().trim().isEmpty()) {
@@ -2670,13 +2752,137 @@ public class CreateInvoiceForm {
             vatLabel.setText(formatPrice(grandVat));
         if (totalLabel != null)
             totalLabel.setText(formatPrice(grandTotal));
+
+        updateSelectorButtonsState();
+    }
+
+    private boolean isServiceSelected(int id, String name) {
+        for (Map<String, Object> s : selectedServices) {
+            Object sId = s.get("id");
+            if (sId != null && (Integer) sId == id && id > 0) return true;
+            Object sName = s.get("name");
+            if (sName != null && name != null && sName.toString().equalsIgnoreCase(name)) return true;
+        }
+        return false;
+    }
+
+    private boolean isPackageSelected(int id, String name) {
+        for (Map<String, Object> p : selectedPackages) {
+            Object pId = p.get("id");
+            if (pId != null && (Integer) pId == id && id > 0) return true;
+            Object pName = p.get("name");
+            if (pName != null && name != null && pName.toString().equalsIgnoreCase(name)) return true;
+        }
+        return false;
+    }
+
+    private boolean isProductSelected(int id, String name) {
+        for (Map<String, Object> p : selectedProducts) {
+            Object pId = p.get("id");
+            if (pId != null && (Integer) pId == id && id > 0) return true;
+            Object pName = p.get("name");
+            if (pName != null && name != null && pName.toString().equalsIgnoreCase(name)) return true;
+        }
+        return false;
+    }
+
+    private void updateSelectorButtonsState() {
+        // Services
+        if (servicesContainer != null) {
+            for (var node : servicesContainer.getChildren()) {
+                if (node instanceof ScrollPane) {
+                    ScrollPane sp = (ScrollPane) node;
+                    if (sp.getContent() instanceof VBox) {
+                        VBox servicesList = (VBox) sp.getContent();
+                        for (var serviceNode : servicesList.getChildren()) {
+                            if (serviceNode instanceof HBox) {
+                                HBox item = (HBox) serviceNode;
+                                Integer id = (Integer) item.getProperties().get("id");
+                                String name = (String) item.getProperties().get("name");
+                                Button btnAdd = (Button) item.getProperties().get("btnAdd");
+                                if (btnAdd != null && !btnAdd.isDisable()) {
+                                    boolean isSelected = isServiceSelected(id != null ? id : 0, name);
+                                    if (isSelected) {
+                                        btnAdd.setText("✓ Đã thêm");
+                                        btnAdd.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #616161; -fx-font-size: 13px; -fx-font-weight: 600; -fx-padding: 8px 16px; -fx-background-radius: 6; -fx-cursor: hand;");
+                                    } else {
+                                        btnAdd.setText("+ Thêm");
+                                        btnAdd.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: 600; -fx-padding: 8px 16px; -fx-background-radius: 6; -fx-cursor: hand;");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Packages
+        if (packagesContainer != null) {
+            for (var node : packagesContainer.getChildren()) {
+                if (node instanceof ScrollPane) {
+                    ScrollPane sp = (ScrollPane) node;
+                    if (sp.getContent() instanceof VBox) {
+                        VBox packagesList = (VBox) sp.getContent();
+                        for (var packageNode : packagesList.getChildren()) {
+                            if (packageNode instanceof HBox) {
+                                HBox item = (HBox) packageNode;
+                                Integer id = (Integer) item.getProperties().get("id");
+                                String name = (String) item.getProperties().get("name");
+                                Button btnAdd = (Button) item.getProperties().get("btnAdd");
+                                if (btnAdd != null && !btnAdd.isDisable()) {
+                                    boolean isSelected = isPackageSelected(id != null ? id : 0, name);
+                                    if (isSelected) {
+                                        btnAdd.setText("✓ Đã thêm");
+                                        btnAdd.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #616161; -fx-font-size: 13px; -fx-font-weight: 600; -fx-padding: 8px 16px; -fx-background-radius: 6; -fx-cursor: hand;");
+                                    } else {
+                                        btnAdd.setText("+ Thêm");
+                                        btnAdd.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: 600; -fx-padding: 8px 16px; -fx-background-radius: 6; -fx-cursor: hand;");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Products
+        if (productsBoxRef != null) {
+            for (var node : productsBoxRef.getChildren()) {
+                if (node instanceof ScrollPane) {
+                    ScrollPane sp = (ScrollPane) node;
+                    if (sp.getContent() instanceof VBox) {
+                        VBox productsList = (VBox) sp.getContent();
+                        for (var productNode : productsList.getChildren()) {
+                            if (productNode instanceof HBox) {
+                                HBox item = (HBox) productNode;
+                                Integer id = (Integer) item.getProperties().get("id");
+                                String name = (String) item.getProperties().get("name");
+                                Button btnAdd = (Button) item.getProperties().get("btnAdd");
+                                Double maxStock = (Double) item.getProperties().get("maxStock");
+                                if (btnAdd != null && (maxStock == null || maxStock > 0)) {
+                                    boolean isSelected = isProductSelected(id != null ? id : 0, name);
+                                    if (isSelected) {
+                                        btnAdd.setText("✓ Đã thêm");
+                                        btnAdd.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #616161; -fx-font-size: 13px; -fx-font-weight: 600; -fx-padding: 8px 16px; -fx-background-radius: 6; -fx-cursor: hand;");
+                                    } else {
+                                        btnAdd.setText("+ Thêm");
+                                        btnAdd.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: 600; -fx-padding: 8px 16px; -fx-background-radius: 6; -fx-cursor: hand;");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
     private double[] calcItemTotals(Map<String, Object> item, double basePrice, double discAmount) {
-        double afterDisc = basePrice - discAmount;
-        double vat = isTransferPayment() ? afterDisc * 0.08 : 0.0;
-        double itemTotal = afterDisc + vat;
+        double vat = isTransferPayment() ? basePrice * 0.08 : 0.0;
+        double itemTotal = basePrice + vat - discAmount;
 
         // Update per-item labels
         javafx.scene.Node node = (javafx.scene.Node) item.get("hbox");

@@ -60,6 +60,9 @@ public class ProductForm {
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle(isEdit ? "Sửa Sản Phẩm" : "Thêm Sản Phẩm Mới");
         
+        BorderPane root = new BorderPane();
+        root.setStyle("-fx-background-color: #f8f9fa;");
+
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: #f8f9fa; -fx-background-color: #f8f9fa;");
@@ -75,13 +78,22 @@ public class ProductForm {
         // Form Section
         VBox formSection = createFormSection();
         
-        // Action Buttons
-        HBox actionButtons = createActionButtons();
-        
-        mainContent.getChildren().addAll(title, formSection, actionButtons);
+        mainContent.getChildren().addAll(title, formSection);
         scrollPane.setContent(mainContent);
         
-        Scene scene = new Scene(scrollPane, 700, 800);
+        // Action Buttons (Fixed at bottom)
+        HBox actionButtons = createActionButtons();
+        actionButtons.setPadding(new Insets(15, 30, 15, 30));
+        actionButtons.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1 0 0 0;"
+        );
+
+        root.setCenter(scrollPane);
+        root.setBottom(actionButtons);
+
+        Scene scene = new Scene(root, 700, 750);
         try {
             String css = getClass().getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);

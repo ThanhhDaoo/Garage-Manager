@@ -138,10 +138,67 @@ public class InvoiceDAO {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
+            boolean deleted = pstmt.executeUpdate() > 0;
+            if (deleted) {
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM invoices")) {
+                    if (rs.next() && rs.getInt(1) == 0) {
+                        stmt.executeUpdate("DELETE FROM sqlite_sequence WHERE name = 'invoices'");
+                    }
+                } catch (SQLException ignored) {}
+            }
+            return deleted;
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public Invoice getLatestInvoiceByLicensePlate(String licensePlate) {
+        if (licensePlate == null || licensePlate.trim().isEmpty()) return null;
+        String rawPlate = licensePlate.trim().toUpperCase();
+        String cleanPlate = rawPlate.replaceAll("[^A-Za-z0-9]", "").toLowerCase();
+
+        String sql = "SELECT * FROM invoices ORDER BY id DESC";
+        try (Connection conn = DatabaseManager.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                String dbPlate = rs.getString("license_plate");
+                if (dbPlate != null) {
+                    dbPlate = dbPlate.trim();
+                    // 1. So sánh chính xác
+                    if (dbPlate.equalsIgnoreCase(rawPlate)) {
+                        return mapResultSetToInvoice(rs);
+                    }
+                    // 2. So sánh thông minh không dấu gạch
+                    String dbClean = dbPlate.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+                    if (!cleanPlate.isEmpty() && dbClean.equals(cleanPlate)) {
+                        return mapResultSetToInvoice(rs);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private Invoice mapResultSetToInvoice(ResultSet rs) throws SQLException {
+        return new Invoice(
+            rs.getInt("id"),
+            rs.getString("customer_name"),
+            rs.getString("phone"),
+            rs.getString("license_plate"),
+            rs.getString("vehicle_type"),
+            rs.getString("address"),
+            rs.getDouble("total_before_discount"),
+            rs.getDouble("discount"),
+            rs.getDouble("total_amount"),
+            rs.getString("notes"),
+            rs.getString("status"),
+            rs.getString("created_at"),
+            rs.getString("payment_method")
+        );
     }
 }

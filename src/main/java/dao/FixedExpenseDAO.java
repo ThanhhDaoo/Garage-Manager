@@ -98,7 +98,37 @@ public class FixedExpenseDAO {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
+            boolean deleted = pstmt.executeUpdate() > 0;
+            if (deleted) {
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM fixed_expenses")) {
+                    if (rs.next() && rs.getInt(1) == 0) {
+                        stmt.executeUpdate("DELETE FROM sqlite_sequence WHERE name = 'fixed_expenses'");
+                    }
+                } catch (SQLException ignored) {}
+            }
+            return deleted;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean deleteExpenseByReceiptCode(String receiptCode) {
+        String sql = "DELETE FROM fixed_expenses WHERE notes LIKE ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, "%" + receiptCode + "%");
+            boolean deleted = pstmt.executeUpdate() > 0;
+            if (deleted) {
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM fixed_expenses")) {
+                    if (rs.next() && rs.getInt(1) == 0) {
+                        stmt.executeUpdate("DELETE FROM sqlite_sequence WHERE name = 'fixed_expenses'");
+                    }
+                } catch (SQLException ignored) {}
+            }
+            return deleted;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -106,14 +136,18 @@ public class FixedExpenseDAO {
     }
 
     /**
-     * Xóa chi phí biến thiên được tạo tự động khi nhập kho.
-     * Tìm theo chuỗi "Mã phiếu nhập: NK-XXXX" trong trường notes.
+     * Cập nhật chi phí biến thiên tương ứng khi sửa phiếu nhập kho.
+     * Tìm theo chuỗi "NK-XXXX" trong trường notes.
      */
-    public boolean deleteExpenseByReceiptCode(String receiptCode) {
-        String sql = "DELETE FROM fixed_expenses WHERE notes LIKE ?";
+    public boolean updateExpenseByReceiptCode(String receiptCode, String newExpenseName, double newAmount, String newMonth, String newNotes) {
+        String sql = "UPDATE fixed_expenses SET expense_name = ?, amount = ?, expense_month = ?, notes = ? WHERE notes LIKE ?";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "%" + receiptCode + "%");
+            pstmt.setString(1, newExpenseName);
+            pstmt.setDouble(2, newAmount);
+            pstmt.setString(3, newMonth);
+            pstmt.setString(4, newNotes);
+            pstmt.setString(5, "%" + receiptCode + "%");
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();

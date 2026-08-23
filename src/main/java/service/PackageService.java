@@ -17,19 +17,41 @@ public class PackageService {
     
     public boolean addPackage(String name, String description, double priceMini, double priceSedan,
                              double priceCuv, double priceSuv, double priceMpv, double pricePickup, double savings, String status, String category, double costPrice) {
+        return addPackage(name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup,
+                          costPrice, costPrice, costPrice, costPrice, costPrice, costPrice,
+                          savings, status, category, costPrice);
+    }
+
+    public boolean addPackage(String name, String description, double priceMini, double priceSedan,
+                             double priceCuv, double priceSuv, double priceMpv, double pricePickup,
+                             double costPriceMini, double costPriceSedan, double costPriceCuv, double costPriceSuv, double costPriceMpv, double costPricePickup,
+                             double savings, String status, String category, double costPrice) {
         if (name == null || name.trim().isEmpty()) {
             return false;
         }
-        Package pkg = new Package(0, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, savings, status, category, costPrice);
+        Package pkg = new Package(0, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup,
+                                  costPriceMini, costPriceSedan, costPriceCuv, costPriceSuv, costPriceMpv, costPricePickup,
+                                  savings, status, category, costPrice);
         return packageDAO.addPackage(pkg);
     }
     
     public boolean updatePackage(int id, String name, String description, double priceMini, double priceSedan,
                                 double priceCuv, double priceSuv, double priceMpv, double pricePickup, double savings, String status, String category, double costPrice) {
+        return updatePackage(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup,
+                             costPrice, costPrice, costPrice, costPrice, costPrice, costPrice,
+                             savings, status, category, costPrice);
+    }
+
+    public boolean updatePackage(int id, String name, String description, double priceMini, double priceSedan,
+                                double priceCuv, double priceSuv, double priceMpv, double pricePickup,
+                                double costPriceMini, double costPriceSedan, double costPriceCuv, double costPriceSuv, double costPriceMpv, double costPricePickup,
+                                double savings, String status, String category, double costPrice) {
         if (name == null || name.trim().isEmpty()) {
             return false;
         }
-        Package pkg = new Package(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, savings, status, category, costPrice);
+        Package pkg = new Package(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup,
+                                  costPriceMini, costPriceSedan, costPriceCuv, costPriceSuv, costPriceMpv, costPricePickup,
+                                  savings, status, category, costPrice);
         return packageDAO.updatePackage(pkg);
     }
 

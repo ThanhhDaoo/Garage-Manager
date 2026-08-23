@@ -87,7 +87,16 @@ public class InventoryReceiptDAO {
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
+            boolean deleted = pstmt.executeUpdate() > 0;
+            if (deleted) {
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM inventory_receipts")) {
+                    if (rs.next() && rs.getInt(1) == 0) {
+                        stmt.executeUpdate("DELETE FROM sqlite_sequence WHERE name = 'inventory_receipts'");
+                    }
+                } catch (SQLException ignored) {}
+            }
+            return deleted;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;

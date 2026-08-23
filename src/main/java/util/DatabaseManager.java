@@ -61,14 +61,18 @@ public class DatabaseManager {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
             
-            // Kích hoạt khóa ngoại và tự động dọn dẹp dữ liệu rác (mồ côi) từ các nhân viên/hóa đơn đã bị xóa trước đây
+            // Kích hoạt khóa ngoại và tự động dọn dẹp dữ liệu rác (mồ côi) từ các nhân viên/hóa đơn/phiếu nhập kho đã bị xóa trước đây
             stmt.execute("PRAGMA foreign_keys = ON;");
             int deletedAtt = stmt.executeUpdate("DELETE FROM attendance WHERE employee_id NOT IN (SELECT id FROM employees);");
             int deletedPayroll = stmt.executeUpdate("DELETE FROM payroll WHERE employee_id NOT IN (SELECT id FROM employees);");
             int deletedItems = stmt.executeUpdate("DELETE FROM invoice_items WHERE invoice_id NOT IN (SELECT id FROM invoices);");
-            if (deletedAtt > 0 || deletedPayroll > 0 || deletedItems > 0) {
-                System.out.println(String.format("✓ Đã dọn dẹp dữ liệu mồ côi: %d dòng chấm công, %d dòng bảng lương, %d dòng chi tiết hóa đơn.", 
-                                   deletedAtt, deletedPayroll, deletedItems));
+            int deletedOrphanExpenses = stmt.executeUpdate(
+                "DELETE FROM fixed_expenses WHERE notes LIKE 'Mã phiếu nhập: NK-%' " +
+                "AND CAST(SUBSTR(notes, 19, 4) AS INTEGER) NOT IN (SELECT id FROM inventory_receipts);"
+            );
+            if (deletedAtt > 0 || deletedPayroll > 0 || deletedItems > 0 || deletedOrphanExpenses > 0) {
+                System.out.println(String.format("✓ Đã dọn dẹp dữ liệu mồ côi: %d dòng chấm công, %d dòng bảng lương, %d dòng chi tiết hóa đơn, %d dòng chi phí nhập kho.", 
+                                   deletedAtt, deletedPayroll, deletedItems, deletedOrphanExpenses));
             }
 
             // Tự động điều chỉnh các hóa đơn cũ để khớp với chính sách thuế VAT mới:
@@ -410,6 +414,28 @@ public class DatabaseManager {
                 }
             }
 
+            // Migration cost_price per vehicle type for services table
+            String[] serviceCostCols = {"cost_price_mini", "cost_price_sedan", "cost_price_cuv", "cost_price_suv", "cost_price_mpv", "cost_price_pickup"};
+            for (String colName : serviceCostCols) {
+                boolean hasCol = false;
+                try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(services)")) {
+                    while (rs.next()) {
+                        if (colName.equals(rs.getString("name"))) {
+                            hasCol = true;
+                            break;
+                        }
+                    }
+                }
+                if (!hasCol) {
+                    try (Statement alterStmt = conn.createStatement()) {
+                        alterStmt.execute("ALTER TABLE services ADD COLUMN " + colName + " REAL NOT NULL DEFAULT 0;");
+                        System.out.println("✓ Đã thêm cột " + colName + " vào bảng services.");
+                    } catch (SQLException e) {
+                        System.err.println("⚠ Không thể thêm cột " + colName + ": " + e.getMessage());
+                    }
+                }
+            }
+
             // Tự động di trú bảng packages
             boolean hasPackageCategory = false;
             boolean hasPackageCostPrice = false;
@@ -437,6 +463,28 @@ public class DatabaseManager {
                     System.out.println("✓ Đã thêm cột cost_price vào bảng packages.");
                 } catch (SQLException e) {
                     System.err.println("⚠ Không thể thêm cột cost_price vào packages: " + e.getMessage());
+                }
+            }
+
+            // Migration cost_price per vehicle type for packages table
+            String[] packageCostCols = {"cost_price_mini", "cost_price_sedan", "cost_price_cuv", "cost_price_suv", "cost_price_mpv", "cost_price_pickup"};
+            for (String colName : packageCostCols) {
+                boolean hasCol = false;
+                try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(packages)")) {
+                    while (rs.next()) {
+                        if (colName.equals(rs.getString("name"))) {
+                            hasCol = true;
+                            break;
+                        }
+                    }
+                }
+                if (!hasCol) {
+                    try (Statement alterStmt = conn.createStatement()) {
+                        alterStmt.execute("ALTER TABLE packages ADD COLUMN " + colName + " REAL NOT NULL DEFAULT 0;");
+                        System.out.println("✓ Đã thêm cột " + colName + " vào bảng packages.");
+                    } catch (SQLException e) {
+                        System.err.println("⚠ Không thể thêm cột " + colName + " vào packages: " + e.getMessage());
+                    }
                 }
             }
 
@@ -684,6 +732,22 @@ public class DatabaseManager {
                 } catch (SQLException e) {
                     System.err.println("⚠ Lỗi khôi phục lương Tháng 7: " + e.getMessage());
                 }
+            }
+
+            // Tự động reset sqlite_sequence cho các bảng rỗng khi khởi động ứng dụng
+            String[] tablesToReset = {
+                "invoices", "inventory_receipts", "fixed_expenses", "products", 
+                "employees", "appointments", "services", "packages", "attendance", "payroll"
+            };
+            for (String table : tablesToReset) {
+                try (Statement countStmt = conn.createStatement();
+                     ResultSet rs = countStmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                    if (rs.next() && rs.getInt(1) == 0) {
+                        try (Statement resetStmt = conn.createStatement()) {
+                            resetStmt.executeUpdate("DELETE FROM sqlite_sequence WHERE name = '" + table + "'");
+                        }
+                    }
+                } catch (SQLException ignored) {}
             }
 
             System.out.println("✓ Database đã được khởi tạo thành công!");

@@ -352,12 +352,21 @@ public class MainUI extends Application {
     }
 
     private boolean matchesTimeFilters(String dateStr, String period, String month, String year) {
+        boolean hasPeriodFilter = period != null && !period.contains("Tất cả");
+        boolean hasYearFilter = year != null && !year.contains("Tất cả");
+        boolean hasMonthFilter = month != null && !month.contains("Tất cả");
+
+        // Nếu không chọn lọc mốc thời gian nào thì trả về true cho tất cả hóa đơn
+        if (!hasPeriodFilter && !hasYearFilter && !hasMonthFilter) {
+            return true;
+        }
+
         if (dateStr == null || dateStr.trim().isEmpty()) return false;
         try {
             LocalDate date = LocalDate.parse(dateStr.substring(0, 10));
             LocalDate today = LocalDate.now();
             
-            if (period != null && !period.contains("Tất cả")) {
+            if (hasPeriodFilter) {
                 if (period.equals("Tuần này")) {
                     LocalDate startOfWeek = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
                     LocalDate endOfWeek = today.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY));
@@ -373,11 +382,11 @@ public class MainUI extends Application {
                 }
             }
             
-            if (year != null && !year.contains("Tất cả")) {
+            if (hasYearFilter) {
                 int targetYear = Integer.parseInt(year);
                 if (date.getYear() != targetYear) return false;
             }
-            if (month != null && !month.contains("Tất cả")) {
+            if (hasMonthFilter) {
                 int targetMonth = Integer.parseInt(month.replace("Tháng ", ""));
                 if (date.getMonthValue() != targetMonth) return false;
             }
@@ -632,10 +641,10 @@ public class MainUI extends Application {
         );
         
         TextField searchField = new TextField();
-        searchField.setPromptText("🔍 Tìm kiếm hóa đơn...");
-        searchField.setPrefWidth(200);
+        searchField.setPromptText("🔍 Tìm theo tên, SĐT, biển số...");
+        searchField.setPrefWidth(220);
         searchField.setMinWidth(200);
-        searchField.setMaxWidth(200);
+        searchField.setMaxWidth(250);
         searchField.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-padding: 10px 15px;" +
@@ -643,6 +652,7 @@ public class MainUI extends Application {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
+        UIUtils.setupIMEFix(searchField);
         
         ComboBox<String> cbStatusFilter = new ComboBox<>();
         cbStatusFilter.getItems().addAll("Tất cả trạng thái", "Đã thanh toán", "Chưa thanh toán");
@@ -827,9 +837,9 @@ public class MainUI extends Application {
         List<Invoice> invoices = invoiceService.getAllInvoices();
         
         // Filter by status
-        if (status != null && !status.trim().isEmpty()) {
+        if (status != null && !status.trim().isEmpty() && !status.contains("Tất cả")) {
             invoices = invoices.stream()
-                .filter(i -> i.getStatus().equals(status))
+                .filter(i -> status.equalsIgnoreCase(i.getStatus()))
                 .collect(java.util.stream.Collectors.toList());
         }
         
@@ -838,13 +848,41 @@ public class MainUI extends Application {
             .filter(i -> matchesTimeFilters(i.getCreatedAt(), period, month, year))
             .collect(java.util.stream.Collectors.toList());
         
-        // Filter by search text
+        // Filter by search text (Tên khách hàng, SĐT, Biển số xe, Mã hóa đơn, Ghi chú)
         if (searchText != null && !searchText.trim().isEmpty()) {
-            String search = searchText.toLowerCase().trim();
+            String rawSearch = searchText.toLowerCase().trim();
+            String cleanSearch = rawSearch.replaceAll("[^a-z0-9]", "");
+            
             invoices = invoices.stream()
-                .filter(i -> i.getCustomerName().toLowerCase().contains(search) || 
-                            (i.getPhone() != null && i.getPhone().contains(search)) ||
-                            (i.getLicensePlate() != null && i.getLicensePlate().toLowerCase().contains(search)))
+                .filter(i -> {
+                    // 1. Tìm theo tên khách hàng
+                    if (i.getCustomerName() != null && i.getCustomerName().toLowerCase().contains(rawSearch)) {
+                        return true;
+                    }
+                    // 2. Tìm theo số điện thoại
+                    if (i.getPhone() != null && i.getPhone().toLowerCase().contains(rawSearch)) {
+                        return true;
+                    }
+                    // 3. Tìm theo biển số xe (kể cả gõ có hoặc không có dấu gạch/khoảng trắng)
+                    if (i.getLicensePlate() != null) {
+                        String plate = i.getLicensePlate().toLowerCase();
+                        if (plate.contains(rawSearch)) return true;
+                        String cleanPlate = plate.replaceAll("[^a-z0-9]", "");
+                        if (!cleanSearch.isEmpty() && cleanPlate.contains(cleanSearch)) return true;
+                    }
+                    // 4. Tìm theo ghi chú
+                    if (i.getNotes() != null && i.getNotes().toLowerCase().contains(rawSearch)) {
+                        return true;
+                    }
+                    // 5. Tìm theo mã hóa đơn (ví dụ: HD-00001, HD00001, 00001, 1)
+                    String code1 = String.format("hd-%05d", i.getId());
+                    String code2 = String.format("%05d", i.getId());
+                    String code3 = String.valueOf(i.getId());
+                    if (code1.contains(rawSearch) || code2.contains(rawSearch) || code3.equals(rawSearch)) {
+                        return true;
+                    }
+                    return false;
+                })
                 .collect(java.util.stream.Collectors.toList());
         }
         
@@ -2674,6 +2712,10 @@ public class MainUI extends Application {
         colDate.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("date"));
         colDate.setPrefWidth(90);
 
+        TableColumn<model.DailyReportRow, String> colCustomer = new TableColumn<>("Tên khách hàng");
+        colCustomer.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("customerName"));
+        colCustomer.setPrefWidth(120);
+
         TableColumn<model.DailyReportRow, String> colPlate = new TableColumn<>("Biển số xe");
         colPlate.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("licensePlate"));
         colPlate.setPrefWidth(95);
@@ -2775,7 +2817,7 @@ public class MainUI extends Application {
         colNotes.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("notes"));
         colNotes.setPrefWidth(120);
 
-        tableReport.getColumns().addAll(colStt, colDate, colPlate, colServices, dtParent, colTotal, colVat, colMethod, cpParent, lnParent, colNotes);
+        tableReport.getColumns().addAll(colStt, colDate, colCustomer, colPlate, colServices, dtParent, colTotal, colVat, colMethod, cpParent, lnParent, colNotes);
 
         // Action to load data
         Runnable loadDailyData = () -> {
@@ -4740,14 +4782,24 @@ public class MainUI extends Application {
         });
         
         buttonBox.getChildren().addAll(btnClose, btnUpdate);
+        buttonBox.setPadding(new Insets(15, 30, 15, 30));
+        buttonBox.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1 0 0 0;"
+        );
         
-        content.getChildren().addAll(title, customerSection, itemsSection, paymentSection, statusSection, notesSection, buttonBox);
+        content.getChildren().addAll(title, customerSection, itemsSection, paymentSection, statusSection, notesSection);
         
         ScrollPane scrollPane = new ScrollPane(content);
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background-color: white; -fx-background: white;");
+
+        BorderPane root = new BorderPane();
+        root.setCenter(scrollPane);
+        root.setBottom(buttonBox);
         
-        Scene scene = new Scene(scrollPane, 650, 750);
+        Scene scene = new Scene(root, 650, 750);
         try {
             String css = getClass().getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);
@@ -4766,8 +4818,8 @@ public class MainUI extends Application {
             
             // Create file chooser
             javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
-            fileChooser.setTitle("Lưu Phiếu Thi Công PDF");
-            fileChooser.setInitialFileName("PhieuThiCong_" + String.format("%05d", invoice.getId()) + ".pdf");
+            fileChooser.setTitle("Lưu Phiếu Dịch Vụ PDF");
+            fileChooser.setInitialFileName("PhieuDichVu_" + String.format("%05d", invoice.getId()) + ".pdf");
             fileChooser.getExtensionFilters().add(
                 new javafx.stage.FileChooser.ExtensionFilter("PDF Files", "*.pdf")
             );
@@ -4782,7 +4834,7 @@ public class MainUI extends Application {
             com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
             com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdf,
                 com.itextpdf.kernel.geom.PageSize.A4);
-            document.setMargins(30, 40, 30, 40);
+            document.setMargins(18, 30, 18, 30);
             
             // Fonts
             com.itextpdf.kernel.font.PdfFont font = util.PDFFontHelper.createVietnameseFont();
@@ -4802,9 +4854,9 @@ public class MainUI extends Application {
             // ===== HEADER: 2-column layout =====
             // Left(65%): Company info  |  Right(35%): 4 small service ad boxes
             com.itextpdf.layout.element.Table headerTable = new com.itextpdf.layout.element.Table(
-                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{65f, 35f}));
+                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{63f, 37f}));
             headerTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
-            headerTable.setMarginBottom(8);
+            headerTable.setMarginBottom(4);
 
             // --- LEFT CELL: Company info (no wrap) ---
             com.itextpdf.layout.element.Cell leftCell = new com.itextpdf.layout.element.Cell()
@@ -4816,25 +4868,32 @@ public class MainUI extends Application {
                 .setFont(boldFont).setFontSize(12).setFontColor(redColor)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.LEFT)
                 .setKeepTogether(true)
-                .setMarginBottom(3));
+                .setMarginBottom(2));
 
             leftCell.add(new com.itextpdf.layout.element.Paragraph(
                 "Ngã tư Trương Định và An Dương Vương, P. Nghĩa Lộ, tỉnh Quảng Ngãi")
-                .setFont(font).setFontSize(8).setFontColor(redColor)
+                .setFont(font).setFontSize(8.5f).setFontColor(redColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.LEFT)
+                .setKeepTogether(true)
+                .setMarginBottom(2));
+
+            leftCell.add(new com.itextpdf.layout.element.Paragraph(
+                "Hotline: 038 442 4567 (Zalo)")
+                .setFont(boldFont).setFontSize(9f).setFontColor(redColor)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.LEFT)
                 .setKeepTogether(true)
                 .setMarginBottom(0));
 
             headerTable.addCell(leftCell);
 
-            // --- RIGHT CELL: 4 service ad boxes in a 2x2 grid (black style) ---
+            // --- RIGHT CELL: 4 service ad boxes in a 2x2 grid (black style, bigger font & box) ---
             com.itextpdf.layout.element.Cell rightCell = new com.itextpdf.layout.element.Cell()
                 .setBorder(null)
-                .setPaddingLeft(6)
+                .setPaddingLeft(4)
                 .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
 
             com.itextpdf.kernel.colors.Color adBorderColor = redColor;
-            com.itextpdf.kernel.colors.Color adTextColor  = redColor;
+            com.itextpdf.kernel.colors.Color adTextColor  = blackColor;
 
             com.itextpdf.layout.element.Table adTable = new com.itextpdf.layout.element.Table(
                 com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{50f, 50f}));
@@ -4843,12 +4902,12 @@ public class MainUI extends Application {
             String[] adLabels = {"PHỤ KIỆN", "CHĂM SÓC", "BẢO DƯỠNG", "ĐỒNG SƠN"};
             for (String label : adLabels) {
                 com.itextpdf.layout.element.Cell adCell = new com.itextpdf.layout.element.Cell()
-                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(adBorderColor, 0.5f))
-                    .setPadding(3)
+                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(adBorderColor, 0.6f))
+                    .setPadding(4f)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
                     .setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE);
                 adCell.add(new com.itextpdf.layout.element.Paragraph(label)
-                    .setFont(boldFont).setFontSize(7).setFontColor(adTextColor)
+                    .setFont(boldFont).setFontSize(8.5f).setFontColor(adTextColor)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
                 adTable.addCell(adCell);
             }
@@ -4857,83 +4916,79 @@ public class MainUI extends Application {
             headerTable.addCell(rightCell);
             document.add(headerTable);
 
-            // Title: PHIẾU THI CÔNG
+            // Title: PHIẾU DỊCH VỤ
             com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph(
-                "PHIẾU THI CÔNG")
+                "PHIẾU DỊCH VỤ")
                 .setFont(boldFont)
-                .setFontSize(18)
+                .setFontSize(17)
                 .setFontColor(redColor)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
-                .setMarginBottom(15);
+                .setMarginBottom(8);
             document.add(title);
             
-            // ===== CUSTOMER INFO =====
-            // Row 1: Tên khách hàng + SĐT (side by side)
-            com.itextpdf.layout.element.Table customerRow1 = new com.itextpdf.layout.element.Table(
-                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{50, 50}));
-            customerRow1.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
-            
-            com.itextpdf.layout.element.Cell nameCell = new com.itextpdf.layout.element.Cell().setBorder(null);
-            nameCell.add(new com.itextpdf.layout.element.Paragraph()
-                .add(new com.itextpdf.layout.element.Text("Tên khách hàng: ").setFont(boldFont).setFontSize(11).setFontColor(redColor))
-                .add(new com.itextpdf.layout.element.Text(invoice.getCustomerName() != null ? invoice.getCustomerName() : "").setFont(font).setFontSize(11).setFontColor(blackColor)));
-            customerRow1.addCell(nameCell);
-            
-            com.itextpdf.layout.element.Cell phoneCell = new com.itextpdf.layout.element.Cell().setBorder(null);
-            phoneCell.add(new com.itextpdf.layout.element.Paragraph()
-                .add(new com.itextpdf.layout.element.Text("SĐT khách hàng: ").setFont(boldFont).setFontSize(11).setFontColor(redColor))
-                .add(new com.itextpdf.layout.element.Text(invoice.getPhone() != null ? invoice.getPhone() : "").setFont(font).setFontSize(11).setFontColor(blackColor)));
-            customerRow1.addCell(phoneCell);
-            document.add(customerRow1);
-            
-            // Biển số xe
-            com.itextpdf.layout.element.Paragraph plateInfo = new com.itextpdf.layout.element.Paragraph()
-                .add(new com.itextpdf.layout.element.Text("Biển số xe: ").setFont(boldFont).setFontSize(11).setFontColor(redColor))
-                .add(new com.itextpdf.layout.element.Text(invoice.getLicensePlate() != null ? invoice.getLicensePlate() : "").setFont(boldFont).setFontSize(12).setFontColor(blackColor))
-                .setMarginBottom(2);
-            document.add(plateInfo);
-            
-            // Địa chỉ
-            com.itextpdf.layout.element.Paragraph addressInfo = new com.itextpdf.layout.element.Paragraph()
-                .add(new com.itextpdf.layout.element.Text("Địa chỉ: ").setFont(boldFont).setFontSize(11).setFontColor(redColor))
-                .add(new com.itextpdf.layout.element.Text(invoice.getAddress() != null ? invoice.getAddress() : "").setFont(font).setFontSize(11).setFontColor(blackColor))
-                .setMarginBottom(2);
-            document.add(addressInfo);
-            
-            // Thời gian nhận xe
+            // ===== CUSTOMER INFO TABLE (Gióng hàng thẳng 100%) =====
+            com.itextpdf.layout.element.Table custTable = new com.itextpdf.layout.element.Table(
+                com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{23f, 27f, 22f, 28f}));
+            custTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            custTable.setMarginBottom(6);
+
+            // Row 1: Tên khách hàng & SĐT khách hàng
+            custTable.addCell(new com.itextpdf.layout.element.Cell().setBorder(null).setPadding(1.5f)
+                .add(new com.itextpdf.layout.element.Paragraph("Tên khách hàng:").setFont(boldFont).setFontSize(10.5f).setFontColor(redColor)));
+            custTable.addCell(new com.itextpdf.layout.element.Cell().setBorder(null).setPadding(1.5f)
+                .add(new com.itextpdf.layout.element.Paragraph(invoice.getCustomerName() != null ? invoice.getCustomerName() : "").setFont(font).setFontSize(10.5f).setFontColor(blackColor)));
+            custTable.addCell(new com.itextpdf.layout.element.Cell().setBorder(null).setPadding(1.5f)
+                .add(new com.itextpdf.layout.element.Paragraph("SĐT khách hàng:").setFont(boldFont).setFontSize(10.5f).setFontColor(redColor)));
+            custTable.addCell(new com.itextpdf.layout.element.Cell().setBorder(null).setPadding(1.5f)
+                .add(new com.itextpdf.layout.element.Paragraph(invoice.getPhone() != null ? invoice.getPhone() : "").setFont(font).setFontSize(10.5f).setFontColor(blackColor)));
+
+            // Row 2: Biển số xe
+            custTable.addCell(new com.itextpdf.layout.element.Cell().setBorder(null).setPadding(1.5f)
+                .add(new com.itextpdf.layout.element.Paragraph("Biển số xe:").setFont(boldFont).setFontSize(10.5f).setFontColor(redColor)));
+            custTable.addCell(new com.itextpdf.layout.element.Cell(1, 3).setBorder(null).setPadding(1.5f)
+                .add(new com.itextpdf.layout.element.Paragraph(invoice.getLicensePlate() != null ? invoice.getLicensePlate() : "").setFont(boldFont).setFontSize(11.5f).setFontColor(blackColor)));
+
+            // Row 3: Địa chỉ
+            custTable.addCell(new com.itextpdf.layout.element.Cell().setBorder(null).setPadding(1.5f)
+                .add(new com.itextpdf.layout.element.Paragraph("Địa chỉ:").setFont(boldFont).setFontSize(10.5f).setFontColor(redColor)));
+            custTable.addCell(new com.itextpdf.layout.element.Cell(1, 3).setBorder(null).setPadding(1.5f)
+                .add(new com.itextpdf.layout.element.Paragraph(invoice.getAddress() != null ? invoice.getAddress() : "").setFont(font).setFontSize(10.5f).setFontColor(blackColor)));
+
+            // Row 4: Thời gian nhận xe
             String createdAt = invoice.getCreatedAt() != null ? invoice.getCreatedAt() : "";
-            com.itextpdf.layout.element.Paragraph timeInfo = new com.itextpdf.layout.element.Paragraph()
-                .add(new com.itextpdf.layout.element.Text("Thời gian nhận xe: ").setFont(boldFont).setFontSize(11).setFontColor(redColor))
-                .add(new com.itextpdf.layout.element.Text(createdAt).setFont(font).setFontSize(11).setFontColor(blackColor))
-                .setMarginBottom(10);
-            document.add(timeInfo);
+            custTable.addCell(new com.itextpdf.layout.element.Cell().setBorder(null).setPadding(1.5f)
+                .add(new com.itextpdf.layout.element.Paragraph("Thời gian nhận xe:").setFont(boldFont).setFontSize(10.5f).setFontColor(redColor)));
+            custTable.addCell(new com.itextpdf.layout.element.Cell(1, 3).setBorder(null).setPadding(1.5f)
+                .add(new com.itextpdf.layout.element.Paragraph(createdAt).setFont(font).setFontSize(10.5f).setFontColor(blackColor)));
+
+            document.add(custTable);
             
             // ===== SERVICE TABLE =====
-            // 6 columns: STT | TÊN DỊCH VỤ | ĐƠN GIÁ | GIẢM GIÁ | VAT | THÀNH TIỀN
+            // 6 columns: STT | TÊN DỊCH VỤ | ĐƠN GIÁ | VAT | GIẢM GIÁ | THÀNH TIỀN
             boolean isCK = "CK".equalsIgnoreCase(invoice.getPaymentMethod());
-            float[] columnWidths = {8f, 32f, 15f, 13f, 12f, 20f};
+            float[] columnWidths = {8f, 32f, 15f, 12f, 13f, 20f};
             com.itextpdf.layout.element.Table serviceTable = new com.itextpdf.layout.element.Table(
                 com.itextpdf.layout.properties.UnitValue.createPercentArray(columnWidths));
             serviceTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             
             // Header row
             String vatHeader = isCK ? "VAT(8%)" : "VAT(0%)";
-            String[] headers = {"STT", "TÊN DỊCH VỤ", "ĐƠN GIÁ", "GIẢM GIÁ", vatHeader, "THÀNH TIỀN"};
+            String[] headers = {"STT", "TÊN DỊCH VỤ", "ĐƠN GIÁ", vatHeader, "GIẢM GIÁ", "THÀNH TIỀN"};
             for (String header : headers) {
                 com.itextpdf.layout.element.Cell headerCell = new com.itextpdf.layout.element.Cell()
                     .add(new com.itextpdf.layout.element.Paragraph(header)
-                        .setFont(boldFont).setFontSize(10).setFontColor(redColor)
+                        .setFont(boldFont).setFontSize(9.5f).setFontColor(redColor)
                         .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                     .setBorderBottom(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
                     .setBorderTop(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
                     .setBorderLeft(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
                     .setBorderRight(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
-                    .setPadding(5);
+                    .setPadding(3.5f);
                 serviceTable.addHeaderCell(headerCell);
             }
             
-            // Data rows (always 9 rows)
-            int totalRows = 9;
+            // Data rows (12 rows - minHeight 22.5f ensures exact 1 page A4 fit)
+            int totalRows = 12;
             double grandTotal = 0;
             
             for (int i = 0; i < totalRows; i++) {
@@ -4952,7 +5007,6 @@ public class MainUI extends Application {
                     }
                     unitPrice = String.format("%,.0f", item.getUnitPrice());
                     
-                    // Discount percentage = ((originalTotal - totalPrice) / originalTotal) * 100
                     double originalTotal = item.getUnitPrice() * item.getQuantity();
                     double itemDiscount = originalTotal - item.getTotalPrice();
                     if (itemDiscount > 0 && originalTotal > 0) {
@@ -4966,72 +5020,72 @@ public class MainUI extends Application {
                         discount = "";
                     }
                     
-                    // VAT 8% on price after discount if CK
-                    double vatAmount = isCK ? item.getTotalPrice() * 0.08 : 0.0;
+                    // VAT 8% tính theo Giá gốc (trước giảm giá)
+                    double vatAmount = isCK ? originalTotal * 0.08 : 0.0;
                     vat = vatAmount > 0 ? String.format("%,.0f", vatAmount) : "0";
                     
-                    // Thành tiền = price after discount + VAT
-                    double itemTotal = item.getTotalPrice() + vatAmount;
+                    // Thành tiền = Giá gốc + VAT - Giảm giá
+                    double itemTotal = originalTotal + vatAmount - itemDiscount;
                     totalPrice = String.format("%,.0f", itemTotal);
                     grandTotal += itemTotal;
                 }
                 
                 // STT cell
                 com.itextpdf.layout.element.Cell sttCell = new com.itextpdf.layout.element.Cell()
-                    .add(new com.itextpdf.layout.element.Paragraph(stt).setFont(font).setFontSize(10).setFontColor(blackColor)
+                    .add(new com.itextpdf.layout.element.Paragraph(stt).setFont(font).setFontSize(9.5f).setFontColor(blackColor)
                         .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                     .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
-                    .setPadding(4).setMinHeight(22);
+                    .setPadding(2.5f).setMinHeight(22.5f);
                 serviceTable.addCell(sttCell);
                 
                 // Service name cell
                 com.itextpdf.layout.element.Cell nameServiceCell = new com.itextpdf.layout.element.Cell()
-                    .add(new com.itextpdf.layout.element.Paragraph(serviceName).setFont(font).setFontSize(10).setFontColor(blackColor))
+                    .add(new com.itextpdf.layout.element.Paragraph(serviceName).setFont(font).setFontSize(9.5f).setFontColor(blackColor))
                     .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
-                    .setPadding(4).setMinHeight(22);
+                    .setPadding(2.5f).setMinHeight(22.5f);
                 serviceTable.addCell(nameServiceCell);
                 
                 // Unit price cell
                 com.itextpdf.layout.element.Cell priceCell = new com.itextpdf.layout.element.Cell()
-                    .add(new com.itextpdf.layout.element.Paragraph(unitPrice).setFont(font).setFontSize(10).setFontColor(blackColor)
+                    .add(new com.itextpdf.layout.element.Paragraph(unitPrice).setFont(font).setFontSize(9.5f).setFontColor(blackColor)
                         .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                     .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
-                    .setPadding(4).setMinHeight(22);
+                    .setPadding(2.5f).setMinHeight(22.5f);
                 serviceTable.addCell(priceCell);
                 
-                // Discount cell
-                com.itextpdf.layout.element.Cell discountCell = new com.itextpdf.layout.element.Cell()
-                    .add(new com.itextpdf.layout.element.Paragraph(discount).setFont(font).setFontSize(10).setFontColor(blackColor)
-                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
-                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
-                    .setPadding(4).setMinHeight(22);
-                serviceTable.addCell(discountCell);
-                
-                // VAT cell
+                // VAT cell (Đứng trước GIẢM GIÁ)
                 com.itextpdf.layout.element.Cell vatCell = new com.itextpdf.layout.element.Cell()
-                    .add(new com.itextpdf.layout.element.Paragraph(vat).setFont(font).setFontSize(10).setFontColor(blackColor)
+                    .add(new com.itextpdf.layout.element.Paragraph(vat).setFont(font).setFontSize(9.5f).setFontColor(blackColor)
                         .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                     .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
-                    .setPadding(4).setMinHeight(22);
+                    .setPadding(2.5f).setMinHeight(22.5f);
                 serviceTable.addCell(vatCell);
+
+                // Discount cell (Đứng sau VAT)
+                com.itextpdf.layout.element.Cell discountCell = new com.itextpdf.layout.element.Cell()
+                    .add(new com.itextpdf.layout.element.Paragraph(discount).setFont(font).setFontSize(9.5f).setFontColor(blackColor)
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
+                    .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
+                    .setPadding(2.5f).setMinHeight(22.5f);
+                serviceTable.addCell(discountCell);
                 
                 // Total price cell
                 com.itextpdf.layout.element.Cell totalPriceCell = new com.itextpdf.layout.element.Cell()
-                    .add(new com.itextpdf.layout.element.Paragraph(totalPrice).setFont(font).setFontSize(10).setFontColor(blackColor)
+                    .add(new com.itextpdf.layout.element.Paragraph(totalPrice).setFont(font).setFontSize(9.5f).setFontColor(blackColor)
                         .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                     .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
-                    .setPadding(4).setMinHeight(22);
+                    .setPadding(2.5f).setMinHeight(22.5f);
                 serviceTable.addCell(totalPriceCell);
             }
             
             // ===== TOTAL ROW =====
-            // TỔNG TIỀN spanning first 2 columns
+            // TỔNG THANH TOÁN spanning first 2 columns
             com.itextpdf.layout.element.Cell totalLabelCell = new com.itextpdf.layout.element.Cell(1, 2)
-                .add(new com.itextpdf.layout.element.Paragraph("TỔNG TIỀN")
-                    .setFont(boldFont).setFontSize(11).setFontColor(redColor)
+                .add(new com.itextpdf.layout.element.Paragraph("TỔNG THANH TOÁN")
+                    .setFont(boldFont).setFontSize(10f).setFontColor(redColor)
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER))
                 .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
-                .setPadding(5);
+                .setPadding(3.5f);
             serviceTable.addCell(totalLabelCell);
             
             // Total value spanning last 4 columns
@@ -5040,49 +5094,47 @@ public class MainUI extends Application {
             
             com.itextpdf.layout.element.Cell totalValueCell = new com.itextpdf.layout.element.Cell(1, 4)
                 .add(new com.itextpdf.layout.element.Paragraph()
-                    .add(new com.itextpdf.layout.element.Text(totalText).setFont(boldFont).setFontSize(11).setFontColor(blackColor)))
+                    .add(new com.itextpdf.layout.element.Text(totalText).setFont(boldFont).setFontSize(10.5f).setFontColor(blackColor)))
                 .setBorder(new com.itextpdf.layout.borders.SolidBorder(redColor, 0.8f))
-                .setPadding(5);
+                .setPadding(3.5f);
             serviceTable.addCell(totalValueCell);
             
             document.add(serviceTable);
             
+            // ===== THANK YOU MESSAGE =====
+            com.itextpdf.layout.element.Paragraph thankYou = new com.itextpdf.layout.element.Paragraph(
+                "MT-Pro Auto chân thành cảm ơn Quý khách đã tin tưởng sử dụng dịch vụ. Chúc Quý khách lái xe an toàn và hẹn gặp lại!")
+                .setFont(font).setFontSize(8.5f).setFontColor(blackColor)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                .setMarginTop(6).setMarginBottom(4);
+            document.add(thankYou);
+
             // ===== SIGNATURE SECTION =====
-            document.add(new com.itextpdf.layout.element.Paragraph("\n"));
-            
             com.itextpdf.layout.element.Table signatureTable = new com.itextpdf.layout.element.Table(
                 com.itextpdf.layout.properties.UnitValue.createPercentArray(new float[]{50, 50}));
             signatureTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            signatureTable.setMarginTop(4);
             
             // Column 1: Xác nhận của khách hàng
             com.itextpdf.layout.element.Cell sig1Cell = new com.itextpdf.layout.element.Cell().setBorder(null);
             sig1Cell.add(new com.itextpdf.layout.element.Paragraph("Xác nhận của khách hàng")
-                .setFont(font).setFontSize(10).setFontColor(redColor)
+                .setFont(font).setFontSize(9.5f).setFontColor(redColor)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            sig1Cell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n\n"));
+            sig1Cell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n"));
             signatureTable.addCell(sig1Cell);
             
             // Column 2: Chữ ký đại diện công ty
             com.itextpdf.layout.element.Cell sig2Cell = new com.itextpdf.layout.element.Cell().setBorder(null);
             sig2Cell.add(new com.itextpdf.layout.element.Paragraph("Chữ ký đại diện công ty")
-                .setFont(font).setFontSize(10).setFontColor(redColor)
+                .setFont(font).setFontSize(9.5f).setFontColor(redColor)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
-            sig2Cell.add(new com.itextpdf.layout.element.Paragraph("\n\n\n"));
+            sig2Cell.add(new com.itextpdf.layout.element.Paragraph("\n\n"));
             sig2Cell.add(new com.itextpdf.layout.element.Paragraph("Phạm Minh Tâm")
-                .setFont(boldFont).setFontSize(11).setFontColor(redColor)
+                .setFont(boldFont).setFontSize(10.5f).setFontColor(redColor)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
             signatureTable.addCell(sig2Cell);
             
             document.add(signatureTable);
-            
-            // ===== FOOTER =====
-            document.add(new com.itextpdf.layout.element.Paragraph("\n"));
-            
-            com.itextpdf.layout.element.Paragraph hotline = new com.itextpdf.layout.element.Paragraph(
-                "Hotline: 038 442 4567 (Zalo)")
-                .setFont(font).setFontSize(10).setFontColor(redColor)
-                .setMarginBottom(1);
-            document.add(hotline);
             
             document.close();
             
@@ -6213,12 +6265,24 @@ public class MainUI extends Application {
         });
         
         btnBox.getChildren().addAll(btnCancel, btnSave);
-        root.getChildren().addAll(title, mainForm, btnBox);
+        btnBox.setPadding(new Insets(15, 25, 15, 25));
+        btnBox.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1 0 0 0;"
+        );
+
+        root.getChildren().addAll(title, mainForm);
         
         ScrollPane sp = new ScrollPane(root);
         sp.setFitToWidth(true);
-        sp.setPrefHeight(600);
-        Scene scene = new Scene(sp, 600, 660);
+        sp.setStyle("-fx-background-color: white; -fx-background: white;");
+
+        BorderPane dialogRoot = new BorderPane();
+        dialogRoot.setCenter(sp);
+        dialogRoot.setBottom(btnBox);
+        
+        Scene scene = new Scene(dialogRoot, 600, 660);
         try {
             String css = getClass().getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);

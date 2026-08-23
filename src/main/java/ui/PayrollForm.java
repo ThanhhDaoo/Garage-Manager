@@ -20,6 +20,7 @@ public class PayrollForm {
     private Employee employee;
     private String payMonth;
     private Runnable onSave;
+    private Payroll existing;
 
     private TextField txtResponsibility;
     private TextField txtOther;
@@ -34,12 +35,16 @@ public class PayrollForm {
         this.employee = emp;
         this.payMonth = payMonth;
         this.onSave = onSave;
+        this.existing = new service.PayrollService().getPayroll(emp.getId(), payMonth);
     }
 
     public void show() {
         stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle("Tính Lương Nhân Viên - " + employee.getName());
+
+        BorderPane root = new BorderPane();
+        root.setStyle("-fx-background-color: #f8f9fa;");
 
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(true);
@@ -81,7 +86,7 @@ public class PayrollForm {
             double ins = parseDoubleSafe(txtInsurance.getText());
             double adv = parseDoubleSafe(txtAdvance.getText());
 
-            double basicSalary = employee.getBasicSalary();
+            double basicSalary = existing != null ? existing.getBasicSalary() : employee.getBasicSalary();
             int standardDays = totalDays - 2;
             double dailyRate = basicSalary / totalDays;
             double workDiff = actualWorkDays - standardDays;
@@ -101,12 +106,22 @@ public class PayrollForm {
 
         recalculate.run();
 
-        HBox actionButtons = createActionButtons(totalDays, actualWorkDays);
-
-        mainContent.getChildren().addAll(title, infoSection, formSection, netSalaryBox, actionButtons);
+        mainContent.getChildren().addAll(title, infoSection, formSection, netSalaryBox);
         scrollPane.setContent(mainContent);
 
-        Scene scene = new Scene(scrollPane, 700, 800);
+        // Action Buttons (Fixed at bottom)
+        HBox actionButtons = createActionButtons(totalDays, actualWorkDays);
+        actionButtons.setPadding(new Insets(15, 30, 15, 30));
+        actionButtons.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1 0 0 0;"
+        );
+
+        root.setCenter(scrollPane);
+        root.setBottom(actionButtons);
+
+        Scene scene = new Scene(root, 700, 750);
         try {
             String css = MainUI.class.getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);
@@ -137,7 +152,8 @@ public class PayrollForm {
         lblName.setStyle("-fx-font-weight: bold; -fx-text-fill: #212121; -fx-font-size: 14px;");
         Label lblPos = new Label("Chức vụ: " + employee.getPosition());
         lblPos.setStyle("-fx-text-fill: #616161; -fx-font-size: 14px;");
-        Label lblBasicSalaryInfo = new Label("Lương cơ bản: " + String.format("%,.0f đ", employee.getBasicSalary()));
+        double basicSalary = existing != null ? existing.getBasicSalary() : employee.getBasicSalary();
+        Label lblBasicSalaryInfo = new Label("Lương cơ bản: " + String.format("%,.0f đ", basicSalary));
         lblBasicSalaryInfo.setStyle("-fx-text-fill: #616161; -fx-font-size: 14px;");
 
         infoCard.getChildren().addAll(lblName, lblPos, lblBasicSalaryInfo);
@@ -159,7 +175,6 @@ public class PayrollForm {
         Label sectionTitle = new Label("Thông Tin Lương & Phụ Cấp");
         sectionTitle.setStyle("-fx-font-size: 16px; -fx-text-fill: #1976D2; -fx-font-weight: 700; -fx-padding: 0 0 10 0;");
 
-        Payroll existing = new service.PayrollService().getPayroll(employee.getId(), payMonth);
         double respVal, othVal, consVal, servVal, otVal, insVal, advVal;
         
         if (existing != null) {
@@ -310,7 +325,7 @@ public class PayrollForm {
             double ins = parseDoubleSafe(txtInsurance.getText());
             double adv = parseDoubleSafe(txtAdvance.getText());
 
-            double basicSalary = employee.getBasicSalary();
+            double basicSalary = existing != null ? existing.getBasicSalary() : employee.getBasicSalary();
             int standardDays = totalDays - 2;
             double dailyRate = basicSalary / totalDays;
             double workDiff = actualWorkDays - standardDays;
@@ -318,7 +333,7 @@ public class PayrollForm {
             double net = basePortion + resp + oth + cons + serv + ot - ins - adv;
 
             // 1. Lưu vào bảng payroll (lịch sử tính lương của tháng)
-            Payroll pr = new Payroll(0, employee.getId(), employee.getName(), payMonth, totalDays, actualWorkDays, employee.getBasicSalary(),
+            Payroll pr = new Payroll(0, employee.getId(), employee.getName(), payMonth, totalDays, actualWorkDays, basicSalary,
                 resp, oth, cons, serv, ot, ins, adv, net, "");
             
             boolean success = new service.PayrollService().savePayroll(pr);

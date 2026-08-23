@@ -14,6 +14,12 @@ public class Package {
     private String status;
     private String category;
     private double costPrice;
+    private double costPriceMini;
+    private double costPriceSedan;
+    private double costPriceCuv;
+    private double costPriceSuv;
+    private double costPriceMpv;
+    private double costPricePickup;
     
     // Keep old field for backward compatibility
     @Deprecated
@@ -27,9 +33,11 @@ public class Package {
         this(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, savings, status, "chăm sóc", 0.0);
     }
 
-    // Main constructor with all fields
+    // Constructor with costPrice per vehicle type
     public Package(int id, String name, String description, double priceMini, double priceSedan,
-                   double priceCuv, double priceSuv, double priceMpv, double pricePickup, double savings, String status, String category, double costPrice) {
+                   double priceCuv, double priceSuv, double priceMpv, double pricePickup,
+                   double costPriceMini, double costPriceSedan, double costPriceCuv, double costPriceSuv, double costPriceMpv, double costPricePickup,
+                   double savings, String status, String category, double costPrice) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -39,10 +47,24 @@ public class Package {
         this.priceSuv = priceSuv;
         this.priceMpv = priceMpv;
         this.pricePickup = pricePickup;
+        this.costPriceMini = costPriceMini;
+        this.costPriceSedan = costPriceSedan;
+        this.costPriceCuv = costPriceCuv;
+        this.costPriceSuv = costPriceSuv;
+        this.costPriceMpv = costPriceMpv;
+        this.costPricePickup = costPricePickup;
         this.savings = savings;
         this.status = status;
         this.category = category;
         this.costPrice = costPrice;
+    }
+
+    // Constructor with single costPrice
+    public Package(int id, String name, String description, double priceMini, double priceSedan,
+                   double priceCuv, double priceSuv, double priceMpv, double pricePickup, double savings, String status, String category, double costPrice) {
+        this(id, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup,
+             costPrice, costPrice, costPrice, costPrice, costPrice, costPrice,
+             savings, status, category, costPrice);
     }
 
     // Old constructor for backward compatibility
@@ -90,6 +112,24 @@ public class Package {
     public double getPricePickup() { return pricePickup; }
     public void setPricePickup(double pricePickup) { this.pricePickup = pricePickup; }
 
+    public double getCostPriceMini() { return costPriceMini; }
+    public void setCostPriceMini(double costPriceMini) { this.costPriceMini = costPriceMini; }
+
+    public double getCostPriceSedan() { return costPriceSedan; }
+    public void setCostPriceSedan(double costPriceSedan) { this.costPriceSedan = costPriceSedan; }
+
+    public double getCostPriceCuv() { return costPriceCuv; }
+    public void setCostPriceCuv(double costPriceCuv) { this.costPriceCuv = costPriceCuv; }
+
+    public double getCostPriceSuv() { return costPriceSuv; }
+    public void setCostPriceSuv(double costPriceSuv) { this.costPriceSuv = costPriceSuv; }
+
+    public double getCostPriceMpv() { return costPriceMpv; }
+    public void setCostPriceMpv(double costPriceMpv) { this.costPriceMpv = costPriceMpv; }
+
+    public double getCostPricePickup() { return costPricePickup; }
+    public void setCostPricePickup(double costPricePickup) { this.costPricePickup = costPricePickup; }
+
     public double getSavings() { return savings; }
     public void setSavings(double savings) { this.savings = savings; }
 
@@ -113,6 +153,20 @@ public class Package {
             case "MPV": return priceMpv;
             case "PICKUP": return pricePickup;
             default: return priceSedan;
+        }
+    }
+
+    // Helper method to get cost price by vehicle type
+    public double getCostPriceByVehicleType(String vehicleType) {
+        if (vehicleType == null) return costPriceSedan > 0 ? costPriceSedan : costPrice;
+        switch (vehicleType.toUpperCase()) {
+            case "MINI": return costPriceMini > 0 ? costPriceMini : costPrice;
+            case "SEDAN": return costPriceSedan > 0 ? costPriceSedan : costPrice;
+            case "CUV": return costPriceCuv > 0 ? costPriceCuv : costPrice;
+            case "SUV": return costPriceSuv > 0 ? costPriceSuv : costPrice;
+            case "MPV": return costPriceMpv > 0 ? costPriceMpv : costPrice;
+            case "PICKUP": return costPricePickup > 0 ? costPricePickup : costPrice;
+            default: return costPriceSedan > 0 ? costPriceSedan : costPrice;
         }
     }
 

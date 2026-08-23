@@ -33,8 +33,13 @@ public class PackageForm {
     private TextField txtPriceSuv;
     private TextField txtPriceMpv;
     private TextField txtPricePickup;
+    private TextField txtCostMini;
+    private TextField txtCostSedan;
+    private TextField txtCostCuv;
+    private TextField txtCostSuv;
+    private TextField txtCostMpv;
+    private TextField txtCostPickup;
     private ComboBox<String> cbCategory;
-    private TextField txtCostPrice;
     private Runnable onSave;
     
     public PackageForm() {
@@ -58,6 +63,9 @@ public class PackageForm {
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle(isEdit ? "Sửa Gói Dịch Vụ" : "Thêm Gói Dịch Vụ Mới");
         
+        BorderPane root = new BorderPane();
+        root.setStyle("-fx-background-color: #f8f9fa;");
+
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: #f8f9fa; -fx-background-color: #f8f9fa;");
@@ -73,13 +81,22 @@ public class PackageForm {
         // Form Section
         VBox formSection = createFormSection();
         
-        // Action Buttons
-        HBox actionButtons = createActionButtons();
-        
-        mainContent.getChildren().addAll(title, formSection, actionButtons);
+        mainContent.getChildren().addAll(title, formSection);
         scrollPane.setContent(mainContent);
         
-        Scene scene = new Scene(scrollPane, 800, 950);
+        // Action Buttons (Fixed at bottom)
+        HBox actionButtons = createActionButtons();
+        actionButtons.setPadding(new Insets(15, 30, 15, 30));
+        actionButtons.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1 0 0 0;"
+        );
+
+        root.setCenter(scrollPane);
+        root.setBottom(actionButtons);
+
+        Scene scene = new Scene(root, 800, 800);
         try {
             String css = getClass().getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);
@@ -165,54 +182,42 @@ public class PackageForm {
         cbCategory.setMaxWidth(Double.MAX_VALUE);
         cbCategory.setValue(isEdit && existingPackage != null && existingPackage.getCategory() != null ? existingPackage.getCategory() : "chăm sóc");
         
-        // Cost Price
-        Label lblCostPrice = new Label("Chi phí/Giá vốn ước tính (Vật tư) *");
-        lblCostPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-font-family: 'Times New Roman';");
-        txtCostPrice = new TextField();
-        txtCostPrice.setPromptText("Nhập chi phí vật tư bỏ ra của gói (VD: 200000)");
-        txtCostPrice.setStyle(
-            "-fx-background-color: #f5f5f5;" +
-            "-fx-padding: 12px 15px;" +
-            "-fx-background-radius: 8;" +
-            "-fx-border-color: transparent;" +
-            "-fx-font-size: 14px;" +
-            "-fx-font-family: 'Times New Roman';"
-        );
-        txtCostPrice.setPrefWidth(500);
-        txtCostPrice.setMaxWidth(Double.MAX_VALUE);
-        if (isEdit && existingPackage != null) {
-            txtCostPrice.setText(String.format("%.0f", existingPackage.getCostPrice()));
-        } else {
-            txtCostPrice.setText("0");
-        }
-        txtCostPrice.focusedProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue) {
-                String text = txtCostPrice.getText().trim();
-                if (!text.isEmpty()) {
-                    String clean = text.replaceAll("[^\\d]", "");
-                    if (!text.equals(clean)) {
-                        txtCostPrice.setText(clean);
-                    }
-                }
-            }
-        });
-        UIUtils.setupIMEFix(txtCostPrice);
-        
         // Price section header
-        Label lblPriceHeader = new Label("💰 Giá Gói Theo Loại Xe (Tích chọn để nhập giá)");
+        Label lblPriceHeader = new Label("💰 Bảng Giá Theo Loại Xe (Tích chọn để nhập giá bán & chi phí vật tư)");
         lblPriceHeader.setStyle("-fx-font-size: 16px; -fx-text-fill: #1976D2; -fx-font-weight: 700; -fx-padding: 10 0 5 0; -fx-font-family: 'Times New Roman';");
         
         // Price list container
         VBox priceListContainer = new VBox(15);
         priceListContainer.setStyle("-fx-background-color: #FAFAFA; -fx-padding: 20; -fx-background-radius: 10; -fx-border-color: #E0E0E0; -fx-border-radius: 10;");
+        priceListContainer.setMaxWidth(Double.MAX_VALUE);
+
+        // Table Header Row for Vehicle Pricing
+        HBox headerRow = new HBox(12);
+        headerRow.setAlignment(Pos.CENTER_LEFT);
+        headerRow.setStyle("-fx-padding: 0 0 10 0; -fx-border-color: #E0E0E0; -fx-border-width: 0 0 1 0;");
+
+        Label colVehicle = new Label("Loại Xe");
+        colVehicle.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #424242; -fx-min-width: 90; -fx-font-family: 'Times New Roman';");
+
+        Label colPrice = new Label("Giá Bán Gói (VNĐ)");
+        colPrice.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #1976D2; -fx-font-family: 'Times New Roman';");
+        HBox.setHgrow(colPrice, Priority.ALWAYS);
+        colPrice.setMaxWidth(Double.MAX_VALUE);
+
+        Label colCost = new Label("Chi Phí Vật Tư / Giá Vốn (VNĐ)");
+        colCost.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #D84315; -fx-font-family: 'Times New Roman';");
+        HBox.setHgrow(colCost, Priority.ALWAYS);
+        colCost.setMaxWidth(Double.MAX_VALUE);
+
+        headerRow.getChildren().addAll(colVehicle, colPrice, colCost);
+        priceListContainer.getChildren().add(headerRow);
         
-        // Price for Mini
+        // Price & Cost for Mini
         chkMini = new CheckBox("Mini");
-        chkMini.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120; -fx-font-family: 'Times New Roman';");
+        chkMini.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90; -fx-font-family: 'Times New Roman';");
         txtPriceMini = new TextField();
-        txtPriceMini.setPromptText("96000");
-        txtPriceMini.setStyle("-fx-background-color: #E3F2FD; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-font-family: 'Times New Roman';");
-        txtPriceMini.setPrefWidth(300);
+        txtPriceMini.setPromptText("Giá bán (VD: 96000)");
+        txtPriceMini.setStyle("-fx-background-color: #E3F2FD; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
         txtPriceMini.visibleProperty().bind(chkMini.selectedProperty());
         txtPriceMini.managedProperty().bind(chkMini.selectedProperty());
         txtPriceMini.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -227,23 +232,45 @@ public class PackageForm {
             }
         });
         UIUtils.setupIMEFix(txtPriceMini);
-        HBox miniBox = new HBox(15);
+
+        txtCostMini = new TextField();
+        txtCostMini.setPromptText("Chi phí vật tư (VD: 20000)");
+        txtCostMini.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
+        txtCostMini.visibleProperty().bind(chkMini.selectedProperty());
+        txtCostMini.managedProperty().bind(chkMini.selectedProperty());
+        txtCostMini.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostMini.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostMini.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostMini);
+
+        HBox miniBox = new HBox(12);
         miniBox.setAlignment(Pos.CENTER_LEFT);
-        miniBox.getChildren().addAll(chkMini, txtPriceMini);
+        HBox.setHgrow(txtPriceMini, Priority.ALWAYS);
+        HBox.setHgrow(txtCostMini, Priority.ALWAYS);
+        miniBox.getChildren().addAll(chkMini, txtPriceMini, txtCostMini);
         if (isEdit && existingPackage != null && existingPackage.getPriceMini() > 0) {
             chkMini.setSelected(true);
             txtPriceMini.setText(String.format("%.0f", existingPackage.getPriceMini()));
+            txtCostMini.setText(String.format("%.0f", existingPackage.getCostPriceMini() > 0 ? existingPackage.getCostPriceMini() : existingPackage.getCostPrice()));
         } else {
             chkMini.setSelected(false);
+            txtCostMini.setText("0");
         }
         
-        // Price for Sedan
+        // Price & Cost for Sedan
         chkSedan = new CheckBox("Sedan");
-        chkSedan.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120; -fx-font-family: 'Times New Roman';");
+        chkSedan.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90; -fx-font-family: 'Times New Roman';");
         txtPriceSedan = new TextField();
-        txtPriceSedan.setPromptText("120000");
-        txtPriceSedan.setStyle("-fx-background-color: #E8F5E9; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-font-family: 'Times New Roman';");
-        txtPriceSedan.setPrefWidth(300);
+        txtPriceSedan.setPromptText("Giá bán (VD: 120000)");
+        txtPriceSedan.setStyle("-fx-background-color: #E8F5E9; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
         txtPriceSedan.visibleProperty().bind(chkSedan.selectedProperty());
         txtPriceSedan.managedProperty().bind(chkSedan.selectedProperty());
         txtPriceSedan.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -258,23 +285,45 @@ public class PackageForm {
             }
         });
         UIUtils.setupIMEFix(txtPriceSedan);
-        HBox sedanBox = new HBox(15);
+
+        txtCostSedan = new TextField();
+        txtCostSedan.setPromptText("Chi phí vật tư (VD: 25000)");
+        txtCostSedan.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
+        txtCostSedan.visibleProperty().bind(chkSedan.selectedProperty());
+        txtCostSedan.managedProperty().bind(chkSedan.selectedProperty());
+        txtCostSedan.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostSedan.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostSedan.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostSedan);
+
+        HBox sedanBox = new HBox(12);
         sedanBox.setAlignment(Pos.CENTER_LEFT);
-        sedanBox.getChildren().addAll(chkSedan, txtPriceSedan);
+        HBox.setHgrow(txtPriceSedan, Priority.ALWAYS);
+        HBox.setHgrow(txtCostSedan, Priority.ALWAYS);
+        sedanBox.getChildren().addAll(chkSedan, txtPriceSedan, txtCostSedan);
         if (isEdit && existingPackage != null && existingPackage.getPriceSedan() > 0) {
             chkSedan.setSelected(true);
             txtPriceSedan.setText(String.format("%.0f", existingPackage.getPriceSedan()));
+            txtCostSedan.setText(String.format("%.0f", existingPackage.getCostPriceSedan() > 0 ? existingPackage.getCostPriceSedan() : existingPackage.getCostPrice()));
         } else {
             chkSedan.setSelected(false);
+            txtCostSedan.setText("0");
         }
         
-        // Price for CUV
+        // Price & Cost for CUV
         chkCuv = new CheckBox("CUV");
-        chkCuv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120; -fx-font-family: 'Times New Roman';");
+        chkCuv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90; -fx-font-family: 'Times New Roman';");
         txtPriceCuv = new TextField();
-        txtPriceCuv.setPromptText("180000");
-        txtPriceCuv.setStyle("-fx-background-color: #FFF3E0; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-font-family: 'Times New Roman';");
-        txtPriceCuv.setPrefWidth(300);
+        txtPriceCuv.setPromptText("Giá bán (VD: 180000)");
+        txtPriceCuv.setStyle("-fx-background-color: #FFF3E0; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
         txtPriceCuv.visibleProperty().bind(chkCuv.selectedProperty());
         txtPriceCuv.managedProperty().bind(chkCuv.selectedProperty());
         txtPriceCuv.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -289,23 +338,45 @@ public class PackageForm {
             }
         });
         UIUtils.setupIMEFix(txtPriceCuv);
-        HBox cuvBox = new HBox(15);
+
+        txtCostCuv = new TextField();
+        txtCostCuv.setPromptText("Chi phí vật tư (VD: 35000)");
+        txtCostCuv.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
+        txtCostCuv.visibleProperty().bind(chkCuv.selectedProperty());
+        txtCostCuv.managedProperty().bind(chkCuv.selectedProperty());
+        txtCostCuv.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostCuv.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostCuv.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostCuv);
+
+        HBox cuvBox = new HBox(12);
         cuvBox.setAlignment(Pos.CENTER_LEFT);
-        cuvBox.getChildren().addAll(chkCuv, txtPriceCuv);
+        HBox.setHgrow(txtPriceCuv, Priority.ALWAYS);
+        HBox.setHgrow(txtCostCuv, Priority.ALWAYS);
+        cuvBox.getChildren().addAll(chkCuv, txtPriceCuv, txtCostCuv);
         if (isEdit && existingPackage != null && existingPackage.getPriceCuv() > 0) {
             chkCuv.setSelected(true);
             txtPriceCuv.setText(String.format("%.0f", existingPackage.getPriceCuv()));
+            txtCostCuv.setText(String.format("%.0f", existingPackage.getCostPriceCuv() > 0 ? existingPackage.getCostPriceCuv() : existingPackage.getCostPrice()));
         } else {
             chkCuv.setSelected(false);
+            txtCostCuv.setText("0");
         }
         
-        // Price for SUV
+        // Price & Cost for SUV
         chkSuv = new CheckBox("SUV");
-        chkSuv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120; -fx-font-family: 'Times New Roman';");
+        chkSuv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90; -fx-font-family: 'Times New Roman';");
         txtPriceSuv = new TextField();
-        txtPriceSuv.setPromptText("240000");
-        txtPriceSuv.setStyle("-fx-background-color: #FCE4EC; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-font-family: 'Times New Roman';");
-        txtPriceSuv.setPrefWidth(300);
+        txtPriceSuv.setPromptText("Giá bán (VD: 240000)");
+        txtPriceSuv.setStyle("-fx-background-color: #FCE4EC; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
         txtPriceSuv.visibleProperty().bind(chkSuv.selectedProperty());
         txtPriceSuv.managedProperty().bind(chkSuv.selectedProperty());
         txtPriceSuv.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -320,23 +391,45 @@ public class PackageForm {
             }
         });
         UIUtils.setupIMEFix(txtPriceSuv);
-        HBox suvBox = new HBox(15);
+
+        txtCostSuv = new TextField();
+        txtCostSuv.setPromptText("Chi phí vật tư (VD: 45000)");
+        txtCostSuv.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
+        txtCostSuv.visibleProperty().bind(chkSuv.selectedProperty());
+        txtCostSuv.managedProperty().bind(chkSuv.selectedProperty());
+        txtCostSuv.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostSuv.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostSuv.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostSuv);
+
+        HBox suvBox = new HBox(12);
         suvBox.setAlignment(Pos.CENTER_LEFT);
-        suvBox.getChildren().addAll(chkSuv, txtPriceSuv);
+        HBox.setHgrow(txtPriceSuv, Priority.ALWAYS);
+        HBox.setHgrow(txtCostSuv, Priority.ALWAYS);
+        suvBox.getChildren().addAll(chkSuv, txtPriceSuv, txtCostSuv);
         if (isEdit && existingPackage != null && existingPackage.getPriceSuv() > 0) {
             chkSuv.setSelected(true);
             txtPriceSuv.setText(String.format("%.0f", existingPackage.getPriceSuv()));
+            txtCostSuv.setText(String.format("%.0f", existingPackage.getCostPriceSuv() > 0 ? existingPackage.getCostPriceSuv() : existingPackage.getCostPrice()));
         } else {
             chkSuv.setSelected(false);
+            txtCostSuv.setText("0");
         }
         
-        // Price for MPV
+        // Price & Cost for MPV
         chkMpv = new CheckBox("MPV");
-        chkMpv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120; -fx-font-family: 'Times New Roman';");
+        chkMpv.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90; -fx-font-family: 'Times New Roman';");
         txtPriceMpv = new TextField();
-        txtPriceMpv.setPromptText("252000");
-        txtPriceMpv.setStyle("-fx-background-color: #E0F7FA; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-font-family: 'Times New Roman';");
-        txtPriceMpv.setPrefWidth(300);
+        txtPriceMpv.setPromptText("Giá bán (VD: 252000)");
+        txtPriceMpv.setStyle("-fx-background-color: #E0F7FA; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
         txtPriceMpv.visibleProperty().bind(chkMpv.selectedProperty());
         txtPriceMpv.managedProperty().bind(chkMpv.selectedProperty());
         txtPriceMpv.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -351,23 +444,45 @@ public class PackageForm {
             }
         });
         UIUtils.setupIMEFix(txtPriceMpv);
-        HBox mpvBox = new HBox(15);
+
+        txtCostMpv = new TextField();
+        txtCostMpv.setPromptText("Chi phí vật tư (VD: 50000)");
+        txtCostMpv.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
+        txtCostMpv.visibleProperty().bind(chkMpv.selectedProperty());
+        txtCostMpv.managedProperty().bind(chkMpv.selectedProperty());
+        txtCostMpv.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostMpv.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostMpv.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostMpv);
+
+        HBox mpvBox = new HBox(12);
         mpvBox.setAlignment(Pos.CENTER_LEFT);
-        mpvBox.getChildren().addAll(chkMpv, txtPriceMpv);
+        HBox.setHgrow(txtPriceMpv, Priority.ALWAYS);
+        HBox.setHgrow(txtCostMpv, Priority.ALWAYS);
+        mpvBox.getChildren().addAll(chkMpv, txtPriceMpv, txtCostMpv);
         if (isEdit && existingPackage != null && existingPackage.getPriceMpv() > 0) {
             chkMpv.setSelected(true);
             txtPriceMpv.setText(String.format("%.0f", existingPackage.getPriceMpv()));
+            txtCostMpv.setText(String.format("%.0f", existingPackage.getCostPriceMpv() > 0 ? existingPackage.getCostPriceMpv() : existingPackage.getCostPrice()));
         } else {
             chkMpv.setSelected(false);
+            txtCostMpv.setText("0");
         }
         
-        // Price for Pickup
+        // Price & Cost for Pickup
         chkPickup = new CheckBox("Pickup");
-        chkPickup.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 120; -fx-font-family: 'Times New Roman';");
+        chkPickup.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600; -fx-min-width: 90; -fx-font-family: 'Times New Roman';");
         txtPricePickup = new TextField();
-        txtPricePickup.setPromptText("264000");
-        txtPricePickup.setStyle("-fx-background-color: #F3E5F5; -fx-padding: 10px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-font-family: 'Times New Roman';");
-        txtPricePickup.setPrefWidth(300);
+        txtPricePickup.setPromptText("Giá bán (VD: 264000)");
+        txtPricePickup.setStyle("-fx-background-color: #F3E5F5; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
         txtPricePickup.visibleProperty().bind(chkPickup.selectedProperty());
         txtPricePickup.managedProperty().bind(chkPickup.selectedProperty());
         txtPricePickup.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -382,14 +497,37 @@ public class PackageForm {
             }
         });
         UIUtils.setupIMEFix(txtPricePickup);
-        HBox pickupBox = new HBox(15);
+
+        txtCostPickup = new TextField();
+        txtCostPickup.setPromptText("Chi phí vật tư (VD: 55000)");
+        txtCostPickup.setStyle("-fx-background-color: #FFF9C4; -fx-padding: 10px 12px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 13px; -fx-font-family: 'Times New Roman';");
+        txtCostPickup.visibleProperty().bind(chkPickup.selectedProperty());
+        txtCostPickup.managedProperty().bind(chkPickup.selectedProperty());
+        txtCostPickup.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) {
+                String text = txtCostPickup.getText().trim();
+                if (!text.isEmpty()) {
+                    String clean = text.replaceAll("[^\\d]", "");
+                    if (!text.equals(clean)) {
+                        txtCostPickup.setText(clean);
+                    }
+                }
+            }
+        });
+        UIUtils.setupIMEFix(txtCostPickup);
+
+        HBox pickupBox = new HBox(12);
         pickupBox.setAlignment(Pos.CENTER_LEFT);
-        pickupBox.getChildren().addAll(chkPickup, txtPricePickup);
+        HBox.setHgrow(txtPricePickup, Priority.ALWAYS);
+        HBox.setHgrow(txtCostPickup, Priority.ALWAYS);
+        pickupBox.getChildren().addAll(chkPickup, txtPricePickup, txtCostPickup);
         if (isEdit && existingPackage != null && existingPackage.getPricePickup() > 0) {
             chkPickup.setSelected(true);
             txtPricePickup.setText(String.format("%.0f", existingPackage.getPricePickup()));
+            txtCostPickup.setText(String.format("%.0f", existingPackage.getCostPricePickup() > 0 ? existingPackage.getCostPricePickup() : existingPackage.getCostPrice()));
         } else {
             chkPickup.setSelected(false);
+            txtCostPickup.setText("0");
         }
         
         priceListContainer.getChildren().addAll(miniBox, sedanBox, cuvBox, suvBox, mpvBox, pickupBox);
@@ -419,8 +557,6 @@ public class PackageForm {
         grid.add(txtDesc, 0, row++);
         grid.add(lblCategory, 0, row++);
         grid.add(cbCategory, 0, row++);
-        grid.add(lblCostPrice, 0, row++);
-        grid.add(txtCostPrice, 0, row++);
         grid.add(lblPriceHeader, 0, row++);
         grid.add(priceListContainer, 0, row++);
         grid.add(lblStatus, 0, row++);
@@ -476,7 +612,7 @@ public class PackageForm {
                 return;
             }
             
-            double priceMini = 0;
+            double priceMini = 0, costMini = 0;
             if (chkMini.isSelected()) {
                 String val = txtPriceMini.getText().trim();
                 if (val.isEmpty()) {
@@ -489,9 +625,18 @@ public class PackageForm {
                     showAlert("Lỗi", "Giá xe Mini phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String cval = txtCostMini.getText().trim();
+                if (!cval.isEmpty()) {
+                    try {
+                        costMini = Double.parseDouble(cval);
+                    } catch (NumberFormatException ex) {
+                        showAlert("Lỗi", "Chi phí vật tư xe Mini phải là số hợp lệ!", Alert.AlertType.ERROR);
+                        return;
+                    }
+                }
             }
             
-            double priceSedan = 0;
+            double priceSedan = 0, costSedan = 0;
             if (chkSedan.isSelected()) {
                 String val = txtPriceSedan.getText().trim();
                 if (val.isEmpty()) {
@@ -504,9 +649,18 @@ public class PackageForm {
                     showAlert("Lỗi", "Giá xe Sedan phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String cval = txtCostSedan.getText().trim();
+                if (!cval.isEmpty()) {
+                    try {
+                        costSedan = Double.parseDouble(cval);
+                    } catch (NumberFormatException ex) {
+                        showAlert("Lỗi", "Chi phí vật tư xe Sedan phải là số hợp lệ!", Alert.AlertType.ERROR);
+                        return;
+                    }
+                }
             }
             
-            double priceCuv = 0;
+            double priceCuv = 0, costCuv = 0;
             if (chkCuv.isSelected()) {
                 String val = txtPriceCuv.getText().trim();
                 if (val.isEmpty()) {
@@ -519,9 +673,18 @@ public class PackageForm {
                     showAlert("Lỗi", "Giá xe CUV phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String cval = txtCostCuv.getText().trim();
+                if (!cval.isEmpty()) {
+                    try {
+                        costCuv = Double.parseDouble(cval);
+                    } catch (NumberFormatException ex) {
+                        showAlert("Lỗi", "Chi phí vật tư xe CUV phải là số hợp lệ!", Alert.AlertType.ERROR);
+                        return;
+                    }
+                }
             }
             
-            double priceSuv = 0;
+            double priceSuv = 0, costSuv = 0;
             if (chkSuv.isSelected()) {
                 String val = txtPriceSuv.getText().trim();
                 if (val.isEmpty()) {
@@ -534,9 +697,18 @@ public class PackageForm {
                     showAlert("Lỗi", "Giá xe SUV phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String cval = txtCostSuv.getText().trim();
+                if (!cval.isEmpty()) {
+                    try {
+                        costSuv = Double.parseDouble(cval);
+                    } catch (NumberFormatException ex) {
+                        showAlert("Lỗi", "Chi phí vật tư xe SUV phải là số hợp lệ!", Alert.AlertType.ERROR);
+                        return;
+                    }
+                }
             }
             
-            double priceMpv = 0;
+            double priceMpv = 0, costMpv = 0;
             if (chkMpv.isSelected()) {
                 String val = txtPriceMpv.getText().trim();
                 if (val.isEmpty()) {
@@ -549,9 +721,18 @@ public class PackageForm {
                     showAlert("Lỗi", "Giá xe MPV phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String cval = txtCostMpv.getText().trim();
+                if (!cval.isEmpty()) {
+                    try {
+                        costMpv = Double.parseDouble(cval);
+                    } catch (NumberFormatException ex) {
+                        showAlert("Lỗi", "Chi phí vật tư xe MPV phải là số hợp lệ!", Alert.AlertType.ERROR);
+                        return;
+                    }
+                }
             }
             
-            double pricePickup = 0;
+            double pricePickup = 0, costPickup = 0;
             if (chkPickup.isSelected()) {
                 String val = txtPricePickup.getText().trim();
                 if (val.isEmpty()) {
@@ -564,36 +745,38 @@ public class PackageForm {
                     showAlert("Lỗi", "Giá xe Pickup phải là số hợp lệ!", Alert.AlertType.ERROR);
                     return;
                 }
+                String cval = txtCostPickup.getText().trim();
+                if (!cval.isEmpty()) {
+                    try {
+                        costPickup = Double.parseDouble(cval);
+                    } catch (NumberFormatException ex) {
+                        showAlert("Lỗi", "Chi phí vật tư xe Pickup phải là số hợp lệ!", Alert.AlertType.ERROR);
+                        return;
+                    }
+                }
             }
             
             try {
                 String name = txtName.getText().trim();
                 String description = txtDesc.getText().trim();
-                
-                // Set avgSavings to 0 since we're not tracking individual services
                 double avgSavings = 0;
-                
                 String status = rbActive.isSelected() ? "Đang bán" : "Tạm dừng";
-                
                 String category = cbCategory.getValue();
-                double costPrice = 0;
-                String costVal = txtCostPrice.getText().trim();
-                if (!costVal.isEmpty()) {
-                    try {
-                        costPrice = Double.parseDouble(costVal);
-                    } catch (NumberFormatException ex) {
-                        showAlert("Lỗi", "Chi phí vật tư của gói phải là số hợp lệ!", Alert.AlertType.ERROR);
-                        return;
-                    }
-                }
+                double avgCost = (costMini + costSedan + costCuv + costSuv + costMpv + costPickup) / 6.0;
                 
                 PackageService packageService = new PackageService();
                 boolean success;
                 
                 if (isEdit) {
-                    success = packageService.updatePackage(packageId, name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, avgSavings, status, category, costPrice);
+                    success = packageService.updatePackage(packageId, name, description,
+                                                           priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup,
+                                                           costMini, costSedan, costCuv, costSuv, costMpv, costPickup,
+                                                           avgSavings, status, category, avgCost);
                 } else {
-                    success = packageService.addPackage(name, description, priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup, avgSavings, status, category, costPrice);
+                    success = packageService.addPackage(name, description,
+                                                        priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup,
+                                                        costMini, costSedan, costCuv, costSuv, costMpv, costPickup,
+                                                        avgSavings, status, category, avgCost);
                 }
                 
                 if (success) {

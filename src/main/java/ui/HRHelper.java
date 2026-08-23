@@ -585,7 +585,7 @@ public class HRHelper {
                 double workDays = attService.getActualWorkDays(emp.getId(), monthStr);
                 Payroll savedPr = prService.getPayroll(emp.getId(), monthStr);
                 
-                double basicSalary = emp.getBasicSalary();
+                double basicSalary = savedPr != null ? savedPr.getBasicSalary() : emp.getBasicSalary();
                 int standardDays = totalDays - 2;
                 double dailyRate = basicSalary / totalDays;
                 double workDiff = workDays - standardDays;
@@ -612,7 +612,7 @@ public class HRHelper {
                 Label lblCode = createLabel(emp.getEmployeeCode(), 70, Pos.CENTER_LEFT, "-fx-font-weight: bold; -fx-text-fill: #1976D2; -fx-font-size: 13px;");
                 Label lblName = createLabel(emp.getName(), 140, Pos.CENTER_LEFT, "-fx-font-weight: 500; -fx-text-fill: #212121; -fx-font-size: 13px;");
                 Label lblPos = createLabel(emp.getPosition(), 100, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
-                Label lblBasic = createLabel(String.format("%,.0f đ", emp.getBasicSalary()), 110, Pos.CENTER_LEFT, "-fx-text-fill: #212121; -fx-font-size: 13px;");
+                Label lblBasic = createLabel(String.format("%,.0f đ", basicSalary), 110, Pos.CENTER_LEFT, "-fx-text-fill: #212121; -fx-font-size: 13px;");
                 Label lblDays = createLabel(String.valueOf(totalDays), 60, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
                 Label lblWork = createLabel(String.format("%.1f", workDays), 60, Pos.CENTER, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
 
@@ -737,9 +737,8 @@ public class HRHelper {
             addInfo.accept("Mã nhân viên", emp.getEmployeeCode());
             addInfo.accept("Lương cơ bản cố định", String.format("%,.0f đ", basicSalary));
             addInfo.accept("Số ngày trong tháng", totalDays + " ngày");
-            addInfo.accept("Mức lương một ngày", String.format("%,.0f đ", dailyRate));
-            
             addInfo.accept("Công chuẩn tháng", standardDays + " công");
+            
             addInfo.accept("Ngày công thực tế", String.format(workDays % 1 == 0 ? "%.0f công" : "%.1f công", workDays));
             addInfo.accept("Công vượt chuẩn (+)", String.format(overStandard % 1 == 0 ? "%.0f công" : "%.1f công", overStandard));
             addInfo.accept("Công bị khấu trừ (-)", String.format(deductionDays % 1 == 0 ? "%.0f công" : "%.1f công", deductionDays));
@@ -1021,7 +1020,7 @@ public class HRHelper {
                 double workDays = attService.getActualWorkDays(emp.getId(), payMonth);
                 Payroll pr = prService.getPayroll(emp.getId(), payMonth);
                 
-                double basicSalary = emp.getBasicSalary();
+                double basicSalary = pr != null ? pr.getBasicSalary() : emp.getBasicSalary();
                 double baseWage = (basicSalary / totalDaysInMonth) * workDays;
                 
                 double resp, oth, cons, serv, ot, ins, adv;

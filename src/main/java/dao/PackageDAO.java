@@ -27,6 +27,12 @@ public class PackageDAO {
                     rs.getDouble("price_suv"),
                     rs.getDouble("price_mpv"),
                     rs.getDouble("price_pickup"),
+                    rs.getDouble("cost_price_mini"),
+                    rs.getDouble("cost_price_sedan"),
+                    rs.getDouble("cost_price_cuv"),
+                    rs.getDouble("cost_price_suv"),
+                    rs.getDouble("cost_price_mpv"),
+                    rs.getDouble("cost_price_pickup"),
                     rs.getDouble("savings"),
                     rs.getString("status"),
                     rs.getString("category"),
@@ -60,6 +66,12 @@ public class PackageDAO {
                     rs.getDouble("price_suv"),
                     rs.getDouble("price_mpv"),
                     rs.getDouble("price_pickup"),
+                    rs.getDouble("cost_price_mini"),
+                    rs.getDouble("cost_price_sedan"),
+                    rs.getDouble("cost_price_cuv"),
+                    rs.getDouble("cost_price_suv"),
+                    rs.getDouble("cost_price_mpv"),
+                    rs.getDouble("cost_price_pickup"),
                     rs.getDouble("savings"),
                     rs.getString("status"),
                     rs.getString("category"),
@@ -73,24 +85,32 @@ public class PackageDAO {
     }
     
     public boolean addPackage(Package pkg) {
-        String sql = "INSERT INTO packages (name, description, price, price_mini, price_sedan, price_cuv, price_suv, price_mpv, price_pickup, savings, status, category, cost_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO packages (name, description, price, price_mini, price_sedan, price_cuv, price_suv, price_mpv, price_pickup, " +
+                     "cost_price_mini, cost_price_sedan, cost_price_cuv, cost_price_suv, cost_price_mpv, cost_price_pickup, " +
+                     "savings, status, category, cost_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, pkg.getName());
             pstmt.setString(2, pkg.getDescription());
-            pstmt.setDouble(3, pkg.getPriceSedan()); // Use sedan price as the legacy price value
+            pstmt.setDouble(3, pkg.getPriceSedan());
             pstmt.setDouble(4, pkg.getPriceMini());
             pstmt.setDouble(5, pkg.getPriceSedan());
             pstmt.setDouble(6, pkg.getPriceCuv());
             pstmt.setDouble(7, pkg.getPriceSuv());
             pstmt.setDouble(8, pkg.getPriceMpv());
             pstmt.setDouble(9, pkg.getPricePickup());
-            pstmt.setDouble(10, pkg.getSavings());
-            pstmt.setString(11, pkg.getStatus());
-            pstmt.setString(12, pkg.getCategory());
-            pstmt.setDouble(13, pkg.getCostPrice());
+            pstmt.setDouble(10, pkg.getCostPriceMini());
+            pstmt.setDouble(11, pkg.getCostPriceSedan());
+            pstmt.setDouble(12, pkg.getCostPriceCuv());
+            pstmt.setDouble(13, pkg.getCostPriceSuv());
+            pstmt.setDouble(14, pkg.getCostPriceMpv());
+            pstmt.setDouble(15, pkg.getCostPricePickup());
+            pstmt.setDouble(16, pkg.getSavings());
+            pstmt.setString(17, pkg.getStatus());
+            pstmt.setString(18, pkg.getCategory());
+            pstmt.setDouble(19, pkg.getCostPrice());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -103,25 +123,33 @@ public class PackageDAO {
     }
     
     public boolean updatePackage(Package pkg) {
-        String sql = "UPDATE packages SET name = ?, description = ?, price = ?, price_mini = ?, price_sedan = ?, price_cuv = ?, price_suv = ?, price_mpv = ?, price_pickup = ?, savings = ?, status = ?, category = ?, cost_price = ? WHERE id = ?";
+        String sql = "UPDATE packages SET name = ?, description = ?, price = ?, price_mini = ?, price_sedan = ?, price_cuv = ?, price_suv = ?, price_mpv = ?, price_pickup = ?, " +
+                     "cost_price_mini = ?, cost_price_sedan = ?, cost_price_cuv = ?, cost_price_suv = ?, cost_price_mpv = ?, cost_price_pickup = ?, " +
+                     "savings = ?, status = ?, category = ?, cost_price = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setString(1, pkg.getName());
             pstmt.setString(2, pkg.getDescription());
-            pstmt.setDouble(3, pkg.getPriceSedan()); // Use sedan price as the legacy price value
+            pstmt.setDouble(3, pkg.getPriceSedan());
             pstmt.setDouble(4, pkg.getPriceMini());
             pstmt.setDouble(5, pkg.getPriceSedan());
             pstmt.setDouble(6, pkg.getPriceCuv());
             pstmt.setDouble(7, pkg.getPriceSuv());
             pstmt.setDouble(8, pkg.getPriceMpv());
             pstmt.setDouble(9, pkg.getPricePickup());
-            pstmt.setDouble(10, pkg.getSavings());
-            pstmt.setString(11, pkg.getStatus());
-            pstmt.setString(12, pkg.getCategory());
-            pstmt.setDouble(13, pkg.getCostPrice());
-            pstmt.setInt(14, pkg.getId());
+            pstmt.setDouble(10, pkg.getCostPriceMini());
+            pstmt.setDouble(11, pkg.getCostPriceSedan());
+            pstmt.setDouble(12, pkg.getCostPriceCuv());
+            pstmt.setDouble(13, pkg.getCostPriceSuv());
+            pstmt.setDouble(14, pkg.getCostPriceMpv());
+            pstmt.setDouble(15, pkg.getCostPricePickup());
+            pstmt.setDouble(16, pkg.getSavings());
+            pstmt.setString(17, pkg.getStatus());
+            pstmt.setString(18, pkg.getCategory());
+            pstmt.setDouble(19, pkg.getCostPrice());
+            pstmt.setInt(20, pkg.getId());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
