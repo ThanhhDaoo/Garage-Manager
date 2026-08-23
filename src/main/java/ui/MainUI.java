@@ -351,6 +351,20 @@ public class MainUI extends Application {
         return color.replace("67", "76").replace("ea", "4b");
     }
 
+    private String formatDateTimeToDMY(String input) {
+        if (input == null || input.trim().isEmpty()) return "N/A";
+        String str = input.trim();
+        String[] parts = str.split(" ");
+        String datePart = parts[0];
+        String timePart = parts.length > 1 ? parts[1] : "";
+        String[] dateParts = datePart.split("-");
+        if (dateParts.length == 3 && dateParts[0].length() == 4) {
+            String formattedDate = dateParts[2] + "/" + dateParts[1] + "/" + dateParts[0];
+            return timePart.isEmpty() ? formattedDate : formattedDate + " " + timePart;
+        }
+        return str;
+    }
+
     private boolean matchesTimeFilters(String dateStr, String period, String month, String year) {
         boolean hasPeriodFilter = period != null && !period.trim().isEmpty() && !period.contains("Tất cả");
         boolean hasYearFilter = year != null && !year.trim().isEmpty() && !year.contains("Tất cả");
@@ -4557,7 +4571,7 @@ public class MainUI extends Application {
         Label customerTitle = new Label("Thông Tin Khách Hàng & Hóa Đơn");
         customerTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #212121;");
         
-        String createdDateStr = invoice.getCreatedAt() != null && !invoice.getCreatedAt().trim().isEmpty() ? invoice.getCreatedAt() : "N/A";
+        String createdDateStr = formatDateTimeToDMY(invoice.getCreatedAt());
         Label lblCreatedDate = new Label("📅 Ngày tạo hóa đơn: " + createdDateStr);
         lblCreatedDate.setStyle("-fx-font-size: 14px; -fx-text-fill: #1976D2; -fx-font-weight: 600;");
 
