@@ -265,10 +265,50 @@ public class CreateInvoiceForm {
             for (model.InvoiceItem item : items) {
                 if ("service".equals(item.getItemType())) {
                     addSelectedService(item.getItemId() != null ? item.getItemId() : 0, item.getItemName(), item.getUnitPrice());
+                    if (!selectedServices.isEmpty()) {
+                        restoreItemDiscount(selectedServices.get(selectedServices.size() - 1), item);
+                    }
                 } else if ("package".equals(item.getItemType())) {
                     addSelectedPackage(item.getItemId() != null ? item.getItemId() : 0, item.getItemName(), item.getUnitPrice());
+                    if (!selectedPackages.isEmpty()) {
+                        restoreItemDiscount(selectedPackages.get(selectedPackages.size() - 1), item);
+                    }
                 } else if ("product".equals(item.getItemType())) {
                     addSelectedProduct(item.getItemId() != null ? item.getItemId() : 0, item.getItemName(), item.getUnitPrice(), item.getQuantity(), item.getIsHidden());
+                    if (!selectedProducts.isEmpty()) {
+                        restoreItemDiscount(selectedProducts.get(selectedProducts.size() - 1), item);
+                    }
+                }
+            }
+
+            double sumRestoredDiscount = 0;
+            for (Map<String, Object> s : selectedServices) {
+                double bp = (Double) s.get("price");
+                sumRestoredDiscount += getItemDiscountAmount(s, bp);
+            }
+            for (Map<String, Object> p : selectedPackages) {
+                double bp = (Double) p.get("price");
+                sumRestoredDiscount += getItemDiscountAmount(p, bp);
+            }
+            for (Map<String, Object> pr : selectedProducts) {
+                double bp = (Double) pr.get("totalPrice");
+                sumRestoredDiscount += getItemDiscountAmount(pr, bp);
+            }
+
+            if (sumRestoredDiscount < 0.01 && existingInvoice.getDiscount() > 0.01) {
+                Map<String, Object> firstItem = null;
+                if (!selectedServices.isEmpty()) firstItem = selectedServices.get(0);
+                else if (!selectedPackages.isEmpty()) firstItem = selectedPackages.get(0);
+                else if (!selectedProducts.isEmpty()) firstItem = selectedProducts.get(0);
+                
+                if (firstItem != null) {
+                    javafx.scene.Node node = (javafx.scene.Node) firstItem.get("hbox");
+                    if (node != null) {
+                        TextField txtCustom = (TextField) node.getProperties().get("customDiscountField");
+                        if (txtCustom != null) {
+                            txtCustom.setText(String.format(java.util.Locale.US, "%.0f", existingInvoice.getDiscount()));
+                        }
+                    }
                 }
             }
             
@@ -289,6 +329,31 @@ public class CreateInvoiceForm {
             isLoadingInvoice = false;
         }
     }
+
+    @SuppressWarnings("unchecked")
+    private void restoreItemDiscount(Map<String, Object> itemMap, model.InvoiceItem dbItem) {
+        if (itemMap == null || dbItem == null) return;
+        double originalTotal = dbItem.getUnitPrice() * dbItem.getQuantity();
+        double discountAmount = originalTotal - dbItem.getTotalPrice();
+        if (discountAmount > 0.01 && originalTotal > 0) {
+            javafx.scene.Node node = (javafx.scene.Node) itemMap.get("hbox");
+            if (node != null) {
+                ComboBox<String> combo = (ComboBox<String>) node.getProperties().get("discountCombo");
+                TextField txtCustom = (TextField) node.getProperties().get("customDiscountField");
+                
+                double pct = (discountAmount / originalTotal) * 100.0;
+                int roundedPct = (int) Math.round(pct);
+                String pctStr = roundedPct + "%";
+                
+                if (Math.abs(pct - roundedPct) < 0.01 && combo != null && combo.getItems().contains(pctStr)) {
+                    combo.setValue(pctStr);
+                } else if (txtCustom != null) {
+                    txtCustom.setText(String.format(java.util.Locale.US, "%.0f", discountAmount));
+                }
+            }
+        }
+    }
+
 
     private VBox createCustomerInfoSection() {
         VBox section = new VBox(15);
