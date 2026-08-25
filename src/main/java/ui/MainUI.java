@@ -52,6 +52,8 @@ public class MainUI extends Application {
     private String selectedPackageCategoryFilter = "Tất cả";
     private String currentServiceSearchText = "";
     private String currentPackageSearchText = "";
+    private volatile boolean isRefreshingService = false;
+    private volatile boolean isRefreshingPackage = false;
 
     @Override
     public void start(Stage stage) {
@@ -60,15 +62,6 @@ public class MainUI extends Application {
 
         mainLayout = new BorderPane();
         mainLayout.setStyle("-fx-background-color: #f8f9fa;");
-        mainLayout.setFocusTraversable(true);
-
-        // Deactivate any stale Cocoa NSTextInputContext when returning from modal stages
-        stage.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal && mainLayout != null) {
-                mainLayout.requestFocus();
-            }
-        });
-        
         HBox header = createModernHeader();
         mainLayout.setTop(header);
         
@@ -145,7 +138,7 @@ public class MainUI extends Application {
         TextField searchBox = new TextField();
         searchBox.setPromptText("🔍 Tìm kiếm...");
         searchBox.setPrefWidth(350);
-        searchBox.setFocusTraversable(false);
+        UIUtils.makeSafeSearchField(searchBox);
         searchBox.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-text-fill: #424242;" +
@@ -318,14 +311,10 @@ public class MainUI extends Application {
         
         btn.setOnMouseEntered(e -> {
             if (!btn.getStyle().contains("#E3F2FD")) {
-                btn.setStyle(btn.getStyle() + "-fx-background-color: #f5f5f5;");
+                btn.setOpacity(0.85);
             }
         });
-        btn.setOnMouseExited(e -> {
-            if (!btn.getStyle().contains("#E3F2FD")) {
-                btn.setStyle(btn.getStyle().replace("-fx-background-color: #f5f5f5;", "-fx-background-color: transparent;"));
-            }
-        });
+        btn.setOnMouseExited(e -> btn.setOpacity(1.0));
         
         return btn;
     }
@@ -1166,13 +1155,8 @@ public class MainUI extends Application {
         btnNew.setOnMouseEntered(e -> btnNew.setOpacity(0.9));
         btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
         btnNew.setOnAction(e -> {
-            if (mainLayout != null) {
-                mainLayout.requestFocus();
-            }
-            javafx.application.Platform.runLater(() -> {
-                ServiceForm form = new ServiceForm(() -> refreshServiceTable(tableRows));
-                form.show();
-            });
+            ServiceForm form = new ServiceForm(() -> refreshServiceTable(tableRows));
+            form.showInOverlay(contentArea);
         });
         
         header.getChildren().addAll(title, spacer, btnNew);
@@ -1203,10 +1187,15 @@ public class MainUI extends Application {
         
         currentServiceSearchText = "";
         
-        // Add search listener
+        javafx.animation.PauseTransition searchDebounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(250));
+        searchDebounce.setOnFinished(e -> {
+            refreshServiceTableWithSearch(tableRows, currentServiceSearchText);
+        });
+        
+        // Add search listener with 250ms debounce (same pattern as Product management)
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
             currentServiceSearchText = newVal != null ? newVal : "";
-            refreshServiceTableWithSearch(tableRows, currentServiceSearchText);
+            searchDebounce.playFromStart();
         });
         
         selectedServiceCategoryFilter = "Tất cả"; // Reset bộ lọc khi hiển thị màn hình quản lý
@@ -1369,42 +1358,47 @@ public class MainUI extends Application {
     
     private void refreshServiceTable(VBox tableRows) {
         refreshServiceTableWithSearch(tableRows, currentServiceSearchText);
-        if (mainLayout != null) {
-            mainLayout.requestFocus();
-        }
     }
     
     private void refreshServiceTableWithSearch(VBox tableRows, String searchText) {
-        tableRows.getChildren().clear();
-        ServiceService serviceService = new ServiceService();
-        List<Service> services = serviceService.getAllServices();
-        
-        // Filter by search text
-        if (searchText != null && !searchText.trim().isEmpty()) {
-            String search = searchText.toLowerCase().trim();
-            services = services.stream()
-                .filter(s -> (s.getName() != null && s.getName().toLowerCase().contains(search)) || 
-                            (s.getDescription() != null && s.getDescription().toLowerCase().contains(search)))
-                .collect(java.util.stream.Collectors.toList());
+        if (isRefreshingService) {
+            return;
         }
+        isRefreshingService = true;
+        try {
+            tableRows.getChildren().clear();
+            ServiceService serviceService = new ServiceService();
+            List<Service> services = serviceService.getAllServices();
         
-        // Filter by selected category
-        if (selectedServiceCategoryFilter != null && !"Tất cả".equalsIgnoreCase(selectedServiceCategoryFilter)) {
-            String catFilter = selectedServiceCategoryFilter.toLowerCase().trim();
-            services = services.stream()
-                .filter(s -> s.getCategory() != null && s.getCategory().toLowerCase().trim().equals(catFilter))
-                .collect(java.util.stream.Collectors.toList());
-        }
-        
-        if (services.isEmpty()) {
-            Label emptyState = new Label(searchText != null && !searchText.trim().isEmpty() ? 
-                "Không tìm thấy dịch vụ nào" : "Chưa có dịch vụ nào");
-            emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
-            tableRows.getChildren().add(emptyState);
-        } else {
-            for (Service service : services) {
-                tableRows.getChildren().add(createServiceRow(service, tableRows));
+            // Filter by search text
+            if (searchText != null && !searchText.trim().isEmpty()) {
+                String search = searchText.toLowerCase().trim();
+                services = services.stream()
+                    .filter(s -> (s.getName() != null && s.getName().toLowerCase().contains(search)) || 
+                                (s.getDescription() != null && s.getDescription().toLowerCase().contains(search)))
+                    .collect(java.util.stream.Collectors.toList());
             }
+        
+            // Filter by selected category
+            if (selectedServiceCategoryFilter != null && !"Tất cả".equalsIgnoreCase(selectedServiceCategoryFilter)) {
+                String catFilter = selectedServiceCategoryFilter.toLowerCase().trim();
+                services = services.stream()
+                    .filter(s -> s.getCategory() != null && s.getCategory().toLowerCase().trim().equals(catFilter))
+                    .collect(java.util.stream.Collectors.toList());
+            }
+        
+            if (services.isEmpty()) {
+                Label emptyState = new Label(searchText != null && !searchText.trim().isEmpty() ? 
+                    "Không tìm thấy dịch vụ nào" : "Chưa có dịch vụ nào");
+                emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
+                tableRows.getChildren().add(emptyState);
+            } else {
+                for (Service service : services) {
+                    tableRows.getChildren().add(createServiceRow(service, tableRows));
+                }
+            }
+        } finally {
+            isRefreshingService = false;
         }
     }
 
@@ -1532,13 +1526,8 @@ public class MainUI extends Application {
             "-fx-min-height: 32;"
         );
         btnEdit.setOnAction(e -> {
-            if (mainLayout != null) {
-                mainLayout.requestFocus();
-            }
-            javafx.application.Platform.runLater(() -> {
-                ServiceForm form = new ServiceForm(service.getId(), service, () -> refreshServiceTable(tableRows));
-                form.show();
-            });
+            ServiceForm form = new ServiceForm(service.getId(), service, () -> refreshServiceTable(tableRows));
+            form.showInOverlay(contentArea);
         });
         
         Button btnDelete = new Button("🗑");
@@ -1601,7 +1590,7 @@ public class MainUI extends Application {
         btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
         btnNew.setOnAction(e -> {
             PackageForm form = new PackageForm(() -> refreshPackageTable(tableRows));
-            form.show();
+            form.showInOverlay(contentArea);
         });
         
         header.getChildren().addAll(title, spacer, btnNew);
@@ -1630,9 +1619,15 @@ public class MainUI extends Application {
         );
         UIUtils.setupIMEFix(searchField);
         
-        // Add search listener
+        javafx.animation.PauseTransition searchDebounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(250));
+        searchDebounce.setOnFinished(e -> {
+            refreshPackageTableWithSearch(tableRows, currentPackageSearchText);
+        });
+
+        // Add search listener with 250ms debounce (same pattern as Product management)
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            refreshPackageTableWithSearch(tableRows, newVal);
+            currentPackageSearchText = newVal != null ? newVal : "";
+            searchDebounce.playFromStart();
         });
         
         selectedPackageCategoryFilter = "Tất cả"; // Reset bộ lọc gói khi hiển thị màn hình
@@ -1759,42 +1754,47 @@ public class MainUI extends Application {
     
     private void refreshPackageTable(VBox tableRows) {
         refreshPackageTableWithSearch(tableRows, currentPackageSearchText);
-        if (mainLayout != null) {
-            mainLayout.requestFocus();
-        }
     }
     
     private void refreshPackageTableWithSearch(VBox tableRows, String searchText) {
-        tableRows.getChildren().clear();
-        PackageService packageService = new PackageService();
-        List<Package> packages = packageService.getAllPackages();
-        
-        // Filter by search text
-        if (searchText != null && !searchText.trim().isEmpty()) {
-            String search = searchText.toLowerCase().trim();
-            packages = packages.stream()
-                .filter(p -> (p.getName() != null && p.getName().toLowerCase().contains(search)) || 
-                            (p.getDescription() != null && p.getDescription().toLowerCase().contains(search)))
-                .collect(java.util.stream.Collectors.toList());
+        if (isRefreshingPackage) {
+            return;
         }
-        
-        // Filter by selected category
-        if (selectedPackageCategoryFilter != null && !"Tất cả".equalsIgnoreCase(selectedPackageCategoryFilter)) {
-            String catFilter = selectedPackageCategoryFilter.toLowerCase().trim();
-            packages = packages.stream()
-                .filter(p -> p.getCategory() != null && p.getCategory().toLowerCase().trim().equals(catFilter))
-                .collect(java.util.stream.Collectors.toList());
-        }
-        
-        if (packages.isEmpty()) {
-            Label emptyState = new Label(searchText != null && !searchText.trim().isEmpty() ? 
-                "Không tìm thấy gói dịch vụ nào" : "Chưa có gói dịch vụ nào");
-            emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
-            tableRows.getChildren().add(emptyState);
-        } else {
-            for (Package pkg : packages) {
-                tableRows.getChildren().add(createPackageRow(pkg, tableRows));
+        isRefreshingPackage = true;
+        try {
+            tableRows.getChildren().clear();
+            PackageService packageService = new PackageService();
+            List<Package> packages = packageService.getAllPackages();
+            
+            // Filter by search text
+            if (searchText != null && !searchText.trim().isEmpty()) {
+                String search = searchText.toLowerCase().trim();
+                packages = packages.stream()
+                    .filter(p -> (p.getName() != null && p.getName().toLowerCase().contains(search)) || 
+                                (p.getDescription() != null && p.getDescription().toLowerCase().contains(search)))
+                    .collect(java.util.stream.Collectors.toList());
             }
+            
+            // Filter by selected category
+            if (selectedPackageCategoryFilter != null && !"Tất cả".equalsIgnoreCase(selectedPackageCategoryFilter)) {
+                String catFilter = selectedPackageCategoryFilter.toLowerCase().trim();
+                packages = packages.stream()
+                    .filter(p -> p.getCategory() != null && p.getCategory().toLowerCase().trim().equals(catFilter))
+                    .collect(java.util.stream.Collectors.toList());
+            }
+            
+            if (packages.isEmpty()) {
+                Label emptyState = new Label(searchText != null && !searchText.trim().isEmpty() ? 
+                    "Không tìm thấy gói dịch vụ nào" : "Chưa có gói dịch vụ nào");
+                emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
+                tableRows.getChildren().add(emptyState);
+            } else {
+                for (Package pkg : packages) {
+                    tableRows.getChildren().add(createPackageRow(pkg, tableRows));
+                }
+            }
+        } finally {
+            isRefreshingPackage = false;
         }
     }
 
@@ -1829,7 +1829,7 @@ public class MainUI extends Application {
         btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
         btnNew.setOnAction(e -> {
             ProductForm form = new ProductForm(() -> refreshProductTable(tableRows));
-            form.show();
+            form.showInOverlay(contentArea);
         });
 
         Button btnStockStats = new Button("📊 Thống kê kho");
@@ -2375,9 +2375,6 @@ public class MainUI extends Application {
     
     private void refreshProductTable(VBox tableRows) {
         refreshProductTableWithFilter(tableRows, "", "", "Tất cả trạng thái");
-        if (mainLayout != null) {
-            mainLayout.requestFocus();
-        }
     }
     
     private void refreshProductTableWithFilter(VBox tableRows, String searchText, String category, String statusFilter) {
@@ -3457,7 +3454,7 @@ public class MainUI extends Application {
                     if (mainStage != null) {
                         confirmStage.initOwner(mainStage);
                     }
-                    confirmStage.initModality(Modality.APPLICATION_MODAL);
+                    
                     confirmStage.setTitle("Thu Nợ Hóa Đơn #" + String.format("%05d", inv.getId()));
                     
                     VBox dRoot = new VBox(20);
@@ -3589,7 +3586,7 @@ public class MainUI extends Application {
                         dScene.getStylesheets().add(css);
                     } catch (Exception ex) {}
                     confirmStage.setScene(dScene);
-                    confirmStage.showAndWait();
+                    confirmStage.show();
                 });
             }
             @Override
@@ -4205,13 +4202,8 @@ public class MainUI extends Application {
             "-fx-min-height: 32;"
         );
         btnEdit.setOnAction(e -> {
-            if (mainLayout != null) {
-                mainLayout.requestFocus();
-            }
-            javafx.application.Platform.runLater(() -> {
-                ProductForm form = new ProductForm(product, () -> refreshProductTable(tableRows));
-                form.show();
-            });
+            ProductForm form = new ProductForm(product, () -> refreshProductTable(tableRows));
+            form.showInOverlay(contentArea);
         });
         
         Button btnDelete = new Button("🗑");
@@ -4349,13 +4341,8 @@ public class MainUI extends Application {
             "-fx-min-height: 28;"
         );
         btnEdit.setOnAction(e -> {
-            if (mainLayout != null) {
-                mainLayout.requestFocus();
-            }
-            javafx.application.Platform.runLater(() -> {
-                PackageForm form = new PackageForm(pkg.getId(), pkg, () -> refreshPackageTable(tableRows));
-                form.show();
-            });
+            PackageForm form = new PackageForm(pkg.getId(), pkg, () -> refreshPackageTable(tableRows));
+            form.showInOverlay(contentArea);
         });
 
         Button btnDelete = new Button("🗑");
@@ -4603,7 +4590,7 @@ public class MainUI extends Application {
         if (mainStage != null) {
             dialogStage.initOwner(mainStage);
         }
-        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        
         dialogStage.setTitle("Chi Tiết Hóa Đơn #" + String.format("%05d", invoiceId));
         
         VBox content = new VBox(20);
@@ -4894,7 +4881,7 @@ public class MainUI extends Application {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         dialogStage.setScene(scene);
-        dialogStage.showAndWait();
+        dialogStage.show();
     }
     
     private void exportInvoiceToPDF(Invoice invoice) {
@@ -5244,7 +5231,7 @@ public class MainUI extends Application {
         if (mainStage != null) {
             dialogStage.initOwner(mainStage);
         }
-        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        
         dialogStage.setTitle("Xác nhận xóa");
         
         VBox content = new VBox(25);
@@ -5348,7 +5335,7 @@ public class MainUI extends Application {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         dialogStage.setScene(scene);
-        dialogStage.showAndWait();
+        dialogStage.show();
     }
     
     private void showSuccessAlert(String title, String message) {
@@ -5356,7 +5343,7 @@ public class MainUI extends Application {
         if (mainStage != null) {
             dialogStage.initOwner(mainStage);
         }
-        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        
         dialogStage.setTitle(title);
         
         VBox content = new VBox(20);
@@ -5420,7 +5407,7 @@ public class MainUI extends Application {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         dialogStage.setScene(scene);
-        dialogStage.showAndWait();
+        dialogStage.show();
     }
     
     private void showErrorAlert(String title, String message) {
@@ -5428,7 +5415,7 @@ public class MainUI extends Application {
         if (mainStage != null) {
             dialogStage.initOwner(mainStage);
         }
-        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        
         dialogStage.setTitle(title);
         
         VBox content = new VBox(20);
@@ -5492,7 +5479,7 @@ public class MainUI extends Application {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         dialogStage.setScene(scene);
-        dialogStage.showAndWait();
+        dialogStage.show();
     }
 
     // ==========================================
@@ -5533,7 +5520,7 @@ public class MainUI extends Application {
             if (mainStage != null) {
                 dialogStage.initOwner(mainStage);
             }
-            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            
             dialogStage.setTitle("🔔 Nhắc Nhở Lịch Hẹn Sắp Diễn Ra");
             
             VBox content = new VBox(20);
@@ -5584,7 +5571,7 @@ public class MainUI extends Application {
             content.getChildren().addAll(titleLabel, grid, btnAcknowledge);
             Scene scene = new Scene(content, 450, 280);
             dialogStage.setScene(scene);
-            dialogStage.showAndWait();
+            dialogStage.show();
         });
     }
 
@@ -6067,7 +6054,7 @@ public class MainUI extends Application {
                 if (mainStage != null) {
                     confirmStage.initOwner(mainStage);
                 }
-                confirmStage.initModality(Modality.APPLICATION_MODAL);
+                
                 confirmStage.setTitle("Xác Nhận Tiếp Nhận Xe");
 
                 VBox dRoot = new VBox(18);
@@ -6178,7 +6165,7 @@ public class MainUI extends Application {
 
                 confirmStage.setScene(scene);
                 confirmStage.setResizable(false);
-                confirmStage.showAndWait();
+                confirmStage.show();
             });
             actions.getChildren().add(btnStart);
         } else if (appt.getStatus().equals("Đang thực hiện")) {
@@ -6257,7 +6244,7 @@ public class MainUI extends Application {
         if (mainStage != null) {
             dialogStage.initOwner(mainStage);
         }
-        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        
         dialogStage.setTitle(existing != null ? "Sửa Lịch Hẹn" : "Tạo Lịch Hẹn Mới");
         
         VBox root = new VBox(20);
@@ -6554,7 +6541,7 @@ public class MainUI extends Application {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         dialogStage.setScene(scene);
-        dialogStage.showAndWait();
+        dialogStage.show();
     }
 
     private void showConflictWarningDialog(String warningMsg, List<String> alternates, java.util.function.Consumer<String> onTimeSelected) {
@@ -6562,7 +6549,7 @@ public class MainUI extends Application {
         if (mainStage != null) {
             dialogStage.initOwner(mainStage);
         }
-        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        
         dialogStage.setTitle("Cảnh Báo Trùng / Quá Tải Lịch Hẹn");
 
         VBox content = new VBox(18);
@@ -6661,7 +6648,7 @@ public class MainUI extends Application {
 
         dialogStage.setScene(scene);
         dialogStage.setResizable(false);
-        dialogStage.showAndWait();
+        dialogStage.show();
     }
 
     private void showHRManagement() {
@@ -6860,7 +6847,7 @@ public class MainUI extends Application {
         if (mainStage != null) {
             dialogStage.initOwner(mainStage);
         }
-        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        
         dialogStage.setTitle(emp != null ? "Chỉnh Sửa Nhân Viên" : "Thêm Nhân Viên Mới");
 
         VBox root = new VBox(20);
@@ -7012,7 +6999,7 @@ public class MainUI extends Application {
 
         Scene scene = new Scene(root);
         dialogStage.setScene(scene);
-        dialogStage.showAndWait();
+        dialogStage.show();
     }
 
     private double parseDoubleSafe(String str) {

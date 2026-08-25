@@ -2,6 +2,8 @@ package util;
 
 import javafx.scene.control.Alert;
 import javafx.scene.control.DialogPane;
+import javafx.stage.Modality;
+import ui.MainUI;
 
 public class AlertHelper {
     
@@ -21,7 +23,24 @@ public class AlertHelper {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        if (MainUI.getMainStage() != null) {
+            alert.initOwner(MainUI.getMainStage());
+        }
+        alert.initModality(Modality.NONE);
         applyTimesNewRomanFont(alert);
         return alert;
+    }
+
+    public static void showInfoNotification(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        if (MainUI.getMainStage() != null) {
+            alert.initOwner(MainUI.getMainStage());
+        }
+        alert.initModality(Modality.NONE);
+        applyTimesNewRomanFont(alert);
+        alert.show();
     }
 }

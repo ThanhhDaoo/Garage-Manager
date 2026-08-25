@@ -58,17 +58,17 @@ public class PackageForm {
         this.onSave = onSave;
     }
     
-    public void show() {
-        if (MainUI.getMainStage() != null && MainUI.getMainStage().getScene() != null && MainUI.getMainStage().getScene().getRoot() != null) {
-            MainUI.getMainStage().getScene().getRoot().requestFocus();
+    private Runnable closeHandler;
+
+    public void close() {
+        if (closeHandler != null) {
+            closeHandler.run();
+        } else if (stage != null) {
+            stage.close();
         }
-        stage = new Stage();
-        if (MainUI.getMainStage() != null) {
-            stage.initOwner(MainUI.getMainStage());
-        }
-        stage.initModality(Modality.APPLICATION_MODAL);
-        stage.setTitle(isEdit ? "Sửa Gói Dịch Vụ" : "Thêm Gói Dịch Vụ Mới");
-        
+    }
+
+    public BorderPane createFormLayout() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #f8f9fa;");
 
@@ -101,6 +101,38 @@ public class PackageForm {
 
         root.setCenter(scrollPane);
         root.setBottom(actionButtons);
+        return root;
+    }
+
+    public void showInOverlay(StackPane container) {
+        BorderPane root = createFormLayout();
+        
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.45);");
+        
+        root.setMaxWidth(800);
+        root.setMaxHeight(750);
+        root.setStyle(
+            "-fx-background-color: #f8f9fa;" +
+            "-fx-background-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+        );
+
+        overlay.getChildren().add(root);
+        
+        this.closeHandler = () -> container.getChildren().remove(overlay);
+
+        container.getChildren().add(overlay);
+    }
+
+    public void show() {
+        stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
+        stage.setTitle(isEdit ? "Sửa Gói Dịch Vụ" : "Thêm Gói Dịch Vụ Mới");
+        
+        BorderPane root = createFormLayout();
 
         Scene scene = new Scene(root, 800, 800);
         try {
@@ -108,7 +140,7 @@ public class PackageForm {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         stage.setScene(scene);
-        stage.showAndWait();
+        stage.show();
     }
     
     private VBox createFormSection() {
@@ -265,7 +297,7 @@ public class PackageForm {
         if (isEdit && existingPackage != null && existingPackage.getPriceMini() > 0) {
             chkMini.setSelected(true);
             txtPriceMini.setText(String.format("%.0f", existingPackage.getPriceMini()));
-            txtCostMini.setText(String.format("%.0f", existingPackage.getCostPriceMini() > 0 ? existingPackage.getCostPriceMini() : existingPackage.getCostPrice()));
+            txtCostMini.setText(String.format("%.0f", existingPackage.getCostPriceMini() > 0 ? existingPackage.getCostPriceMini() : 0));
         } else {
             chkMini.setSelected(false);
             txtCostMini.setText("0");
@@ -318,7 +350,7 @@ public class PackageForm {
         if (isEdit && existingPackage != null && existingPackage.getPriceSedan() > 0) {
             chkSedan.setSelected(true);
             txtPriceSedan.setText(String.format("%.0f", existingPackage.getPriceSedan()));
-            txtCostSedan.setText(String.format("%.0f", existingPackage.getCostPriceSedan() > 0 ? existingPackage.getCostPriceSedan() : existingPackage.getCostPrice()));
+            txtCostSedan.setText(String.format("%.0f", existingPackage.getCostPriceSedan() > 0 ? existingPackage.getCostPriceSedan() : 0));
         } else {
             chkSedan.setSelected(false);
             txtCostSedan.setText("0");
@@ -371,7 +403,7 @@ public class PackageForm {
         if (isEdit && existingPackage != null && existingPackage.getPriceCuv() > 0) {
             chkCuv.setSelected(true);
             txtPriceCuv.setText(String.format("%.0f", existingPackage.getPriceCuv()));
-            txtCostCuv.setText(String.format("%.0f", existingPackage.getCostPriceCuv() > 0 ? existingPackage.getCostPriceCuv() : existingPackage.getCostPrice()));
+            txtCostCuv.setText(String.format("%.0f", existingPackage.getCostPriceCuv() > 0 ? existingPackage.getCostPriceCuv() : 0));
         } else {
             chkCuv.setSelected(false);
             txtCostCuv.setText("0");
@@ -424,7 +456,7 @@ public class PackageForm {
         if (isEdit && existingPackage != null && existingPackage.getPriceSuv() > 0) {
             chkSuv.setSelected(true);
             txtPriceSuv.setText(String.format("%.0f", existingPackage.getPriceSuv()));
-            txtCostSuv.setText(String.format("%.0f", existingPackage.getCostPriceSuv() > 0 ? existingPackage.getCostPriceSuv() : existingPackage.getCostPrice()));
+            txtCostSuv.setText(String.format("%.0f", existingPackage.getCostPriceSuv() > 0 ? existingPackage.getCostPriceSuv() : 0));
         } else {
             chkSuv.setSelected(false);
             txtCostSuv.setText("0");
@@ -477,7 +509,7 @@ public class PackageForm {
         if (isEdit && existingPackage != null && existingPackage.getPriceMpv() > 0) {
             chkMpv.setSelected(true);
             txtPriceMpv.setText(String.format("%.0f", existingPackage.getPriceMpv()));
-            txtCostMpv.setText(String.format("%.0f", existingPackage.getCostPriceMpv() > 0 ? existingPackage.getCostPriceMpv() : existingPackage.getCostPrice()));
+            txtCostMpv.setText(String.format("%.0f", existingPackage.getCostPriceMpv() > 0 ? existingPackage.getCostPriceMpv() : 0));
         } else {
             chkMpv.setSelected(false);
             txtCostMpv.setText("0");
@@ -530,7 +562,7 @@ public class PackageForm {
         if (isEdit && existingPackage != null && existingPackage.getPricePickup() > 0) {
             chkPickup.setSelected(true);
             txtPricePickup.setText(String.format("%.0f", existingPackage.getPricePickup()));
-            txtCostPickup.setText(String.format("%.0f", existingPackage.getCostPricePickup() > 0 ? existingPackage.getCostPricePickup() : existingPackage.getCostPrice()));
+            txtCostPickup.setText(String.format("%.0f", existingPackage.getCostPricePickup() > 0 ? existingPackage.getCostPricePickup() : 0));
         } else {
             chkPickup.setSelected(false);
             txtCostPickup.setText("0");
@@ -587,7 +619,7 @@ public class PackageForm {
             "-fx-cursor: hand;" +
             "-fx-font-family: 'Times New Roman';"
         );
-        btnCancel.setOnAction(e -> stage.close());
+        btnCancel.setOnAction(e -> close());
         
         Button btnSave = new Button(isEdit ? "Cập Nhật" : "Thêm Mới");
         btnSave.setStyle(
@@ -768,7 +800,16 @@ public class PackageForm {
                 double avgSavings = 0;
                 String status = rbActive.isSelected() ? "Đang bán" : "Tạm dừng";
                 String category = cbCategory.getValue();
-                double avgCost = (costMini + costSedan + costCuv + costSuv + costMpv + costPickup) / 6.0;
+                int selectedTypesCount = 0;
+                double totalCostSum = 0;
+                if (chkMini.isSelected()) { totalCostSum += costMini; selectedTypesCount++; }
+                if (chkSedan.isSelected()) { totalCostSum += costSedan; selectedTypesCount++; }
+                if (chkCuv.isSelected()) { totalCostSum += costCuv; selectedTypesCount++; }
+                if (chkSuv.isSelected()) { totalCostSum += costSuv; selectedTypesCount++; }
+                if (chkMpv.isSelected()) { totalCostSum += costMpv; selectedTypesCount++; }
+                if (chkPickup.isSelected()) { totalCostSum += costPickup; selectedTypesCount++; }
+
+                double avgCost = selectedTypesCount > 0 ? (totalCostSum / selectedTypesCount) : 0;
                 
                 PackageService packageService = new PackageService();
                 boolean success;
@@ -786,21 +827,12 @@ public class PackageForm {
                 }
                 
                 if (success) {
-                    stage.close();
-                    if (MainUI.getMainStage() != null) {
-                        MainUI.getMainStage().toFront();
-                        MainUI.getMainStage().requestFocus();
-                    }
-                    showAlert("Thành công", 
-                             isEdit ? "Cập nhật gói dịch vụ thành công!" : "Thêm gói dịch vụ mới thành công!", 
-                             Alert.AlertType.INFORMATION);
-                    if (MainUI.getMainStage() != null) {
-                        MainUI.getMainStage().toFront();
-                        MainUI.getMainStage().requestFocus();
-                    }
-                    if (onSave != null) {
-                        javafx.application.Platform.runLater(onSave);
-                    }
+                    close();
+                    javafx.application.Platform.runLater(() -> {
+                        if (onSave != null) {
+                            onSave.run();
+                        }
+                    });
                 } else {
                     showAlert("Lỗi", "Không thể lưu gói dịch vụ!", Alert.AlertType.ERROR);
                 }
@@ -814,16 +846,7 @@ public class PackageForm {
     }
     
     private void showAlert(String title, String content, Alert.AlertType type) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        if (stage != null && stage.isShowing()) {
-            alert.initOwner(stage);
-        } else if (MainUI.getMainStage() != null) {
-            alert.initOwner(MainUI.getMainStage());
-        }
-        util.AlertHelper.applyTimesNewRomanFont(alert);
-        alert.showAndWait();
+        Alert alert = util.AlertHelper.createAlert(type, title, content);
+        alert.show();
     }
 }

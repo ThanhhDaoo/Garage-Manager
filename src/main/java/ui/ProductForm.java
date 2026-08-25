@@ -55,17 +55,17 @@ public class ProductForm {
         this.onSave = onSave;
     }
     
-    public void show() {
-        if (MainUI.getMainStage() != null && MainUI.getMainStage().getScene() != null && MainUI.getMainStage().getScene().getRoot() != null) {
-            MainUI.getMainStage().getScene().getRoot().requestFocus();
+    private Runnable closeHandler;
+
+    public void close() {
+        if (closeHandler != null) {
+            closeHandler.run();
+        } else if (stage != null) {
+            stage.close();
         }
-        stage = new Stage();
-        if (MainUI.getMainStage() != null) {
-            stage.initOwner(MainUI.getMainStage());
-        }
-        stage.initModality(Modality.APPLICATION_MODAL);
-        stage.setTitle(isEdit ? "Sửa Sản Phẩm" : "Thêm Sản Phẩm Mới");
-        
+    }
+
+    public BorderPane createFormLayout() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #f8f9fa;");
 
@@ -98,6 +98,38 @@ public class ProductForm {
 
         root.setCenter(scrollPane);
         root.setBottom(actionButtons);
+        return root;
+    }
+
+    public void showInOverlay(StackPane container) {
+        BorderPane root = createFormLayout();
+        
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.45);");
+        
+        root.setMaxWidth(700);
+        root.setMaxHeight(700);
+        root.setStyle(
+            "-fx-background-color: #f8f9fa;" +
+            "-fx-background-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+        );
+
+        overlay.getChildren().add(root);
+        
+        this.closeHandler = () -> container.getChildren().remove(overlay);
+
+        container.getChildren().add(overlay);
+    }
+
+    public void show() {
+        stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
+        stage.setTitle(isEdit ? "Sửa Sản Phẩm" : "Thêm Sản Phẩm Mới");
+        
+        BorderPane root = createFormLayout();
 
         Scene scene = new Scene(root, 700, 750);
         try {
@@ -105,7 +137,7 @@ public class ProductForm {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         stage.setScene(scene);
-        stage.showAndWait();
+        stage.show();
     }
     
     private VBox createFormSection() {
@@ -398,7 +430,7 @@ public class ProductForm {
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
-        btnCancel.setOnAction(e -> stage.close());
+        btnCancel.setOnAction(e -> close());
         
         Button btnSave = new Button(isEdit ? "Cập Nhật" : "Thêm Mới");
         btnSave.setStyle(
@@ -511,28 +543,12 @@ public class ProductForm {
                 }
                 
                 if (success) {
-                    stage.close();
-                    if (MainUI.getMainStage() != null) {
-                        MainUI.getMainStage().toFront();
-                        MainUI.getMainStage().requestFocus();
-                    }
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("Thành công");
-                    alert.setHeaderText(null);
-                    alert.setContentText(isEdit ? "Cập nhật sản phẩm thành công!" : "Thêm sản phẩm mới thành công!");
-                    if (MainUI.getMainStage() != null) {
-                        alert.initOwner(MainUI.getMainStage());
-                    }
-                    util.AlertHelper.applyTimesNewRomanFont(alert);
-                    alert.showAndWait();
-
-                    if (MainUI.getMainStage() != null) {
-                        MainUI.getMainStage().toFront();
-                        MainUI.getMainStage().requestFocus();
-                    }
-                    if (onSave != null) {
-                        javafx.application.Platform.runLater(onSave);
-                    }
+                    close();
+                    javafx.application.Platform.runLater(() -> {
+                        if (onSave != null) {
+                            onSave.run();
+                        }
+                    });
                 } else {
                     Alert alert = new Alert(Alert.AlertType.ERROR);
                     alert.setTitle("Lỗi");

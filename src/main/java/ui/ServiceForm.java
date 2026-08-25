@@ -64,17 +64,17 @@ public class ServiceForm {
         this.onSave = onSave;
     }
     
-    public void show() {
-        if (MainUI.getMainStage() != null && MainUI.getMainStage().getScene() != null && MainUI.getMainStage().getScene().getRoot() != null) {
-            MainUI.getMainStage().getScene().getRoot().requestFocus();
+    private Runnable closeHandler;
+
+    public void close() {
+        if (closeHandler != null) {
+            closeHandler.run();
+        } else if (stage != null) {
+            stage.close();
         }
-        stage = new Stage();
-        if (MainUI.getMainStage() != null) {
-            stage.initOwner(MainUI.getMainStage());
-        }
-        stage.initModality(Modality.APPLICATION_MODAL);
-        stage.setTitle(isEdit ? "Sửa Dịch Vụ" : "Thêm Dịch Vụ Mới");
-        
+    }
+
+    public BorderPane createFormLayout() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #f8f9fa;");
 
@@ -107,6 +107,38 @@ public class ServiceForm {
 
         root.setCenter(scrollPane);
         root.setBottom(actionButtons);
+        return root;
+    }
+
+    public void showInOverlay(StackPane container) {
+        BorderPane root = createFormLayout();
+        
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.45);");
+        
+        root.setMaxWidth(750);
+        root.setMaxHeight(700);
+        root.setStyle(
+            "-fx-background-color: #f8f9fa;" +
+            "-fx-background-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+        );
+
+        overlay.getChildren().add(root);
+        
+        this.closeHandler = () -> container.getChildren().remove(overlay);
+
+        container.getChildren().add(overlay);
+    }
+
+    public void show() {
+        stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
+        stage.setTitle(isEdit ? "Sửa Dịch Vụ" : "Thêm Dịch Vụ Mới");
+        
+        BorderPane root = createFormLayout();
 
         Scene scene = new Scene(root, 750, 750);
         try {
@@ -114,7 +146,7 @@ public class ServiceForm {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         stage.setScene(scene);
-        stage.showAndWait();
+        stage.show();
     }
     
     private VBox createFormSection() {
@@ -715,7 +747,7 @@ public class ServiceForm {
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
-        btnCancel.setOnAction(e -> stage.close());
+        btnCancel.setOnAction(e -> close());
         
         Button btnSave = new Button(isEdit ? "Cập Nhật" : "Thêm Mới");
         btnSave.setStyle(
@@ -890,21 +922,12 @@ public class ServiceForm {
                 }
                 
                 if (success) {
-                    stage.close();
-                    if (MainUI.getMainStage() != null) {
-                        MainUI.getMainStage().toFront();
-                        MainUI.getMainStage().requestFocus();
-                    }
-                    showAlert("Thành công", 
-                             isEdit ? "Cập nhật dịch vụ thành công!" : "Thêm dịch vụ mới thành công!", 
-                             Alert.AlertType.INFORMATION);
-                    if (MainUI.getMainStage() != null) {
-                        MainUI.getMainStage().toFront();
-                        MainUI.getMainStage().requestFocus();
-                    }
-                    if (onSave != null) {
-                        javafx.application.Platform.runLater(onSave);
-                    }
+                    close();
+                    javafx.application.Platform.runLater(() -> {
+                        if (onSave != null) {
+                            onSave.run();
+                        }
+                    });
                 } else {
                     showAlert("Lỗi", "Không thể lưu dịch vụ! Kiểm tra console để xem chi tiết.", Alert.AlertType.ERROR);
                 }
@@ -918,17 +941,8 @@ public class ServiceForm {
     }
     
     private void showAlert(String title, String content, Alert.AlertType type) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        if (stage != null && stage.isShowing()) {
-            alert.initOwner(stage);
-        } else if (MainUI.getMainStage() != null) {
-            alert.initOwner(MainUI.getMainStage());
-        }
-        util.AlertHelper.applyTimesNewRomanFont(alert);
-        alert.showAndWait();
+        Alert alert = util.AlertHelper.createAlert(type, title, content);
+        alert.show();
     }
 
     private static class ProductWrapper {

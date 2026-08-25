@@ -37,14 +37,11 @@ public class ExpenseForm {
     }
 
     public void show() {
-        if (MainUI.getMainStage() != null && MainUI.getMainStage().getScene() != null && MainUI.getMainStage().getScene().getRoot() != null) {
-            MainUI.getMainStage().getScene().getRoot().requestFocus();
-        }
         stage = new Stage();
         if (MainUI.getMainStage() != null) {
             stage.initOwner(MainUI.getMainStage());
         }
-        stage.initModality(Modality.APPLICATION_MODAL);
+        
         stage.setTitle(isEdit ? "Sửa Chi Phí Cố Định" : "Thêm Chi Phí Cố Định Mới");
 
         BorderPane root = new BorderPane();
@@ -84,7 +81,7 @@ public class ExpenseForm {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         stage.setScene(scene);
-        stage.showAndWait();
+        stage.show();
     }
 
     private VBox createFormSection() {
