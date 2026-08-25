@@ -786,10 +786,18 @@ public class PackageForm {
                 }
                 
                 if (success) {
+                    stage.close();
+                    if (MainUI.getMainStage() != null) {
+                        MainUI.getMainStage().toFront();
+                        MainUI.getMainStage().requestFocus();
+                    }
                     showAlert("Thành công", 
                              isEdit ? "Cập nhật gói dịch vụ thành công!" : "Thêm gói dịch vụ mới thành công!", 
                              Alert.AlertType.INFORMATION);
-                    stage.close();
+                    if (MainUI.getMainStage() != null) {
+                        MainUI.getMainStage().toFront();
+                        MainUI.getMainStage().requestFocus();
+                    }
                     if (onSave != null) {
                         javafx.application.Platform.runLater(onSave);
                     }

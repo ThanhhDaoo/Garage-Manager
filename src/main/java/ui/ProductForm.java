@@ -511,19 +511,25 @@ public class ProductForm {
                 }
                 
                 if (success) {
+                    stage.close();
+                    if (MainUI.getMainStage() != null) {
+                        MainUI.getMainStage().toFront();
+                        MainUI.getMainStage().requestFocus();
+                    }
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
                     alert.setTitle("Thành công");
                     alert.setHeaderText(null);
                     alert.setContentText(isEdit ? "Cập nhật sản phẩm thành công!" : "Thêm sản phẩm mới thành công!");
-                    if (stage != null && stage.isShowing()) {
-                        alert.initOwner(stage);
-                    } else if (MainUI.getMainStage() != null) {
+                    if (MainUI.getMainStage() != null) {
                         alert.initOwner(MainUI.getMainStage());
                     }
                     util.AlertHelper.applyTimesNewRomanFont(alert);
                     alert.showAndWait();
 
-                    stage.close();
+                    if (MainUI.getMainStage() != null) {
+                        MainUI.getMainStage().toFront();
+                        MainUI.getMainStage().requestFocus();
+                    }
                     if (onSave != null) {
                         javafx.application.Platform.runLater(onSave);
                     }

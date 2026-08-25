@@ -890,10 +890,18 @@ public class ServiceForm {
                 }
                 
                 if (success) {
+                    stage.close();
+                    if (MainUI.getMainStage() != null) {
+                        MainUI.getMainStage().toFront();
+                        MainUI.getMainStage().requestFocus();
+                    }
                     showAlert("Thành công", 
                              isEdit ? "Cập nhật dịch vụ thành công!" : "Thêm dịch vụ mới thành công!", 
                              Alert.AlertType.INFORMATION);
-                    stage.close();
+                    if (MainUI.getMainStage() != null) {
+                        MainUI.getMainStage().toFront();
+                        MainUI.getMainStage().requestFocus();
+                    }
                     if (onSave != null) {
                         javafx.application.Platform.runLater(onSave);
                     }
