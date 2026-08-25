@@ -12,7 +12,11 @@ import java.util.List;
 
 public class AppointmentService {
     private AppointmentDAO appointmentDAO = new AppointmentDAO();
-    private static final int MAX_CARS_PER_HOUR = 3;
+    public static final int MAX_CARS_PER_HOUR = 3;
+
+    public static int getMaxCarsPerHour() {
+        return MAX_CARS_PER_HOUR;
+    }
 
     public static class CustomerInfo {
         private String name;
@@ -120,22 +124,29 @@ public class AppointmentService {
             }
         }
 
-        // 2. Check overload in time slot (±30 mins from selected time)
-        List<Appointment> dayAppts = appointmentDAO.getAppointmentsByDate(date);
-        int activeInSlot = 0;
-        for (Appointment appt : dayAppts) {
-            if (appt.getId() != currentId && (appt.getStatus().equals("Chờ") || appt.getStatus().equals("Đang thực hiện"))) {
-                if (Math.abs(timeDifferenceInMinutes(appt.getAppointmentTime(), time)) < 60) {
-                    activeInSlot++;
-                }
-            }
-        }
-
+        // 2. Check overload in time slot (±60 mins from selected time)
+        int activeInSlot = getActiveCountInSlot(date, time, currentId);
         if (activeInSlot >= MAX_CARS_PER_HOUR) {
             return "Quá tải: Khung giờ " + time + " đã đạt số lượng xe tối đa (" + activeInSlot + "/" + MAX_CARS_PER_HOUR + " xe).";
         }
 
         return null;
+    }
+
+    /**
+     * Calculates the count of active appointments (Chờ / Đang thực hiện) in a 1-hour time slot
+     */
+    public int getActiveCountInSlot(String date, String time, int excludeId) {
+        List<Appointment> dayAppts = appointmentDAO.getAppointmentsByDate(date);
+        int activeInSlot = 0;
+        for (Appointment appt : dayAppts) {
+            if (appt.getId() != excludeId && (appt.getStatus().equals("Chờ") || appt.getStatus().equals("Đang thực hiện"))) {
+                if (Math.abs(timeDifferenceInMinutes(appt.getAppointmentTime(), time)) < 60) {
+                    activeInSlot++;
+                }
+            }
+        }
+        return activeInSlot;
     }
 
     /**

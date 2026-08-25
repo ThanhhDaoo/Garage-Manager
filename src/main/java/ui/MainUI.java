@@ -5944,9 +5944,168 @@ public class MainUI extends Application {
                 "-fx-cursor: hand;"
             );
             btnStart.setOnAction(e -> {
-                appt.setStatus("Đang thực hiện");
-                new service.AppointmentService().updateAppointment(appt);
-                showAppointmentManagement();
+                java.time.LocalDate today = java.time.LocalDate.now();
+                java.time.LocalTime now = java.time.LocalTime.now();
+
+                java.time.LocalDate apptDate = null;
+                java.time.LocalTime apptTime = null;
+                try {
+                    if (appt.getAppointmentDate() != null && !appt.getAppointmentDate().trim().isEmpty()) {
+                        apptDate = java.time.LocalDate.parse(appt.getAppointmentDate().trim());
+                    }
+                    if (appt.getAppointmentTime() != null && !appt.getAppointmentTime().trim().isEmpty()) {
+                        apptTime = java.time.LocalTime.parse(appt.getAppointmentTime().trim());
+                    }
+                } catch (Exception ex) {
+                    // Ignored
+                }
+
+                String displayDate = appt.getAppointmentDate();
+                if (apptDate != null) {
+                    displayDate = apptDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                }
+
+                service.AppointmentService appointmentService = new service.AppointmentService();
+                int activeInSlot = appointmentService.getActiveCountInSlot(appt.getAppointmentDate(), appt.getAppointmentTime(), appt.getId());
+                int maxSlot = service.AppointmentService.MAX_CARS_PER_HOUR;
+                boolean isOverloaded = activeInSlot >= maxSlot;
+
+                boolean isEarly = false;
+                String warnNote = "";
+                String nowStr = now.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+
+                if (apptDate != null) {
+                    if (apptDate.isAfter(today)) {
+                        isEarly = true;
+                        warnNote = "Lịch hẹn này diễn ra vào ngày " + displayDate + " lúc " + appt.getAppointmentTime() + " (chưa đến ngày hẹn).\n\n" +
+                                   "Bạn có chắc chắn khách hàng đã mang xe đến garage sớm hôm nay và muốn tiếp nhận ngay không?";
+                    } else if (apptDate.isEqual(today) && apptTime != null && now.isBefore(apptTime.minusMinutes(5))) {
+                        isEarly = true;
+                        warnNote = "Lịch hẹn này vào lúc " + appt.getAppointmentTime() + " (chưa đến giờ hẹn, hiện tại là " + nowStr + ").\n\n" +
+                                   "Bạn có chắc chắn khách hàng đã đến sớm và muốn nhận xe vào xưởng ngay bây giờ không?";
+                    }
+                }
+
+                if (isOverloaded) {
+                    warnNote = "⚠️ Khung giờ " + appt.getAppointmentTime() + " ngày " + displayDate + " hiện đã đạt giới hạn xe (" + activeInSlot + "/" + maxSlot + " xe/khung giờ).\n\n" +
+                               "Bạn có chắc chắn muốn tiếp nhận thêm xe này vào xưởng không?";
+                } else if (!isEarly) {
+                    warnNote = "Bạn có chắc chắn muốn tiếp nhận xe " + appt.getLicensePlate() + " vào xưởng để thực hiện dịch vụ không?";
+                }
+
+                Stage confirmStage = new Stage();
+                confirmStage.initModality(Modality.APPLICATION_MODAL);
+                confirmStage.setTitle("Xác Nhận Tiếp Nhận Xe");
+
+                VBox dRoot = new VBox(18);
+                dRoot.setPadding(new Insets(24));
+                dRoot.setStyle("-fx-background-color: #FFFFFF;");
+
+                // Title
+                Label lblTitle = new Label("Tiếp Nhận Xe Vào Xưởng");
+                lblTitle.setStyle("-fx-font-size: 19px; -fx-font-weight: bold; -fx-text-fill: #1E293B;");
+
+                // Details Card
+                GridPane detailsGrid = new GridPane();
+                detailsGrid.setHgap(12);
+                detailsGrid.setVgap(8);
+                detailsGrid.setPadding(new Insets(14));
+                detailsGrid.setStyle("-fx-background-color: #F8FAFC; -fx-background-radius: 8; -fx-border-color: #E2E8F0; -fx-border-radius: 8;");
+
+                Label l1 = new Label("Biển số xe:");
+                l1.setStyle("-fx-font-weight: bold; -fx-text-fill: #64748B; -fx-font-size: 13.5px;");
+                Label v1 = new Label(appt.getLicensePlate() + " (" + (appt.getVehicleType() != null ? appt.getVehicleType() : "N/A") + ")");
+                v1.setStyle("-fx-font-weight: bold; -fx-text-fill: #0F172A; -fx-font-size: 13.5px;");
+
+                Label l2 = new Label("Khách hàng:");
+                l2.setStyle("-fx-font-weight: bold; -fx-text-fill: #64748B; -fx-font-size: 13.5px;");
+                Label v2 = new Label(appt.getCustomerName() + " - " + appt.getPhone());
+                v2.setStyle("-fx-text-fill: #334155; -fx-font-size: 13.5px;");
+
+                Label l3 = new Label("Dịch vụ:");
+                l3.setStyle("-fx-font-weight: bold; -fx-text-fill: #64748B; -fx-font-size: 13.5px;");
+                Label v3 = new Label(appt.getServiceName());
+                v3.setStyle("-fx-text-fill: #334155; -fx-font-size: 13.5px;");
+
+                Label l4 = new Label("Thời gian hẹn:");
+                l4.setStyle("-fx-font-weight: bold; -fx-text-fill: #64748B; -fx-font-size: 13.5px;");
+                Label v4 = new Label(appt.getAppointmentTime() + " - Ngày " + displayDate);
+                v4.setStyle("-fx-font-weight: bold; -fx-text-fill: #2196F3; -fx-font-size: 13.5px;");
+
+                Label l5 = new Label("Xe trong khung giờ:");
+                l5.setStyle("-fx-font-weight: bold; -fx-text-fill: #64748B; -fx-font-size: 13.5px;");
+                Label v5 = new Label(activeInSlot + " / " + maxSlot + " xe (Tối đa " + maxSlot + " xe/giờ)");
+                v5.setStyle("-fx-font-weight: bold; -fx-text-fill: " + (isOverloaded ? "#D32F2F" : "#2E7D32") + "; -fx-font-size: 13.5px;");
+
+                detailsGrid.add(l1, 0, 0); detailsGrid.add(v1, 1, 0);
+                detailsGrid.add(l2, 0, 1); detailsGrid.add(v2, 1, 1);
+                detailsGrid.add(l3, 0, 2); detailsGrid.add(v3, 1, 2);
+                detailsGrid.add(l4, 0, 3); detailsGrid.add(v4, 1, 3);
+                detailsGrid.add(l5, 0, 4); detailsGrid.add(v5, 1, 4);
+
+                // Note Box
+                VBox noteBox = new VBox();
+                noteBox.setPadding(new Insets(12, 16, 12, 16));
+                if (isEarly || isOverloaded) {
+                    noteBox.setStyle("-fx-background-color: #FFFBEB; -fx-background-radius: 8; -fx-border-color: #FDE68A; -fx-border-radius: 8;");
+                } else {
+                    noteBox.setStyle("-fx-background-color: #E3F2FD; -fx-background-radius: 8; -fx-border-color: #BBDEFB; -fx-border-radius: 8;");
+                }
+
+                Label lblNote = new Label(((isEarly || isOverloaded) ? "⚠️ " : "ℹ️ ") + warnNote);
+                lblNote.setWrapText(true);
+                lblNote.setStyle("-fx-font-size: 13.5px; -fx-text-fill: " + ((isEarly || isOverloaded) ? "#92400E" : "#1565C0") + "; -fx-line-spacing: 4px;");
+                noteBox.getChildren().add(lblNote);
+
+                // Buttons
+                HBox btnBox = new HBox(12);
+                btnBox.setAlignment(Pos.CENTER_RIGHT);
+
+                Button btnCancel = new Button("Hủy bỏ");
+                btnCancel.setStyle(
+                    "-fx-background-color: #e0e0e0;" +
+                    "-fx-text-fill: #424242;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-padding: 10px 20px;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-cursor: hand;" +
+                    "-fx-font-size: 13.5px;"
+                );
+                btnCancel.setOnMouseEntered(ev -> btnCancel.setOpacity(0.85));
+                btnCancel.setOnMouseExited(ev -> btnCancel.setOpacity(1.0));
+                btnCancel.setOnAction(ev -> confirmStage.close());
+
+                Button btnConfirm = new Button(isEarly ? "Xác Nhận Nhận Sớm" : "Nhận Xe Ngay");
+                btnConfirm.setStyle(
+                    "-fx-background-color: #2196F3;" +
+                    "-fx-text-fill: white;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-padding: 10px 22px;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-cursor: hand;" +
+                    "-fx-font-size: 13.5px;"
+                );
+                btnConfirm.setOnMouseEntered(ev -> btnConfirm.setOpacity(0.85));
+                btnConfirm.setOnMouseExited(ev -> btnConfirm.setOpacity(1.0));
+                btnConfirm.setOnAction(ev -> {
+                    appt.setStatus("Đang thực hiện");
+                    new service.AppointmentService().updateAppointment(appt);
+                    confirmStage.close();
+                    showAppointmentManagement();
+                });
+
+                btnBox.getChildren().addAll(btnCancel, btnConfirm);
+
+                dRoot.getChildren().addAll(lblTitle, detailsGrid, noteBox, btnBox);
+
+                Scene scene = new Scene(dRoot, 480, -1);
+                try {
+                    scene.getStylesheets().add(getClass().getResource("/global-styles.css").toExternalForm());
+                } catch (Exception ex) {}
+
+                confirmStage.setScene(scene);
+                confirmStage.setResizable(false);
+                confirmStage.showAndWait();
             });
             actions.getChildren().add(btnStart);
         } else if (appt.getStatus().equals("Đang thực hiện")) {
@@ -6325,41 +6484,66 @@ public class MainUI extends Application {
     private void showConflictWarningDialog(String warningMsg, List<String> alternates, java.util.function.Consumer<String> onTimeSelected) {
         Stage dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
-        dialogStage.setTitle("⚠ Cảnh Báo Trùng / Quá Tải Lịch Hẹn");
-        
-        VBox content = new VBox(20);
-        content.setPadding(new Insets(25));
-        content.setAlignment(Pos.CENTER);
-        content.setStyle("-fx-background-color: white;");
-        
-        Label iconLabel = new Label("⚠");
-        iconLabel.setStyle("-fx-font-size: 40px; -fx-text-fill: #E65100;");
-        
-        Label titleLabel = new Label("Trùng Hoặc Quá Tải Lịch Hẹn");
-        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #212121;");
-        
+        dialogStage.setTitle("Cảnh Báo Trùng / Quá Tải Lịch Hẹn");
+
+        VBox content = new VBox(18);
+        content.setPadding(new Insets(24));
+        content.setAlignment(Pos.TOP_LEFT);
+        content.setStyle("-fx-background-color: #FFFFFF;");
+
+        // Title Header
+        Label titleLabel = new Label("⚠️ Cảnh Báo Quá Tải / Trùng Lịch Hẹn");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1E293B;");
+
+        // Warning Message Card Box
+        VBox warnCard = new VBox();
+        warnCard.setPadding(new Insets(14, 16, 14, 16));
+        warnCard.setStyle("-fx-background-color: #FFFBEB; -fx-background-radius: 8; -fx-border-color: #FDE68A; -fx-border-radius: 8;");
+
         Label msgLabel = new Label(warningMsg);
-        msgLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #555555;");
+        msgLabel.setStyle("-fx-font-size: 13.5px; -fx-text-fill: #92400E; -fx-line-spacing: 3px; -fx-font-weight: bold;");
         msgLabel.setWrapText(true);
-        msgLabel.setAlignment(Pos.CENTER);
-        
-        Label suggestLabel = new Label("Đề xuất các khung giờ phù hợp khác trong ngày:");
-        suggestLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #757575;");
-        
-        VBox alternatesBox = new VBox(8);
+        warnCard.getChildren().add(msgLabel);
+
+        // Suggested Time Slots Header
+        Label suggestLabel = new Label("💡 Khung giờ đề xuất thay thế còn trống trong ngày:");
+        suggestLabel.setStyle("-fx-font-size: 13.5px; -fx-font-weight: bold; -fx-text-fill: #475569;");
+
+        // Alternates List Box
+        VBox alternatesBox = new VBox(10);
         alternatesBox.setAlignment(Pos.CENTER);
         for (String altTime : alternates) {
-            Button btnAlt = new Button(altTime);
+            Button btnAlt = new Button("Chọn khung giờ: " + altTime);
             btnAlt.setStyle(
                 "-fx-background-color: #E3F2FD;" +
-                "-fx-text-fill: #1976D2;" +
+                "-fx-text-fill: #2196F3;" +
                 "-fx-font-size: 14px;" +
                 "-fx-font-weight: bold;" +
-                "-fx-padding: 8px 25px;" +
+                "-fx-padding: 10px 24px;" +
                 "-fx-background-radius: 6;" +
                 "-fx-cursor: hand;" +
-                "-fx-min-width: 200;"
+                "-fx-pref-width: 380px;"
             );
+            btnAlt.setOnMouseEntered(e -> btnAlt.setStyle(
+                "-fx-background-color: #2196F3;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 14px;" +
+                "-fx-font-weight: bold;" +
+                "-fx-padding: 10px 24px;" +
+                "-fx-background-radius: 6;" +
+                "-fx-cursor: hand;" +
+                "-fx-pref-width: 380px;"
+            ));
+            btnAlt.setOnMouseExited(e -> btnAlt.setStyle(
+                "-fx-background-color: #E3F2FD;" +
+                "-fx-text-fill: #2196F3;" +
+                "-fx-font-size: 14px;" +
+                "-fx-font-weight: bold;" +
+                "-fx-padding: 10px 24px;" +
+                "-fx-background-radius: 6;" +
+                "-fx-cursor: hand;" +
+                "-fx-pref-width: 380px;"
+            ));
             btnAlt.setOnAction(e -> {
                 String cleanTime = altTime.split(" ")[0];
                 onTimeSelected.accept(cleanTime);
@@ -6367,22 +6551,38 @@ public class MainUI extends Application {
             });
             alternatesBox.getChildren().add(btnAlt);
         }
-        
-        Button btnClose = new Button("Đóng để chọn thủ công");
+
+        // Close / Manual Selection Button Box
+        HBox btnBox = new HBox();
+        btnBox.setAlignment(Pos.CENTER_RIGHT);
+        btnBox.setPadding(new Insets(10, 0, 0, 0));
+
+        Button btnClose = new Button("Đóng để chọn giờ thủ công");
         btnClose.setStyle(
             "-fx-background-color: #e0e0e0;" +
             "-fx-text-fill: #424242;" +
             "-fx-font-weight: bold;" +
             "-fx-padding: 10px 20px;" +
             "-fx-background-radius: 6;" +
-            "-fx-cursor: hand;"
+            "-fx-cursor: hand;" +
+            "-fx-font-size: 13.5px;"
         );
+        btnClose.setOnMouseEntered(e -> btnClose.setOpacity(0.85));
+        btnClose.setOnMouseExited(e -> btnClose.setOpacity(1.0));
         btnClose.setOnAction(e -> dialogStage.close());
-        
-        content.getChildren().addAll(iconLabel, titleLabel, msgLabel, suggestLabel, alternatesBox, btnClose);
-        Scene scene = new Scene(content, 450, 480);
+
+        btnBox.getChildren().add(btnClose);
+
+        content.getChildren().addAll(titleLabel, warnCard, suggestLabel, alternatesBox, btnBox);
+
+        Scene scene = new Scene(content, 460, -1);
+        try {
+            scene.getStylesheets().add(getClass().getResource("/global-styles.css").toExternalForm());
+        } catch (Exception e) {}
+
         dialogStage.setScene(scene);
-        dialogStage.show();
+        dialogStage.setResizable(false);
+        dialogStage.showAndWait();
     }
 
     private void showHRManagement() {
