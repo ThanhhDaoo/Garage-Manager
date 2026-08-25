@@ -40,7 +40,13 @@ public class EmployeeForm {
     }
 
     public void show() {
+        if (MainUI.getMainStage() != null && MainUI.getMainStage().getScene() != null && MainUI.getMainStage().getScene().getRoot() != null) {
+            MainUI.getMainStage().getScene().getRoot().requestFocus();
+        }
         stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle(isEdit ? "Sửa Nhân Viên" : "Thêm Nhân Viên Mới");
 
@@ -81,7 +87,7 @@ public class EmployeeForm {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         stage.setScene(scene);
-        stage.show();
+        stage.showAndWait();
     }
 
     private VBox createFormSection() {
@@ -266,8 +272,8 @@ public class EmployeeForm {
             }
 
             if (success) {
-                if (onSave != null) onSave.run();
                 stage.close();
+                if (onSave != null) javafx.application.Platform.runLater(onSave);
             } else {
                 Alert alert = util.AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Mã nhân viên đã tồn tại hoặc có lỗi xảy ra!");
                 alert.show();

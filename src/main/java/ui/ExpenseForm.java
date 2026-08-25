@@ -37,7 +37,13 @@ public class ExpenseForm {
     }
 
     public void show() {
+        if (MainUI.getMainStage() != null && MainUI.getMainStage().getScene() != null && MainUI.getMainStage().getScene().getRoot() != null) {
+            MainUI.getMainStage().getScene().getRoot().requestFocus();
+        }
         stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle(isEdit ? "Sửa Chi Phí Cố Định" : "Thêm Chi Phí Cố Định Mới");
 
@@ -78,7 +84,7 @@ public class ExpenseForm {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         stage.setScene(scene);
-        stage.show();
+        stage.showAndWait();
     }
 
     private VBox createFormSection() {
@@ -246,8 +252,8 @@ public class ExpenseForm {
             }
 
             if (success) {
-                if (onSave != null) onSave.run();
                 stage.close();
+                if (onSave != null) javafx.application.Platform.runLater(onSave);
             } else {
                 Alert alert = util.AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi xảy ra khi lưu chi phí!");
                 alert.show();

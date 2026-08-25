@@ -109,7 +109,13 @@ public class CreateInvoiceForm {
     }
 
     public void show() {
+        if (MainUI.getMainStage() != null && MainUI.getMainStage().getScene() != null && MainUI.getMainStage().getScene().getRoot() != null) {
+            MainUI.getMainStage().getScene().getRoot().requestFocus();
+        }
         stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle(existingInvoice != null ? "Sửa Hóa Đơn #" + String.format("%05d", existingInvoice.getId()) : "Tạo Hóa Đơn Mới");
 
@@ -229,7 +235,7 @@ public class CreateInvoiceForm {
             loadExistingInvoiceItems();
         }
 
-        stage.show();
+        stage.showAndWait();
     }
 
     private void restoreOldInvoiceStock(int invoiceId) {

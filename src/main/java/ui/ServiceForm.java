@@ -65,7 +65,13 @@ public class ServiceForm {
     }
     
     public void show() {
+        if (MainUI.getMainStage() != null && MainUI.getMainStage().getScene() != null && MainUI.getMainStage().getScene().getRoot() != null) {
+            MainUI.getMainStage().getScene().getRoot().requestFocus();
+        }
         stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle(isEdit ? "Sửa Dịch Vụ" : "Thêm Dịch Vụ Mới");
         
@@ -108,7 +114,7 @@ public class ServiceForm {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         stage.setScene(scene);
-        stage.show();
+        stage.showAndWait();
     }
     
     private VBox createFormSection() {
@@ -889,7 +895,7 @@ public class ServiceForm {
                              Alert.AlertType.INFORMATION);
                     stage.close();
                     if (onSave != null) {
-                        onSave.run();
+                        javafx.application.Platform.runLater(onSave);
                     }
                 } else {
                     showAlert("Lỗi", "Không thể lưu dịch vụ! Kiểm tra console để xem chi tiết.", Alert.AlertType.ERROR);
@@ -908,6 +914,12 @@ public class ServiceForm {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(content);
+        if (stage != null && stage.isShowing()) {
+            alert.initOwner(stage);
+        } else if (MainUI.getMainStage() != null) {
+            alert.initOwner(MainUI.getMainStage());
+        }
+        util.AlertHelper.applyTimesNewRomanFont(alert);
         alert.showAndWait();
     }
 

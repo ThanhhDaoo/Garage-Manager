@@ -37,6 +37,12 @@ import java.time.YearMonth;
 
 public class MainUI extends Application {
 
+    private static Stage mainStage;
+
+    public static Stage getMainStage() {
+        return mainStage;
+    }
+
     private BorderPane mainLayout;
     private StackPane contentArea;
     private VBox sidebar;
@@ -44,13 +50,24 @@ public class MainUI extends Application {
     private String currentView = "dashboard";
     private String selectedServiceCategoryFilter = "Tất cả";
     private String selectedPackageCategoryFilter = "Tất cả";
+    private String currentServiceSearchText = "";
+    private String currentPackageSearchText = "";
 
     @Override
     public void start(Stage stage) {
+        mainStage = stage;
         DatabaseManager.initializeDatabase();
 
         mainLayout = new BorderPane();
         mainLayout.setStyle("-fx-background-color: #f8f9fa;");
+        mainLayout.setFocusTraversable(true);
+
+        // Deactivate any stale Cocoa NSTextInputContext when returning from modal stages
+        stage.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal && mainLayout != null) {
+                mainLayout.requestFocus();
+            }
+        });
         
         HBox header = createModernHeader();
         mainLayout.setTop(header);
@@ -128,6 +145,7 @@ public class MainUI extends Application {
         TextField searchBox = new TextField();
         searchBox.setPromptText("🔍 Tìm kiếm...");
         searchBox.setPrefWidth(350);
+        searchBox.setFocusTraversable(false);
         searchBox.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-text-fill: #424242;" +
@@ -1176,10 +1194,14 @@ public class MainUI extends Application {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
+        UIUtils.setupIMEFix(searchField);
+        
+        currentServiceSearchText = "";
         
         // Add search listener
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
-            refreshServiceTableWithSearch(tableRows, newVal);
+            currentServiceSearchText = newVal != null ? newVal : "";
+            refreshServiceTableWithSearch(tableRows, currentServiceSearchText);
         });
         
         selectedServiceCategoryFilter = "Tất cả"; // Reset bộ lọc khi hiển thị màn hình quản lý
@@ -1341,7 +1363,10 @@ public class MainUI extends Application {
     }
     
     private void refreshServiceTable(VBox tableRows) {
-        refreshServiceTableWithSearch(tableRows, "");
+        refreshServiceTableWithSearch(tableRows, currentServiceSearchText);
+        if (mainLayout != null) {
+            mainLayout.requestFocus();
+        }
     }
     
     private void refreshServiceTableWithSearch(VBox tableRows, String searchText) {
@@ -1353,7 +1378,7 @@ public class MainUI extends Application {
         if (searchText != null && !searchText.trim().isEmpty()) {
             String search = searchText.toLowerCase().trim();
             services = services.stream()
-                .filter(s -> s.getName().toLowerCase().contains(search) || 
+                .filter(s -> (s.getName() != null && s.getName().toLowerCase().contains(search)) || 
                             (s.getDescription() != null && s.getDescription().toLowerCase().contains(search)))
                 .collect(java.util.stream.Collectors.toList());
         }
@@ -1502,6 +1527,9 @@ public class MainUI extends Application {
             "-fx-min-height: 32;"
         );
         btnEdit.setOnAction(e -> {
+            if (mainLayout != null) {
+                mainLayout.requestFocus();
+            }
             ServiceForm form = new ServiceForm(service.getId(), service, () -> refreshServiceTable(tableRows));
             form.show();
         });
@@ -1593,6 +1621,7 @@ public class MainUI extends Application {
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
+        UIUtils.setupIMEFix(searchField);
         
         // Add search listener
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
@@ -1722,7 +1751,10 @@ public class MainUI extends Application {
     }
     
     private void refreshPackageTable(VBox tableRows) {
-        refreshPackageTableWithSearch(tableRows, "");
+        refreshPackageTableWithSearch(tableRows, currentPackageSearchText);
+        if (mainLayout != null) {
+            mainLayout.requestFocus();
+        }
     }
     
     private void refreshPackageTableWithSearch(VBox tableRows, String searchText) {
@@ -1734,7 +1766,7 @@ public class MainUI extends Application {
         if (searchText != null && !searchText.trim().isEmpty()) {
             String search = searchText.toLowerCase().trim();
             packages = packages.stream()
-                .filter(p -> p.getName().toLowerCase().contains(search) || 
+                .filter(p -> (p.getName() != null && p.getName().toLowerCase().contains(search)) || 
                             (p.getDescription() != null && p.getDescription().toLowerCase().contains(search)))
                 .collect(java.util.stream.Collectors.toList());
         }
@@ -2336,6 +2368,9 @@ public class MainUI extends Application {
     
     private void refreshProductTable(VBox tableRows) {
         refreshProductTableWithFilter(tableRows, "", "", "Tất cả trạng thái");
+        if (mainLayout != null) {
+            mainLayout.requestFocus();
+        }
     }
     
     private void refreshProductTableWithFilter(VBox tableRows, String searchText, String category, String statusFilter) {
@@ -2346,7 +2381,7 @@ public class MainUI extends Application {
         // Filter by category
         if (category != null && !category.trim().isEmpty()) {
             products = products.stream()
-                .filter(p -> p.getCategory().equals(category))
+                .filter(p -> p.getCategory() != null && p.getCategory().equals(category))
                 .collect(java.util.stream.Collectors.toList());
         }
         
@@ -2354,8 +2389,8 @@ public class MainUI extends Application {
         if (searchText != null && !searchText.trim().isEmpty()) {
             String search = searchText.toLowerCase().trim();
             products = products.stream()
-                .filter(p -> p.getName().toLowerCase().contains(search) || 
-                            p.getCategory().toLowerCase().contains(search) ||
+                .filter(p -> (p.getName() != null && p.getName().toLowerCase().contains(search)) || 
+                            (p.getCategory() != null && p.getCategory().toLowerCase().contains(search)) ||
                             String.valueOf(p.getId()).contains(search) ||
                             ("sp-" + String.format("%04d", p.getId())).contains(search))
                 .collect(java.util.stream.Collectors.toList());
@@ -3412,6 +3447,9 @@ public class MainUI extends Application {
                     model.Invoice inv = rowData.getInvoice();
                     
                     Stage confirmStage = new Stage();
+                    if (mainStage != null) {
+                        confirmStage.initOwner(mainStage);
+                    }
                     confirmStage.initModality(Modality.APPLICATION_MODAL);
                     confirmStage.setTitle("Thu Nợ Hóa Đơn #" + String.format("%05d", inv.getId()));
                     
@@ -4160,6 +4198,9 @@ public class MainUI extends Application {
             "-fx-min-height: 32;"
         );
         btnEdit.setOnAction(e -> {
+            if (mainLayout != null) {
+                mainLayout.requestFocus();
+            }
             ProductForm form = new ProductForm(product, () -> refreshProductTable(tableRows));
             form.show();
         });
@@ -4299,6 +4340,9 @@ public class MainUI extends Application {
             "-fx-min-height: 28;"
         );
         btnEdit.setOnAction(e -> {
+            if (mainLayout != null) {
+                mainLayout.requestFocus();
+            }
             PackageForm form = new PackageForm(pkg.getId(), pkg, () -> refreshPackageTable(tableRows));
             form.show();
         });
@@ -4545,6 +4589,9 @@ public class MainUI extends Application {
         List<model.InvoiceItem> items = itemService.getItemsByInvoiceId(invoiceId);
         
         Stage dialogStage = new Stage();
+        if (mainStage != null) {
+            dialogStage.initOwner(mainStage);
+        }
         dialogStage.initModality(Modality.APPLICATION_MODAL);
         dialogStage.setTitle("Chi Tiết Hóa Đơn #" + String.format("%05d", invoiceId));
         
@@ -5183,6 +5230,9 @@ public class MainUI extends Application {
 
     private void showDeleteConfirmation(String itemType, String itemName, Runnable onConfirm) {
         Stage dialogStage = new Stage();
+        if (mainStage != null) {
+            dialogStage.initOwner(mainStage);
+        }
         dialogStage.initModality(Modality.APPLICATION_MODAL);
         dialogStage.setTitle("Xác nhận xóa");
         
@@ -5292,6 +5342,9 @@ public class MainUI extends Application {
     
     private void showSuccessAlert(String title, String message) {
         Stage dialogStage = new Stage();
+        if (mainStage != null) {
+            dialogStage.initOwner(mainStage);
+        }
         dialogStage.initModality(Modality.APPLICATION_MODAL);
         dialogStage.setTitle(title);
         
@@ -5361,6 +5414,9 @@ public class MainUI extends Application {
     
     private void showErrorAlert(String title, String message) {
         Stage dialogStage = new Stage();
+        if (mainStage != null) {
+            dialogStage.initOwner(mainStage);
+        }
         dialogStage.initModality(Modality.APPLICATION_MODAL);
         dialogStage.setTitle(title);
         
@@ -5463,6 +5519,9 @@ public class MainUI extends Application {
 
         javafx.application.Platform.runLater(() -> {
             Stage dialogStage = new Stage();
+            if (mainStage != null) {
+                dialogStage.initOwner(mainStage);
+            }
             dialogStage.initModality(Modality.APPLICATION_MODAL);
             dialogStage.setTitle("🔔 Nhắc Nhở Lịch Hẹn Sắp Diễn Ra");
             
@@ -5514,7 +5573,7 @@ public class MainUI extends Application {
             content.getChildren().addAll(titleLabel, grid, btnAcknowledge);
             Scene scene = new Scene(content, 450, 280);
             dialogStage.setScene(scene);
-            dialogStage.show();
+            dialogStage.showAndWait();
         });
     }
 
@@ -5994,6 +6053,9 @@ public class MainUI extends Application {
                 }
 
                 Stage confirmStage = new Stage();
+                if (mainStage != null) {
+                    confirmStage.initOwner(mainStage);
+                }
                 confirmStage.initModality(Modality.APPLICATION_MODAL);
                 confirmStage.setTitle("Xác Nhận Tiếp Nhận Xe");
 
@@ -6181,6 +6243,9 @@ public class MainUI extends Application {
 
     private void showCreateAppointmentDialog(model.Appointment existing) {
         Stage dialogStage = new Stage();
+        if (mainStage != null) {
+            dialogStage.initOwner(mainStage);
+        }
         dialogStage.initModality(Modality.APPLICATION_MODAL);
         dialogStage.setTitle(existing != null ? "Sửa Lịch Hẹn" : "Tạo Lịch Hẹn Mới");
         
@@ -6483,6 +6548,9 @@ public class MainUI extends Application {
 
     private void showConflictWarningDialog(String warningMsg, List<String> alternates, java.util.function.Consumer<String> onTimeSelected) {
         Stage dialogStage = new Stage();
+        if (mainStage != null) {
+            dialogStage.initOwner(mainStage);
+        }
         dialogStage.initModality(Modality.APPLICATION_MODAL);
         dialogStage.setTitle("Cảnh Báo Trùng / Quá Tải Lịch Hẹn");
 
@@ -6778,6 +6846,9 @@ public class MainUI extends Application {
 
     private void showEmployeeDialog(Employee emp, Runnable onSaved) {
         Stage dialogStage = new Stage();
+        if (mainStage != null) {
+            dialogStage.initOwner(mainStage);
+        }
         dialogStage.initModality(Modality.APPLICATION_MODAL);
         dialogStage.setTitle(emp != null ? "Chỉnh Sửa Nhân Viên" : "Thêm Nhân Viên Mới");
 
@@ -6930,7 +7001,7 @@ public class MainUI extends Application {
 
         Scene scene = new Scene(root);
         dialogStage.setScene(scene);
-        dialogStage.show();
+        dialogStage.showAndWait();
     }
 
     private double parseDoubleSafe(String str) {

@@ -36,7 +36,13 @@ public class InventoryReceiptForm {
     }
 
     public void show() {
+        if (MainUI.getMainStage() != null && MainUI.getMainStage().getScene() != null && MainUI.getMainStage().getScene().getRoot() != null) {
+            MainUI.getMainStage().getScene().getRoot().requestFocus();
+        }
         stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle("Tạo Phiếu Nhập Kho");
 
@@ -77,7 +83,7 @@ public class InventoryReceiptForm {
             scene.getStylesheets().add(css);
         } catch (Exception e) {}
         stage.setScene(scene);
-        stage.show();
+        stage.showAndWait();
     }
 
     private VBox createFormSection() {

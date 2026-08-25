@@ -409,6 +409,9 @@ public class InventoryHelper {
 
     private static void showEditDialog(InventoryReceipt r) {
         javafx.stage.Stage dialog = new javafx.stage.Stage();
+        if (MainUI.getMainStage() != null) {
+            dialog.initOwner(MainUI.getMainStage());
+        }
         dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
         dialog.setTitle("Sửa Phiếu Nhập – NK-" + String.format("%04d", r.getId()));
 
