@@ -1166,8 +1166,13 @@ public class MainUI extends Application {
         btnNew.setOnMouseEntered(e -> btnNew.setOpacity(0.9));
         btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
         btnNew.setOnAction(e -> {
-            ServiceForm form = new ServiceForm(() -> refreshServiceTable(tableRows));
-            form.show();
+            if (mainLayout != null) {
+                mainLayout.requestFocus();
+            }
+            javafx.application.Platform.runLater(() -> {
+                ServiceForm form = new ServiceForm(() -> refreshServiceTable(tableRows));
+                form.show();
+            });
         });
         
         header.getChildren().addAll(title, spacer, btnNew);
@@ -1530,8 +1535,10 @@ public class MainUI extends Application {
             if (mainLayout != null) {
                 mainLayout.requestFocus();
             }
-            ServiceForm form = new ServiceForm(service.getId(), service, () -> refreshServiceTable(tableRows));
-            form.show();
+            javafx.application.Platform.runLater(() -> {
+                ServiceForm form = new ServiceForm(service.getId(), service, () -> refreshServiceTable(tableRows));
+                form.show();
+            });
         });
         
         Button btnDelete = new Button("🗑");
@@ -4201,8 +4208,10 @@ public class MainUI extends Application {
             if (mainLayout != null) {
                 mainLayout.requestFocus();
             }
-            ProductForm form = new ProductForm(product, () -> refreshProductTable(tableRows));
-            form.show();
+            javafx.application.Platform.runLater(() -> {
+                ProductForm form = new ProductForm(product, () -> refreshProductTable(tableRows));
+                form.show();
+            });
         });
         
         Button btnDelete = new Button("🗑");
@@ -4343,8 +4352,10 @@ public class MainUI extends Application {
             if (mainLayout != null) {
                 mainLayout.requestFocus();
             }
-            PackageForm form = new PackageForm(pkg.getId(), pkg, () -> refreshPackageTable(tableRows));
-            form.show();
+            javafx.application.Platform.runLater(() -> {
+                PackageForm form = new PackageForm(pkg.getId(), pkg, () -> refreshPackageTable(tableRows));
+                form.show();
+            });
         });
 
         Button btnDelete = new Button("🗑");
