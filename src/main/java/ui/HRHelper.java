@@ -550,8 +550,8 @@ public class HRHelper {
         Label colName = createLabel("Họ Tên", 140, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         Label colPos = createLabel("Chức Vụ", 100, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         Label colBasic = createLabel("Lương Cơ Bản", 110, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colDays = createLabel("Số Ngày", 60, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colWork = createLabel("Số Công", 60, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colDays = createLabel("Số Ngày", 55, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colWork = createLabel("Số Công", 75, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         Label colTemp = createLabel("Lương Ngày", 110, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         Label colNet = createLabel("Thực Nhận", 110, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         Label colAct = createLabel("Thao Tác", 220, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
@@ -588,7 +588,8 @@ public class HRHelper {
                 double basicSalary = savedPr != null ? savedPr.getBasicSalary() : emp.getBasicSalary();
                 int standardDays = totalDays - 2;
                 double dailyRate = basicSalary / totalDays;
-                double workDiff = workDays - standardDays;
+                double paidDays = savedPr != null ? savedPr.getActualWorkDays() : workDays;
+                double workDiff = paidDays - standardDays;
                 double tempWage = basicSalary + workDiff * dailyRate;
                 
                 Payroll displayPr;
@@ -613,8 +614,14 @@ public class HRHelper {
                 Label lblName = createLabel(emp.getName(), 140, Pos.CENTER_LEFT, "-fx-font-weight: 500; -fx-text-fill: #212121; -fx-font-size: 13px;");
                 Label lblPos = createLabel(emp.getPosition(), 100, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
                 Label lblBasic = createLabel(String.format("%,.0f đ", basicSalary), 110, Pos.CENTER_LEFT, "-fx-text-fill: #212121; -fx-font-size: 13px;");
-                Label lblDays = createLabel(String.valueOf(totalDays), 60, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
-                Label lblWork = createLabel(String.format("%.1f", workDays), 60, Pos.CENTER, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
+                Label lblDays = createLabel(String.valueOf(totalDays), 55, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+
+                double holidayDays = savedPr != null ? Math.max(0, savedPr.getActualWorkDays() - workDays) : 0;
+                String workText = String.format(paidDays % 1 == 0 ? "%.0f" : "%.1f", paidDays);
+                Label lblWork = createLabel(workText, 75, Pos.CENTER, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
+                if (holidayDays > 0) {
+                    lblWork.setTooltip(new Tooltip(String.format("Đi làm: %.1f công\nNghỉ có lương: %.0f công\nTổng công tính lương: %.1f công", workDays, holidayDays, paidDays)));
+                }
 
                 Label lblTemp = createLabel(String.format("%,.0f đ", tempWage), 110, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
                 Label lblNet = createLabel(savedPr != null ? String.format("%,.0f đ", savedPr.getNetSalary()) : "-", 110, Pos.CENTER_LEFT, savedPr != null ? "-fx-text-fill: #1976D2; -fx-font-weight: bold; -fx-font-size: 13px;" : "-fx-text-fill: #9e9e9e; -fx-font-size: 13px;");
@@ -710,12 +717,16 @@ public class HRHelper {
             document.add(title);
             document.add(subtitle);
 
-            double workDays = pr.getActualWorkDays();
+            double totalPaidDays = pr.getActualWorkDays();
+            AttendanceService attService = new AttendanceService();
+            double actualAttDays = attService.getActualWorkDays(emp.getId(), pr.getPayMonth());
+            double holidayDays = Math.max(0, totalPaidDays - actualAttDays);
+
             double basicSalary = pr.getBasicSalary();
             int totalDays = pr.getTotalDays();
             int standardDays = totalDays - 2;
             double dailyRate = basicSalary / totalDays;
-            double workDiff = workDays - standardDays;
+            double workDiff = totalPaidDays - standardDays;
             
             double overStandard = Math.max(0, workDiff);
             double deductionDays = Math.max(0, -workDiff);
@@ -739,9 +750,28 @@ public class HRHelper {
             addInfo.accept("Số ngày trong tháng", totalDays + " ngày");
             addInfo.accept("Công chuẩn tháng", standardDays + " công");
             
-            addInfo.accept("Ngày công thực tế", String.format(workDays % 1 == 0 ? "%.0f công" : "%.1f công", workDays));
-            addInfo.accept("Công vượt chuẩn (+)", String.format(overStandard % 1 == 0 ? "%.0f công" : "%.1f công", overStandard));
-            addInfo.accept("Công bị khấu trừ (-)", String.format(deductionDays % 1 == 0 ? "%.0f công" : "%.1f công", deductionDays));
+            if (holidayDays > 0) {
+                addInfo.accept("Ngày công thực tế", String.format(actualAttDays % 1 == 0 ? "%.0f công" : "%.1f công", actualAttDays));
+                addInfo.accept("Nghỉ có lương", String.format(holidayDays % 1 == 0 ? "%.0f công" : "%.1f công", holidayDays));
+                addInfo.accept("Tổng công tính lương", String.format(totalPaidDays % 1 == 0 ? "%.0f công" : "%.1f công", totalPaidDays));
+                if (workDiff > 0) {
+                    addInfo.accept("Công vượt chuẩn (+)", String.format(overStandard % 1 == 0 ? "%.0f công" : "%.1f công", overStandard));
+                } else if (workDiff < 0) {
+                    addInfo.accept("Công bị khấu trừ (-)", String.format(deductionDays % 1 == 0 ? "%.0f công" : "%.1f công", deductionDays));
+                } else {
+                    addInfo.accept("Chênh lệch công", "Đủ công chuẩn");
+                }
+            } else {
+                addInfo.accept("Ngày công thực tế", String.format(totalPaidDays % 1 == 0 ? "%.0f công" : "%.1f công", totalPaidDays));
+                if (workDiff > 0) {
+                    addInfo.accept("Công vượt chuẩn (+)", String.format(overStandard % 1 == 0 ? "%.0f công" : "%.1f công", overStandard));
+                } else if (workDiff < 0) {
+                    addInfo.accept("Công bị khấu trừ (-)", String.format(deductionDays % 1 == 0 ? "%.0f công" : "%.1f công", deductionDays));
+                } else {
+                    addInfo.accept("Chênh lệch công", "Đủ công chuẩn");
+                }
+                addInfo.accept("", "");
+            }
 
             com.itextpdf.layout.element.Paragraph sectionTitle = new com.itextpdf.layout.element.Paragraph("CHI TIẾT NGÀY CÔNG & THÔNG SỐ LƯƠNG:")
                 .setFont(boldFont).setFontSize(9.5f).setMarginBottom(4);
@@ -749,7 +779,7 @@ public class HRHelper {
             document.add(breakdownTable);
             
             // Create Table
-            float[] colWidths = {25f, 110f, 80f, 40f, 70f, 60f, 60f, 65f, 65f, 55f, 75f, 55f, 55f, 75f, 65f};
+            float[] colWidths = {25f, 105f, 75f, 50f, 70f, 60f, 60f, 65f, 65f, 55f, 75f, 55f, 55f, 75f, 65f};
             com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(colWidths);
             table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             table.setFontSize(8);
@@ -821,7 +851,7 @@ public class HRHelper {
             table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(emp.getName()).setFont(font)));
             table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(emp.getPosition() != null ? emp.getPosition() : "").setFont(font)));
             
-            String dayStr = String.format(workDays % 1 == 0 ? "%.0f" : "%.1f", workDays);
+            String dayStr = String.format(totalPaidDays % 1 == 0 ? "%.0f" : "%.1f", totalPaidDays);
             table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(dayStr).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
             
             table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", baseWage)).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT));
@@ -938,7 +968,7 @@ public class HRHelper {
             document.add(subtitle);
             
             // Create Table
-            float[] colWidths = {25f, 110f, 80f, 40f, 70f, 60f, 60f, 65f, 65f, 55f, 75f, 55f, 55f, 75f, 65f};
+            float[] colWidths = {25f, 105f, 75f, 50f, 70f, 60f, 60f, 65f, 65f, 55f, 75f, 55f, 55f, 75f, 65f};
             com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(colWidths);
             table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             table.setFontSize(8);
@@ -1021,9 +1051,15 @@ public class HRHelper {
                 Payroll pr = prService.getPayroll(emp.getId(), payMonth);
                 
                 double basicSalary = pr != null ? pr.getBasicSalary() : emp.getBasicSalary();
-                double baseWage = (basicSalary / totalDaysInMonth) * workDays;
+                double paidDays = pr != null ? pr.getActualWorkDays() : workDays;
+                double holidayDays = pr != null ? Math.max(0, paidDays - workDays) : 0;
+
+                int standardDays = totalDaysInMonth - 2;
+                double dailyRate = basicSalary / totalDaysInMonth;
+                double workDiff = paidDays - standardDays;
+                double baseWage = basicSalary + workDiff * dailyRate;
                 
-                double resp, oth, cons, serv, ot, ins, adv;
+                double resp, oth, cons, serv, ot, ins, adv, net;
                 if (pr != null) {
                     resp = pr.getAllowanceResponsibility();
                     oth = pr.getAllowanceOther();
@@ -1032,6 +1068,7 @@ public class HRHelper {
                     ot = pr.getOvertimePay();
                     ins = pr.getSocialInsurance();
                     adv = pr.getAdvancePayment();
+                    net = pr.getNetSalary();
                 } else {
                     resp = emp.getAllowanceResponsibility();
                     oth = emp.getAllowanceOther();
@@ -1040,13 +1077,13 @@ public class HRHelper {
                     ot = 0;
                     ins = emp.getSocialInsurance();
                     adv = 0;
+                    net = baseWage + resp + oth - ins;
                 }
                 
                 double totalEarn = baseWage + resp + oth + cons + serv + ot;
-                double net = totalEarn - ins - adv;
                 
                 // Add to sums
-                sumWorkDays += workDays;
+                sumWorkDays += paidDays;
                 sumBaseWage += baseWage;
                 sumResp += resp;
                 sumOth += oth;
@@ -1063,7 +1100,7 @@ public class HRHelper {
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(emp.getName()).setFont(font)));
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(emp.getPosition() != null ? emp.getPosition() : "").setFont(font)));
                 
-                String dayStr = String.format(workDays % 1 == 0 ? "%.0f" : "%.1f", workDays);
+                String dayStr = String.format(paidDays % 1 == 0 ? "%.0f" : "%.1f", paidDays);
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(dayStr).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
                 
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", baseWage)).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT));

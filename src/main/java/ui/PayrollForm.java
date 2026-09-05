@@ -22,6 +22,8 @@ public class PayrollForm {
     private Runnable onSave;
     private Payroll existing;
 
+    private TextField txtHolidayDays;
+    private Label lblHolidayHelp;
     private TextField txtResponsibility;
     private TextField txtOther;
     private TextField txtConsulting;
@@ -60,8 +62,13 @@ public class PayrollForm {
         Label title = new Label("📊 Tính Toán Chi Tiết Lương Tháng: " + payMonth);
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: 600; -fx-text-fill: #212121;");
 
-        VBox infoSection = createInfoSection();
-        VBox formSection = createFormSection();
+        int year = Integer.parseInt(payMonth.substring(0, 4));
+        int month = Integer.parseInt(payMonth.substring(5, 7));
+        int totalDays = YearMonth.of(year, month).lengthOfMonth();
+        double actualWorkDaysFromAtt = new AttendanceService().getActualWorkDays(employee.getId(), payMonth);
+
+        VBox infoSection = createInfoSection(totalDays, actualWorkDaysFromAtt);
+        VBox formSection = createFormSection(totalDays, actualWorkDaysFromAtt);
         
         // Net Salary Box
         VBox netSalaryBox = new VBox(5);
@@ -72,15 +79,15 @@ public class PayrollForm {
         lblNetTitle.setStyle("-fx-font-size: 11px; -fx-text-fill: #1976D2; -fx-font-weight: bold;");
         Label lblNetSalaryVal = new Label("0 đ");
         lblNetSalaryVal.setStyle("-fx-font-size: 22px; -fx-text-fill: #1565C0; -fx-font-weight: bold;");
-        netSalaryBox.getChildren().addAll(lblNetTitle, lblNetSalaryVal);
+        Label lblNetSummary = new Label("");
+        lblNetSummary.setStyle("-fx-font-size: 12px; -fx-text-fill: #555555;");
+        netSalaryBox.getChildren().addAll(lblNetTitle, lblNetSalaryVal, lblNetSummary);
 
         // Recalculation logic
-        int year = Integer.parseInt(payMonth.substring(0, 4));
-        int month = Integer.parseInt(payMonth.substring(5, 7));
-        int totalDays = YearMonth.of(year, month).lengthOfMonth();
-        double actualWorkDays = new AttendanceService().getActualWorkDays(employee.getId(), payMonth);
-
         Runnable recalculate = () -> {
+            double holidayDays = parseDoubleSafe(txtHolidayDays.getText());
+            double totalPaidDays = actualWorkDaysFromAtt + holidayDays;
+
             double resp = parseDoubleSafe(txtResponsibility.getText());
             double oth = parseDoubleSafe(txtOther.getText());
             double cons = parseDoubleSafe(txtConsulting.getText());
@@ -92,13 +99,35 @@ public class PayrollForm {
             double basicSalary = existing != null ? existing.getBasicSalary() : employee.getBasicSalary();
             int standardDays = totalDays - 2;
             double dailyRate = basicSalary / totalDays;
-            double workDiff = actualWorkDays - standardDays;
+            double workDiff = totalPaidDays - standardDays;
             double basePortion = basicSalary + workDiff * dailyRate;
             double net = basePortion + resp + oth + cons + serv + ot - ins - adv;
             
             lblNetSalaryVal.setText(String.format("%,.0f đ", net));
+
+            if (holidayDays > 0) {
+                lblHolidayHelp.setText(String.format("Tổng công tính lương: %.1f công (%.1f công đi làm + %.0f công nghỉ có lương)", 
+                        totalPaidDays, actualWorkDaysFromAtt, holidayDays));
+                if (workDiff == 0) {
+                    lblNetSummary.setText(String.format("Tổng tính lương %.1f công = Công chuẩn (%d công) -> Nhận đủ 100%% lương cơ bản", totalPaidDays, standardDays));
+                } else if (workDiff > 0) {
+                    lblNetSummary.setText(String.format("Tổng tính lương %.1f công > Công chuẩn (%d công) -> Vượt %.1f công (+%,.0f đ)", totalPaidDays, standardDays, workDiff, workDiff * dailyRate));
+                } else {
+                    lblNetSummary.setText(String.format("Tổng tính lương %.1f công < Công chuẩn (%d công) -> Thiếu %.1f công (-%,.0f đ)", totalPaidDays, standardDays, -workDiff, -workDiff * dailyRate));
+                }
+            } else {
+                lblHolidayHelp.setText("Số ngày nghỉ vẫn tính lương (không bị trừ lương cơ bản)");
+                if (workDiff == 0) {
+                    lblNetSummary.setText(String.format("Đủ công chuẩn (%d công) -> Nhận đủ 100%% lương cơ bản", standardDays));
+                } else if (workDiff > 0) {
+                    lblNetSummary.setText(String.format("Vượt %.1f công so với công chuẩn (%d công) -> (+%,.0f đ)", workDiff, standardDays, workDiff * dailyRate));
+                } else {
+                    lblNetSummary.setText(String.format("Thiếu %.1f công so với công chuẩn (%d công) -> (-%,.0f đ)", -workDiff, standardDays, -workDiff * dailyRate));
+                }
+            }
         };
 
+        txtHolidayDays.textProperty().addListener((obs, old, val) -> recalculate.run());
         txtResponsibility.textProperty().addListener((obs, old, val) -> recalculate.run());
         txtOther.textProperty().addListener((obs, old, val) -> recalculate.run());
         txtConsulting.textProperty().addListener((obs, old, val) -> recalculate.run());
@@ -113,7 +142,7 @@ public class PayrollForm {
         scrollPane.setContent(mainContent);
 
         // Action Buttons (Fixed at bottom)
-        HBox actionButtons = createActionButtons(totalDays, actualWorkDays);
+        HBox actionButtons = createActionButtons(totalDays, actualWorkDaysFromAtt);
         actionButtons.setPadding(new Insets(15, 30, 15, 30));
         actionButtons.setStyle(
             "-fx-background-color: white;" +
@@ -124,7 +153,7 @@ public class PayrollForm {
         root.setCenter(scrollPane);
         root.setBottom(actionButtons);
 
-        Scene scene = new Scene(root, 700, 750);
+        Scene scene = new Scene(root, 720, 780);
         try {
             String css = MainUI.class.getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);
@@ -133,7 +162,7 @@ public class PayrollForm {
         stage.show();
     }
 
-    private VBox createInfoSection() {
+    private VBox createInfoSection(int totalDays, double actualWorkDaysFromAtt) {
         VBox infoSection = new VBox(15);
         infoSection.setStyle(
             "-fx-background-color: white;" +
@@ -159,12 +188,16 @@ public class PayrollForm {
         Label lblBasicSalaryInfo = new Label("Lương cơ bản: " + String.format("%,.0f đ", basicSalary));
         lblBasicSalaryInfo.setStyle("-fx-text-fill: #616161; -fx-font-size: 14px;");
 
-        infoCard.getChildren().addAll(lblName, lblPos, lblBasicSalaryInfo);
+        int standardDays = totalDays - 2;
+        Label lblWorkDaysInfo = new Label("Chấm công: " + String.format(actualWorkDaysFromAtt % 1 == 0 ? "%.0f" : "%.1f", actualWorkDaysFromAtt) + " công / Công chuẩn: " + standardDays + " công (Tháng " + totalDays + " ngày)");
+        lblWorkDaysInfo.setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: 600; -fx-font-size: 14px;");
+
+        infoCard.getChildren().addAll(lblName, lblPos, lblBasicSalaryInfo, lblWorkDaysInfo);
         infoSection.getChildren().addAll(infoSectionTitle, infoCard);
         return infoSection;
     }
 
-    private VBox createFormSection() {
+    private VBox createFormSection(int totalDays, double actualWorkDaysFromAtt) {
         VBox formSection = new VBox(20);
         formSection.setStyle(
             "-fx-background-color: white;" +
@@ -178,9 +211,11 @@ public class PayrollForm {
         Label sectionTitle = new Label("Thông Tin Lương & Phụ Cấp");
         sectionTitle.setStyle("-fx-font-size: 16px; -fx-text-fill: #1976D2; -fx-font-weight: 700; -fx-padding: 0 0 10 0;");
 
+        double holidayDaysVal = 0.0;
         double respVal, othVal, consVal, servVal, otVal, insVal, advVal;
         
         if (existing != null) {
+            holidayDaysVal = Math.max(0, existing.getActualWorkDays() - actualWorkDaysFromAtt);
             respVal = existing.getAllowanceResponsibility();
             othVal = existing.getAllowanceOther();
             consVal = existing.getCommissionConsulting();
@@ -237,6 +272,18 @@ public class PayrollForm {
         String labelStyle = "-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;";
         String fieldStyle = "-fx-background-color: #f5f5f5; -fx-padding: 12px 15px; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px;";
 
+        Label lblHoliday = new Label("Nghỉ có lương (công)");
+        lblHoliday.setStyle(labelStyle);
+        txtHolidayDays = new TextField(holidayDaysVal > 0 ? (holidayDaysVal % 1 == 0 ? String.format("%.0f", holidayDaysVal) : String.format("%.1f", holidayDaysVal)) : "");
+        txtHolidayDays.setPromptText("Số ngày nghỉ lễ / phép có lương (ví dụ: 2)...");
+        txtHolidayDays.setPrefWidth(300);
+        txtHolidayDays.setStyle(fieldStyle);
+
+        lblHolidayHelp = new Label("");
+        lblHolidayHelp.setStyle("-fx-font-size: 12px; -fx-text-fill: #1976D2; -fx-font-style: italic;");
+        VBox holidayBox = new VBox(4);
+        holidayBox.getChildren().addAll(txtHolidayDays, lblHolidayHelp);
+
         Label lblResponsibility = new Label("Phụ cấp trách nhiệm (VNĐ)");
         lblResponsibility.setStyle(labelStyle);
         txtResponsibility = new TextField(formatValue(respVal));
@@ -279,19 +326,20 @@ public class PayrollForm {
         txtAdvance.setPrefWidth(300);
         txtAdvance.setStyle(fieldStyle);
 
-        grid.add(lblResponsibility, 0, 0); grid.add(txtResponsibility, 1, 0);
-        grid.add(lblOther, 0, 1); grid.add(txtOther, 1, 1);
-        grid.add(lblConsulting, 0, 2); grid.add(txtConsulting, 1, 2);
-        grid.add(lblServiceComm, 0, 3); grid.add(txtServiceComm, 1, 3);
-        grid.add(lblOvertime, 0, 4); grid.add(txtOvertime, 1, 4);
-        grid.add(lblInsurance, 0, 5); grid.add(txtInsurance, 1, 5);
-        grid.add(lblAdvance, 0, 6); grid.add(txtAdvance, 1, 6);
+        grid.add(lblHoliday, 0, 0); grid.add(holidayBox, 1, 0);
+        grid.add(lblResponsibility, 0, 1); grid.add(txtResponsibility, 1, 1);
+        grid.add(lblOther, 0, 2); grid.add(txtOther, 1, 2);
+        grid.add(lblConsulting, 0, 3); grid.add(txtConsulting, 1, 3);
+        grid.add(lblServiceComm, 0, 4); grid.add(txtServiceComm, 1, 4);
+        grid.add(lblOvertime, 0, 5); grid.add(txtOvertime, 1, 5);
+        grid.add(lblInsurance, 0, 6); grid.add(txtInsurance, 1, 6);
+        grid.add(lblAdvance, 0, 7); grid.add(txtAdvance, 1, 7);
 
         formSection.getChildren().addAll(sectionTitle, grid);
         return formSection;
     }
 
-    private HBox createActionButtons(int totalDays, double actualWorkDays) {
+    private HBox createActionButtons(int totalDays, double actualWorkDaysFromAtt) {
         HBox buttons = new HBox(15);
         buttons.setAlignment(Pos.CENTER_RIGHT);
 
@@ -320,6 +368,9 @@ public class PayrollForm {
         btnSaveAndExport.setOnMouseEntered(e -> btnSaveAndExport.setOpacity(0.9));
         btnSaveAndExport.setOnMouseExited(e -> btnSaveAndExport.setOpacity(1.0));
         btnSaveAndExport.setOnAction(e -> {
+            double holidayDays = parseDoubleSafe(txtHolidayDays.getText());
+            double totalPaidDays = actualWorkDaysFromAtt + holidayDays;
+
             double resp = parseDoubleSafe(txtResponsibility.getText());
             double oth = parseDoubleSafe(txtOther.getText());
             double cons = parseDoubleSafe(txtConsulting.getText());
@@ -331,12 +382,12 @@ public class PayrollForm {
             double basicSalary = existing != null ? existing.getBasicSalary() : employee.getBasicSalary();
             int standardDays = totalDays - 2;
             double dailyRate = basicSalary / totalDays;
-            double workDiff = actualWorkDays - standardDays;
+            double workDiff = totalPaidDays - standardDays;
             double basePortion = basicSalary + workDiff * dailyRate;
             double net = basePortion + resp + oth + cons + serv + ot - ins - adv;
 
             // 1. Lưu vào bảng payroll (lịch sử tính lương của tháng)
-            Payroll pr = new Payroll(0, employee.getId(), employee.getName(), payMonth, totalDays, actualWorkDays, basicSalary,
+            Payroll pr = new Payroll(0, employee.getId(), employee.getName(), payMonth, totalDays, totalPaidDays, basicSalary,
                 resp, oth, cons, serv, ot, ins, adv, net, "");
             
             boolean success = new service.PayrollService().savePayroll(pr);

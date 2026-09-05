@@ -374,6 +374,12 @@ public class ServiceForm {
 
         headerRow.getChildren().addAll(colVehicle, colPrice, colCost);
         priceListContainer.getChildren().add(headerRow);
+
+        boolean isLegacyAllZero = existingService != null &&
+                existingService.getCostPriceMini() <= 0 && existingService.getCostPriceSedan() <= 0 &&
+                existingService.getCostPriceCuv() <= 0 && existingService.getCostPriceSuv() <= 0 &&
+                existingService.getCostPriceMpv() <= 0 && existingService.getCostPricePickup() <= 0 &&
+                existingService.getCostPrice() > 0;
         
         // Price & Cost for Mini
         chkMini = new CheckBox("Mini");
@@ -422,7 +428,8 @@ public class ServiceForm {
         if (isEdit && existingService != null && existingService.getPriceMini() > 0) {
             chkMini.setSelected(true);
             txtPriceMini.setText(String.format("%.0f", existingService.getPriceMini()));
-            txtCostMini.setText(String.format("%.0f", existingService.getCostPriceMini() > 0 ? existingService.getCostPriceMini() : existingService.getCostPrice()));
+            double cMini = existingService.getCostPriceMini() > 0 ? existingService.getCostPriceMini() : (isLegacyAllZero ? existingService.getCostPrice() : 0);
+            txtCostMini.setText(String.format("%.0f", cMini));
         } else {
             chkMini.setSelected(false);
             txtCostMini.setText("0");
@@ -475,7 +482,8 @@ public class ServiceForm {
         if (isEdit && existingService != null && existingService.getPriceSedan() > 0) {
             chkSedan.setSelected(true);
             txtPriceSedan.setText(String.format("%.0f", existingService.getPriceSedan()));
-            txtCostSedan.setText(String.format("%.0f", existingService.getCostPriceSedan() > 0 ? existingService.getCostPriceSedan() : existingService.getCostPrice()));
+            double cSedan = existingService.getCostPriceSedan() > 0 ? existingService.getCostPriceSedan() : (isLegacyAllZero ? existingService.getCostPrice() : 0);
+            txtCostSedan.setText(String.format("%.0f", cSedan));
         } else {
             chkSedan.setSelected(false);
             txtCostSedan.setText("0");
@@ -528,7 +536,8 @@ public class ServiceForm {
         if (isEdit && existingService != null && existingService.getPriceCuv() > 0) {
             chkCuv.setSelected(true);
             txtPriceCuv.setText(String.format("%.0f", existingService.getPriceCuv()));
-            txtCostCuv.setText(String.format("%.0f", existingService.getCostPriceCuv() > 0 ? existingService.getCostPriceCuv() : existingService.getCostPrice()));
+            double cCuv = existingService.getCostPriceCuv() > 0 ? existingService.getCostPriceCuv() : (isLegacyAllZero ? existingService.getCostPrice() : 0);
+            txtCostCuv.setText(String.format("%.0f", cCuv));
         } else {
             chkCuv.setSelected(false);
             txtCostCuv.setText("0");
@@ -581,7 +590,8 @@ public class ServiceForm {
         if (isEdit && existingService != null && existingService.getPriceSuv() > 0) {
             chkSuv.setSelected(true);
             txtPriceSuv.setText(String.format("%.0f", existingService.getPriceSuv()));
-            txtCostSuv.setText(String.format("%.0f", existingService.getCostPriceSuv() > 0 ? existingService.getCostPriceSuv() : existingService.getCostPrice()));
+            double cSuv = existingService.getCostPriceSuv() > 0 ? existingService.getCostPriceSuv() : (isLegacyAllZero ? existingService.getCostPrice() : 0);
+            txtCostSuv.setText(String.format("%.0f", cSuv));
         } else {
             chkSuv.setSelected(false);
             txtCostSuv.setText("0");
@@ -634,7 +644,8 @@ public class ServiceForm {
         if (isEdit && existingService != null && existingService.getPriceMpv() > 0) {
             chkMpv.setSelected(true);
             txtPriceMpv.setText(String.format("%.0f", existingService.getPriceMpv()));
-            txtCostMpv.setText(String.format("%.0f", existingService.getCostPriceMpv() > 0 ? existingService.getCostPriceMpv() : existingService.getCostPrice()));
+            double cMpv = existingService.getCostPriceMpv() > 0 ? existingService.getCostPriceMpv() : (isLegacyAllZero ? existingService.getCostPrice() : 0);
+            txtCostMpv.setText(String.format("%.0f", cMpv));
         } else {
             chkMpv.setSelected(false);
             txtCostMpv.setText("0");
@@ -687,7 +698,8 @@ public class ServiceForm {
         if (isEdit && existingService != null && existingService.getPricePickup() > 0) {
             chkPickup.setSelected(true);
             txtPricePickup.setText(String.format("%.0f", existingService.getPricePickup()));
-            txtCostPickup.setText(String.format("%.0f", existingService.getCostPricePickup() > 0 ? existingService.getCostPricePickup() : existingService.getCostPrice()));
+            double cPickup = existingService.getCostPricePickup() > 0 ? existingService.getCostPricePickup() : (isLegacyAllZero ? existingService.getCostPrice() : 0);
+            txtCostPickup.setText(String.format("%.0f", cPickup));
         } else {
             chkPickup.setSelected(false);
             txtCostPickup.setText("0");

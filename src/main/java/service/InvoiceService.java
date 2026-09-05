@@ -22,26 +22,36 @@ public class InvoiceService {
 
     public int addInvoice(String customerName, String phone, String licensePlate, String vehicleType, String address,
                               double totalBeforeDiscount, double discount, double totalAmount, String notes, String status, String paymentMethod) {
+        return addInvoice(customerName, phone, licensePlate, vehicleType, address, totalBeforeDiscount, discount, totalAmount, notes, status, paymentMethod, null);
+    }
+
+    public int addInvoice(String customerName, String phone, String licensePlate, String vehicleType, String address,
+                              double totalBeforeDiscount, double discount, double totalAmount, String notes, String status, String paymentMethod, String createdAt) {
         if (customerName == null || customerName.trim().isEmpty()) {
             return -1;
         }
         Invoice invoice = new Invoice(0, customerName, phone, licensePlate, vehicleType, address,
-                                     totalBeforeDiscount, discount, totalAmount, notes, status, null, paymentMethod);
+                                     totalBeforeDiscount, discount, totalAmount, notes, status, createdAt, paymentMethod);
         return invoiceDAO.addInvoice(invoice);
     }
     
     public boolean updateInvoice(int id, String customerName, String phone, String licensePlate, String vehicleType, String address,
                                  double totalBeforeDiscount, double discount, double totalAmount, String notes, String status) {
-        return updateInvoice(id, customerName, phone, licensePlate, vehicleType, address, totalBeforeDiscount, discount, totalAmount, notes, status, null);
+        return updateInvoice(id, customerName, phone, licensePlate, vehicleType, address, totalBeforeDiscount, discount, totalAmount, notes, status, null, null);
     }
 
     public boolean updateInvoice(int id, String customerName, String phone, String licensePlate, String vehicleType, String address,
                                  double totalBeforeDiscount, double discount, double totalAmount, String notes, String status, String paymentMethod) {
+        return updateInvoice(id, customerName, phone, licensePlate, vehicleType, address, totalBeforeDiscount, discount, totalAmount, notes, status, paymentMethod, null);
+    }
+
+    public boolean updateInvoice(int id, String customerName, String phone, String licensePlate, String vehicleType, String address,
+                                 double totalBeforeDiscount, double discount, double totalAmount, String notes, String status, String paymentMethod, String createdAt) {
         if (customerName == null || customerName.trim().isEmpty()) {
             return false;
         }
         Invoice invoice = new Invoice(id, customerName, phone, licensePlate, vehicleType, address,
-                                     totalBeforeDiscount, discount, totalAmount, notes, status, null, paymentMethod);
+                                     totalBeforeDiscount, discount, totalAmount, notes, status, createdAt, paymentMethod);
         return invoiceDAO.updateInvoice(invoice);
     }
     

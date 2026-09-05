@@ -4623,7 +4623,7 @@ public class MainUI extends Application {
         Label lblCustomer = new Label("Tên: " + invoice.getCustomerName());
         lblCustomer.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
         
-        Label lblPhone = new Label("SĐT: " + (invoice.getPhone() != null ? invoice.getPhone() : "N/A"));
+        Label lblPhone = new Label("SĐT: " + (invoice.getPhone() != null && !invoice.getPhone().trim().isEmpty() ? invoice.getPhone() : "N/A"));
         lblPhone.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242;");
         
         Label lblPlate = new Label("Biển số: " + (invoice.getLicensePlate() != null ? invoice.getLicensePlate() : "N/A"));

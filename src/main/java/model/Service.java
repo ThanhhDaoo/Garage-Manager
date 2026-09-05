@@ -165,15 +165,16 @@ public class Service {
 
     // Helper method to get cost price by vehicle type
     public double getCostPriceByVehicleType(String vehicleType) {
-        if (vehicleType == null) return costPriceSedan > 0 ? costPriceSedan : costPrice;
+        boolean hasAnyVehicleCost = costPriceMini > 0 || costPriceSedan > 0 || costPriceCuv > 0 || costPriceSuv > 0 || costPriceMpv > 0 || costPricePickup > 0;
+        if (vehicleType == null) return costPriceSedan > 0 ? costPriceSedan : (hasAnyVehicleCost ? 0.0 : costPrice);
         switch (vehicleType.toUpperCase()) {
-            case "MINI": return costPriceMini > 0 ? costPriceMini : costPrice;
-            case "SEDAN": return costPriceSedan > 0 ? costPriceSedan : costPrice;
-            case "CUV": return costPriceCuv > 0 ? costPriceCuv : costPrice;
-            case "SUV": return costPriceSuv > 0 ? costPriceSuv : costPrice;
-            case "MPV": return costPriceMpv > 0 ? costPriceMpv : costPrice;
-            case "PICKUP": return costPricePickup > 0 ? costPricePickup : costPrice;
-            default: return costPriceSedan > 0 ? costPriceSedan : costPrice;
+            case "MINI": return costPriceMini > 0 ? costPriceMini : (hasAnyVehicleCost ? 0.0 : costPrice);
+            case "SEDAN": return costPriceSedan > 0 ? costPriceSedan : (hasAnyVehicleCost ? 0.0 : costPrice);
+            case "CUV": return costPriceCuv > 0 ? costPriceCuv : (hasAnyVehicleCost ? 0.0 : costPrice);
+            case "SUV": return costPriceSuv > 0 ? costPriceSuv : (hasAnyVehicleCost ? 0.0 : costPrice);
+            case "MPV": return costPriceMpv > 0 ? costPriceMpv : (hasAnyVehicleCost ? 0.0 : costPrice);
+            case "PICKUP": return costPricePickup > 0 ? costPricePickup : (hasAnyVehicleCost ? 0.0 : costPrice);
+            default: return costPriceSedan > 0 ? costPriceSedan : (hasAnyVehicleCost ? 0.0 : costPrice);
         }
     }
 

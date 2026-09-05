@@ -73,8 +73,12 @@ public class InvoiceDAO {
     }
     
     public int addInvoice(Invoice invoice) {
-        String sql = "INSERT INTO invoices (customer_name, phone, license_plate, vehicle_type, address, total_before_discount, discount, total_amount, notes, status, payment_method) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        boolean hasCustomDate = invoice.getCreatedAt() != null && !invoice.getCreatedAt().trim().isEmpty();
+        String sql = hasCustomDate ?
+            "INSERT INTO invoices (customer_name, phone, license_plate, vehicle_type, address, total_before_discount, discount, total_amount, notes, status, payment_method, created_at) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" :
+            "INSERT INTO invoices (customer_name, phone, license_plate, vehicle_type, address, total_before_discount, discount, total_amount, notes, status, payment_method) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -90,6 +94,9 @@ public class InvoiceDAO {
             pstmt.setString(9, invoice.getNotes());
             pstmt.setString(10, invoice.getStatus() != null ? invoice.getStatus() : "nhap");
             pstmt.setString(11, invoice.getPaymentMethod());
+            if (hasCustomDate) {
+                pstmt.setString(12, invoice.getCreatedAt().trim());
+            }
             
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
@@ -105,8 +112,12 @@ public class InvoiceDAO {
     }
     
     public boolean updateInvoice(Invoice invoice) {
-        String sql = "UPDATE invoices SET customer_name = ?, phone = ?, license_plate = ?, vehicle_type = ?, address = ?, " +
-                     "total_before_discount = ?, discount = ?, total_amount = ?, notes = ?, status = ?, payment_method = ? WHERE id = ?";
+        boolean hasCustomDate = invoice.getCreatedAt() != null && !invoice.getCreatedAt().trim().isEmpty();
+        String sql = hasCustomDate ?
+            "UPDATE invoices SET customer_name = ?, phone = ?, license_plate = ?, vehicle_type = ?, address = ?, " +
+            "total_before_discount = ?, discount = ?, total_amount = ?, notes = ?, status = ?, payment_method = ?, created_at = ? WHERE id = ?" :
+            "UPDATE invoices SET customer_name = ?, phone = ?, license_plate = ?, vehicle_type = ?, address = ?, " +
+            "total_before_discount = ?, discount = ?, total_amount = ?, notes = ?, status = ?, payment_method = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -122,7 +133,12 @@ public class InvoiceDAO {
             pstmt.setString(9, invoice.getNotes());
             pstmt.setString(10, invoice.getStatus());
             pstmt.setString(11, invoice.getPaymentMethod());
-            pstmt.setInt(12, invoice.getId());
+            if (hasCustomDate) {
+                pstmt.setString(12, invoice.getCreatedAt().trim());
+                pstmt.setInt(13, invoice.getId());
+            } else {
+                pstmt.setInt(12, invoice.getId());
+            }
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {

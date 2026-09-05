@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
 public class CreateInvoiceForm {
 
@@ -43,6 +46,7 @@ public class CreateInvoiceForm {
     private TextField txtAddress;
     private TextField txtNotes;
     private ComboBox<String> cbPaymentMethod;
+    private DatePicker dpCreatedAt;
     private Runnable onInvoiceCreated;
 
     private void preserveScrollPosition(Runnable action) {
@@ -69,6 +73,7 @@ public class CreateInvoiceForm {
     private String prefilledVehicleType;
     private String prefilledAddress;
     private String prefilledNotes;
+    private String prefilledCreatedAt;
     private String preselectedItemName;
     private model.Appointment fromAppointment;
     private model.Invoice existingInvoice;
@@ -91,6 +96,7 @@ public class CreateInvoiceForm {
             this.prefilledVehicleType = existingInvoice.getVehicleType();
             this.prefilledAddress = existingInvoice.getAddress();
             this.prefilledNotes = existingInvoice.getNotes();
+            this.prefilledCreatedAt = existingInvoice.getCreatedAt();
         }
     }
 
@@ -105,6 +111,7 @@ public class CreateInvoiceForm {
             this.prefilledAddress = appointment.getAddress();
             this.prefilledNotes = appointment.getNotes();
             this.preselectedItemName = appointment.getServiceName();
+            this.prefilledCreatedAt = appointment.getAppointmentDate();
         }
     }
 
@@ -324,6 +331,11 @@ public class CreateInvoiceForm {
                     cbPaymentMethod.setValue("Ghi nợ (N)");
                 }
             }
+            if (dpCreatedAt != null && existingInvoice.getCreatedAt() != null && existingInvoice.getCreatedAt().length() >= 10) {
+                try {
+                    dpCreatedAt.setValue(LocalDate.parse(existingInvoice.getCreatedAt().substring(0, 10)));
+                } catch (Exception ignored) {}
+            }
             
             recalculateTotal();
         } catch (Exception e) {
@@ -390,7 +402,7 @@ public class CreateInvoiceForm {
         UIUtils.setupIMEFix(txtName);
 
         // Phone field - Create completely independent TextField
-        Label lblPhone = new Label("Số điện thoại *");
+        Label lblPhone = new Label("Số điện thoại");
         lblPhone.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
         txtPhone = new TextField(prefilledPhone != null ? prefilledPhone : "");
         txtPhone.setPromptText("Nhập số điện thoại");
@@ -532,6 +544,32 @@ public class CreateInvoiceForm {
                         "-fx-pref-height: 44px;" +
                         "-fx-pref-width: 300px;");
 
+        // Creation date selection
+        Label lblCreatedAt = new Label("Ngày lập hóa đơn *");
+        lblCreatedAt.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
+        dpCreatedAt = new DatePicker();
+        LocalDate defaultDate = LocalDate.now();
+        if (prefilledCreatedAt != null && prefilledCreatedAt.trim().length() >= 10) {
+            try {
+                defaultDate = LocalDate.parse(prefilledCreatedAt.trim().substring(0, 10));
+            } catch (Exception ignored) {}
+        }
+        dpCreatedAt.setValue(defaultDate);
+        dpCreatedAt.setStyle(
+                "-fx-background-color: #f5f5f5;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-border-color: transparent;" +
+                        "-fx-font-size: 14px;" +
+                        "-fx-pref-height: 44px;" +
+                        "-fx-pref-width: 300px;");
+        dpCreatedAt.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                try {
+                    dpCreatedAt.setValue(dpCreatedAt.getConverter().fromString(dpCreatedAt.getEditor().getText()));
+                } catch (Exception ignored) {}
+            }
+        });
+
         grid.add(lblName, 0, 0);
         grid.add(txtName, 1, 0);
         grid.add(lblPhone, 0, 1);
@@ -546,6 +584,8 @@ public class CreateInvoiceForm {
         grid.add(txtNotes, 1, 5);
         grid.add(lblPaymentMethod, 0, 6);
         grid.add(cbPaymentMethod, 1, 6);
+        grid.add(lblCreatedAt, 0, 7);
+        grid.add(dpCreatedAt, 1, 7);
 
         // Hàm tự động điền thông tin khách hàng từ hóa đơn cũ dựa trên biển số xe
         Runnable autoFillCustomer = () -> {
@@ -2238,17 +2278,13 @@ public class CreateInvoiceForm {
             }
 
             String phoneVal = txtPhone.getText().trim();
-            if (phoneVal.isEmpty()) {
-                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo",
-                        "Vui lòng nhập số điện thoại!");
-                alert.showAndWait();
-                return;
-            }
-            if (phoneVal.length() < 9 || phoneVal.length() > 11) {
-                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo",
-                        "Số điện thoại phải từ 9 đến 11 số!");
-                alert.showAndWait();
-                return;
+            if (!phoneVal.isEmpty()) {
+                if (phoneVal.length() < 9 || phoneVal.length() > 11) {
+                    Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo",
+                            "Số điện thoại phải từ 9 đến 11 số!");
+                    alert.showAndWait();
+                    return;
+                }
             }
 
             if (txtPlate.getText().trim().isEmpty()) {
@@ -2325,6 +2361,18 @@ public class CreateInvoiceForm {
                 totalFinalAmount += ad + vt;
             }
 
+            // Determine invoice creation date
+            LocalDate selectedDate = (dpCreatedAt != null && dpCreatedAt.getValue() != null) ? dpCreatedAt.getValue() : LocalDate.now();
+            String timeStr = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+            String createdAtStr;
+            if (existingInvoice != null && existingInvoice.getCreatedAt() != null
+                    && existingInvoice.getCreatedAt().length() >= 10
+                    && existingInvoice.getCreatedAt().substring(0, 10).equals(selectedDate.toString())) {
+                createdAtStr = existingInvoice.getCreatedAt().length() >= 19 ? existingInvoice.getCreatedAt() : selectedDate.toString() + " " + timeStr;
+            } else {
+                createdAtStr = selectedDate.toString() + " " + timeStr;
+            }
+
             // Save invoice to database
             InvoiceService invoiceService = new InvoiceService();
             int invoiceId;
@@ -2346,6 +2394,7 @@ public class CreateInvoiceForm {
                 existingInvoice.setTotalAmount(totalFinalAmount);
                 existingInvoice.setNotes(txtNotes.getText().trim());
                 existingInvoice.setPaymentMethod(paymentMethodVal);
+                existingInvoice.setCreatedAt(createdAtStr);
                 
                 invoiceService.updateInvoice(existingInvoice);
                 invoiceId = existingInvoice.getId();
@@ -2361,7 +2410,8 @@ public class CreateInvoiceForm {
                         totalFinalAmount,
                         txtNotes.getText().trim(),
                         "nhap",
-                        paymentMethodVal);
+                        paymentMethodVal,
+                        createdAtStr);
             }
 
             if (invoiceId > 0) {
