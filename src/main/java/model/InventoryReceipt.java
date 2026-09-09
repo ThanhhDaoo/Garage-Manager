@@ -61,6 +61,9 @@ public class InventoryReceipt {
     public String getOperator() { return operator; }
     public void setOperator(String operator) { this.operator = operator; }
 
+    public String getSupplier() { return operator; }
+    public void setSupplier(String supplier) { this.operator = supplier; }
+
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 

@@ -1540,7 +1540,7 @@ public class ReportHelper {
             addHeaderCell.accept("SL Nhập", com.itextpdf.layout.properties.TextAlignment.RIGHT);
             addHeaderCell.accept("Giá Nhập", com.itextpdf.layout.properties.TextAlignment.RIGHT);
             addHeaderCell.accept("Thành Tiền", com.itextpdf.layout.properties.TextAlignment.RIGHT);
-            addHeaderCell.accept("Người Thực Hiện", com.itextpdf.layout.properties.TextAlignment.LEFT);
+            addHeaderCell.accept("Nhà Cung Cấp", com.itextpdf.layout.properties.TextAlignment.LEFT);
 
             double totalAmount = 0;
             int stt = 1;
@@ -1676,7 +1676,7 @@ public class ReportHelper {
             numberStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.RIGHT);
 
             String[] headers = {
-                "STT", "Mã Phiếu", "Ngày Nhập", "Tên Sản Phẩm", "Số Lượng", "Đơn Giá", "Thành Tiền", "Người Thực Hiện"
+                "STT", "Mã Phiếu", "Ngày Nhập", "Tên Sản Phẩm", "Số Lượng", "Đơn Giá", "Thành Tiền", "Nhà Cung Cấp"
             };
             
             org.apache.poi.xssf.usermodel.XSSFRow headerRow = sheet.createRow(2);

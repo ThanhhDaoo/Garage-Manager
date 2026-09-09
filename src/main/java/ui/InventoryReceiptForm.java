@@ -205,11 +205,11 @@ public class InventoryReceiptForm {
         dpDate.setMaxWidth(Double.MAX_VALUE);
         dpDate.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
 
-        // Operator
-        Label lblOperator = new Label("Người thực hiện *");
+        // Supplier
+        Label lblOperator = new Label("Nhà cung cấp *");
         lblOperator.setStyle(labelStyle);
-        txtOperator = new TextField("Admin");
-        txtOperator.setPromptText("Nhập họ tên người thực hiện...");
+        txtOperator = new TextField();
+        txtOperator.setPromptText("Nhập tên nhà cung cấp...");
         txtOperator.setStyle(fieldStyle);
         txtOperator.setMaxWidth(Double.MAX_VALUE);
 
@@ -359,7 +359,7 @@ public class InventoryReceiptForm {
 
         String operator = txtOperator.getText().trim();
         if (operator.isEmpty()) {
-            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập tên người thực hiện!").showAndWait();
+            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập tên nhà cung cấp!").showAndWait();
             return;
         }
 

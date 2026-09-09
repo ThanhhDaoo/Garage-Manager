@@ -273,7 +273,7 @@ public class InventoryHelper {
             }
         });
 
-        TableColumn<InventoryReceipt, String> colOperator = new TableColumn<>("Người Thực Hiện");
+        TableColumn<InventoryReceipt, String> colOperator = new TableColumn<>("Nhà Cung Cấp");
         colOperator.setPrefWidth(120);
         colOperator.setCellValueFactory(new PropertyValueFactory<>("operator"));
 
@@ -542,11 +542,11 @@ public class InventoryHelper {
         dpDate.setMaxWidth(Double.MAX_VALUE);
         dpDate.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
 
-        // Row 6: Người thực hiện
-        Label lblOp = new Label("Người thực hiện *");
+        // Row 6: Nhà cung cấp
+        Label lblOp = new Label("Nhà cung cấp *");
         lblOp.setStyle(labelStyle);
-        TextField txtOp = new TextField(r.getOperator());
-        txtOp.setPromptText("Nhập họ tên người thực hiện...");
+        TextField txtOp = new TextField(r.getOperator() != null ? r.getOperator() : "");
+        txtOp.setPromptText("Nhập tên nhà cung cấp...");
         txtOp.setStyle(fieldStyle);
         txtOp.setMaxWidth(Double.MAX_VALUE);
 
@@ -608,7 +608,7 @@ public class InventoryHelper {
                 return;
             }
             if (txtOp.getText().trim().isEmpty()) {
-                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập người thực hiện!").showAndWait();
+                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập tên nhà cung cấp!").showAndWait();
                 return;
             }
 
@@ -640,7 +640,7 @@ public class InventoryHelper {
                 String receiptCode = "NK-" + String.format("%04d", r.getId());
                 String newExpenseName = "Nhập kho: " + r.getProductName() + " (SL: " + new java.text.DecimalFormat("#.##").format(r.getQuantity()) + ")";
                 String newMonth = r.getReceiptDate().substring(0, 7); // format: YYYY-MM
-                String newNotes = "Mã phiếu nhập: NK-" + String.format("%04d", r.getId()) + ". Người lập: " + r.getOperator();
+                String newNotes = "Mã phiếu nhập: NK-" + String.format("%04d", r.getId()) + ". Nhà cung cấp: " + r.getOperator();
                 new dao.FixedExpenseDAO().updateExpenseByReceiptCode(receiptCode, newExpenseName, r.getTotalPrice(), newMonth, newNotes);
 
                 AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công",
