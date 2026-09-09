@@ -934,7 +934,7 @@ public class MainUI extends Application {
                     invoice.getId(),
                     invoice.getCustomerName(),
                     "Dịch vụ",
-                    String.format("%.0f đ", displayTotal),
+                    String.format("%,.0f đ", displayTotal),
                     invoice.getStatus(),
                     invoice.getNotes(),
                     tableRows
@@ -1458,7 +1458,7 @@ public class MainUI extends Application {
         lblDesc.setWrapText(true);
         
         // Price cells for 5 vehicle types
-        Label lblPriceMini = new Label(String.format("%.0f đ", service.getPriceMini()));
+        Label lblPriceMini = new Label(String.format("%,.0f đ", service.getPriceMini()));
         lblPriceMini.setStyle("-fx-font-size: 13px; -fx-text-fill: #1976D2; -fx-font-weight: 600;");
         lblPriceMini.setPrefWidth(75);
         lblPriceMini.setMinWidth(70);
@@ -1466,7 +1466,7 @@ public class MainUI extends Application {
         lblPriceMini.setPadding(new Insets(12, 4, 12, 4));
         lblPriceMini.setAlignment(Pos.CENTER_RIGHT);
         
-        Label lblPriceSedan = new Label(String.format("%.0f đ", service.getPriceSedan()));
+        Label lblPriceSedan = new Label(String.format("%,.0f đ", service.getPriceSedan()));
         lblPriceSedan.setStyle("-fx-font-size: 13px; -fx-text-fill: #388E3C; -fx-font-weight: 600;");
         lblPriceSedan.setPrefWidth(75);
         lblPriceSedan.setMinWidth(70);
@@ -1474,7 +1474,7 @@ public class MainUI extends Application {
         lblPriceSedan.setPadding(new Insets(12, 4, 12, 4));
         lblPriceSedan.setAlignment(Pos.CENTER_RIGHT);
         
-        Label lblPriceCuv = new Label(String.format("%.0f đ", service.getPriceCuv()));
+        Label lblPriceCuv = new Label(String.format("%,.0f đ", service.getPriceCuv()));
         lblPriceCuv.setStyle("-fx-font-size: 13px; -fx-text-fill: #F57C00; -fx-font-weight: 600;");
         lblPriceCuv.setPrefWidth(75);
         lblPriceCuv.setMinWidth(70);
@@ -1482,7 +1482,7 @@ public class MainUI extends Application {
         lblPriceCuv.setPadding(new Insets(12, 4, 12, 4));
         lblPriceCuv.setAlignment(Pos.CENTER_RIGHT);
         
-        Label lblPriceSuv = new Label(String.format("%.0f đ", service.getPriceSuv()));
+        Label lblPriceSuv = new Label(String.format("%,.0f đ", service.getPriceSuv()));
         lblPriceSuv.setStyle("-fx-font-size: 13px; -fx-text-fill: #C2185B; -fx-font-weight: 600;");
         lblPriceSuv.setPrefWidth(75);
         lblPriceSuv.setMinWidth(70);
@@ -1490,7 +1490,7 @@ public class MainUI extends Application {
         lblPriceSuv.setPadding(new Insets(12, 4, 12, 4));
         lblPriceSuv.setAlignment(Pos.CENTER_RIGHT);
         
-        Label lblPricePickup = new Label(String.format("%.0f đ", service.getPricePickup()));
+        Label lblPricePickup = new Label(String.format("%,.0f đ", service.getPricePickup()));
         lblPricePickup.setStyle("-fx-font-size: 13px; -fx-text-fill: #7B1FA2; -fx-font-weight: 600;");
         lblPricePickup.setPrefWidth(75);
         lblPricePickup.setMinWidth(70);
@@ -1498,7 +1498,7 @@ public class MainUI extends Application {
         lblPricePickup.setPadding(new Insets(12, 4, 12, 4));
         lblPricePickup.setAlignment(Pos.CENTER_RIGHT);
         
-        Label lblPriceMpv = new Label(String.format("%.0f đ", service.getPriceMpv()));
+        Label lblPriceMpv = new Label(String.format("%,.0f đ", service.getPriceMpv()));
         lblPriceMpv.setStyle("-fx-font-size: 13px; -fx-text-fill: #00838F; -fx-font-weight: 600;");
         lblPriceMpv.setPrefWidth(75);
         lblPriceMpv.setMinWidth(70);
@@ -4087,7 +4087,7 @@ public class MainUI extends Application {
         int id = product.getId();
         String name = product.getName();
         String category = product.getCategory();
-        String price = String.format("%.0f đ", product.getPrice());
+        String price = String.format("%,.0f đ", product.getPrice());
         String stock = new java.text.DecimalFormat("#.##").format(product.getStock());
         if (product.getUnit() != null && !product.getUnit().trim().isEmpty()) {
             stock += " " + product.getUnit().trim();
@@ -4418,12 +4418,12 @@ public class MainUI extends Application {
         priceGrid.setStyle("-fx-background-color: #F9FAFB; -fx-padding: 15; -fx-background-radius: 8;");
         
         String[][] prices = {
-            {"Mini", String.format("%.0fđ", pkg.getPriceMini()), "#1976D2", "#E3F2FD"},
-            {"Sedan", String.format("%.0fđ", pkg.getPriceSedan()), "#388E3C", "#E8F5E9"},
-            {"CUV", String.format("%.0fđ", pkg.getPriceCuv()), "#F57C00", "#FFF3E0"},
-            {"SUV", String.format("%.0fđ", pkg.getPriceSuv()), "#C2185B", "#FCE4EC"},
-            {"MPV", String.format("%.0fđ", pkg.getPriceMpv()), "#00838F", "#E0F7FA"},
-            {"Pickup", String.format("%.0fđ", pkg.getPricePickup()), "#7B1FA2", "#F3E5F5"}
+            {"Mini", String.format("%,.0fđ", pkg.getPriceMini()), "#1976D2", "#E3F2FD"},
+            {"Sedan", String.format("%,.0fđ", pkg.getPriceSedan()), "#388E3C", "#E8F5E9"},
+            {"CUV", String.format("%,.0fđ", pkg.getPriceCuv()), "#F57C00", "#FFF3E0"},
+            {"SUV", String.format("%,.0fđ", pkg.getPriceSuv()), "#C2185B", "#FCE4EC"},
+            {"MPV", String.format("%,.0fđ", pkg.getPriceMpv()), "#00838F", "#E0F7FA"},
+            {"Pickup", String.format("%,.0fđ", pkg.getPricePickup()), "#7B1FA2", "#F3E5F5"}
         };
         
         for (int i = 0; i < prices.length; i++) {
@@ -4445,7 +4445,7 @@ public class MainUI extends Application {
         }
         
         // Savings
-        Label lblSavings = new Label(String.format("💵 Tiết kiệm trung bình: %.0fđ", pkg.getSavings()));
+        Label lblSavings = new Label(String.format("💵 Tiết kiệm trung bình: %,.0fđ", pkg.getSavings()));
         lblSavings.setStyle("-fx-font-size: 14px; -fx-font-weight: 600; -fx-text-fill: #4CAF50;");
         
         // Status
