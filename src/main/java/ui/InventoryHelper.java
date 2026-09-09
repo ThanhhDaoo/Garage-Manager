@@ -444,6 +444,8 @@ public class InventoryHelper {
         dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
         dialog.setTitle("Sửa Phiếu Nhập – NK-" + String.format("%04d", r.getId()));
 
+        BorderPane root = new BorderPane();
+
         // ===== Outer scroll =====
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setFitToWidth(true);
@@ -653,13 +655,23 @@ public class InventoryHelper {
             }
         });
 
+        // Action Buttons (Fixed at bottom)
         HBox btnBar = new HBox(15, btnCancel, btnSave);
         btnBar.setAlignment(Pos.CENTER_RIGHT);
+        btnBar.setPadding(new Insets(15, 30, 15, 30));
+        btnBar.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-border-color: #e0e0e0;" +
+            "-fx-border-width: 1 0 0 0;"
+        );
 
-        mainContent.getChildren().addAll(title, section, btnBar);
+        mainContent.getChildren().addAll(title, section);
         scrollPane.setContent(mainContent);
 
-        javafx.scene.Scene scene = new javafx.scene.Scene(scrollPane, 700, 700);
+        root.setCenter(scrollPane);
+        root.setBottom(btnBar);
+
+        javafx.scene.Scene scene = new javafx.scene.Scene(root, 700, 700);
         try {
             String css = MainUI.class.getResource("/global-styles.css").toExternalForm();
             scene.getStylesheets().add(css);
