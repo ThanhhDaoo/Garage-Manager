@@ -25,6 +25,7 @@ public class InventoryReceiptForm {
     private TextField txtQty;
     private TextField txtTotalPrice;
     private DatePicker dpDate;
+    private ComboBox<String> cbPaymentStatus;
     private TextField txtOperator;
     private TextArea txtNotes;
     private Runnable onSave;
@@ -188,6 +189,15 @@ public class InventoryReceiptForm {
         txtTotalPrice.setStyle(fieldStyle + "-fx-font-weight: bold; -fx-text-fill: #2E7D32;");
         txtTotalPrice.setMaxWidth(Double.MAX_VALUE);
 
+        // Payment Status
+        Label lblPaymentStatus = new Label("Trạng thái thanh toán *");
+        lblPaymentStatus.setStyle(labelStyle);
+        cbPaymentStatus = new ComboBox<>();
+        cbPaymentStatus.getItems().addAll("Đã thanh toán", "Chưa thanh toán");
+        cbPaymentStatus.setValue("Đã thanh toán");
+        cbPaymentStatus.setStyle(comboStyle);
+        cbPaymentStatus.setMaxWidth(Double.MAX_VALUE);
+
         // Date picker
         Label lblDate = new Label("Ngày nhập *");
         lblDate.setStyle(labelStyle);
@@ -266,9 +276,10 @@ public class InventoryReceiptForm {
         grid.add(lblCostPrice, 0, 1); grid.add(txtCostPrice, 1, 1);
         grid.add(lblQty, 0, 2); grid.add(txtQty, 1, 2);
         grid.add(lblTotalPrice, 0, 3); grid.add(txtTotalPrice, 1, 3);
-        grid.add(lblDate, 0, 4); grid.add(dpDate, 1, 4);
-        grid.add(lblOperator, 0, 5); grid.add(txtOperator, 1, 5);
-        grid.add(lblNotes, 0, 6); grid.add(txtNotes, 1, 6);
+        grid.add(lblPaymentStatus, 0, 4); grid.add(cbPaymentStatus, 1, 4);
+        grid.add(lblDate, 0, 5); grid.add(dpDate, 1, 5);
+        grid.add(lblOperator, 0, 6); grid.add(txtOperator, 1, 6);
+        grid.add(lblNotes, 0, 7); grid.add(txtNotes, 1, 7);
 
         section.getChildren().addAll(sectionTitle, grid);
         return section;
@@ -355,7 +366,7 @@ public class InventoryReceiptForm {
         double cost = p.getCostPrice();
         double total = cost * qty;
         String dateStr = date.toString(); // YYYY-MM-DD
-        String provider = "";
+        String provider = cbPaymentStatus.getValue() != null ? cbPaymentStatus.getValue() : "Đã thanh toán";
         String notes = txtNotes.getText().trim();
 
         // 1. Save Inventory Receipt

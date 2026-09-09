@@ -245,6 +245,34 @@ public class InventoryHelper {
             }
         });
 
+        TableColumn<InventoryReceipt, String> colPaymentStatus = new TableColumn<>("Trạng Thái TT");
+        colPaymentStatus.setPrefWidth(140);
+        colPaymentStatus.setStyle("-fx-alignment: CENTER;");
+        colPaymentStatus.setCellValueFactory(new PropertyValueFactory<>("paymentStatus"));
+        colPaymentStatus.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String status, boolean empty) {
+                super.updateItem(status, empty);
+                if (empty || status == null) {
+                    setGraphic(null);
+                    setText(null);
+                } else {
+                    Label badge = new Label();
+                    badge.setPadding(new Insets(4, 10, 4, 10));
+                    badge.setStyle("-fx-background-radius: 12; -fx-font-size: 12px; -fx-font-weight: bold;");
+                    if ("Đã thanh toán".equalsIgnoreCase(status) || "paid".equalsIgnoreCase(status)) {
+                        badge.setText("✓ Đã thanh toán");
+                        badge.setStyle(badge.getStyle() + "-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32;");
+                    } else {
+                        badge.setText("⏳ Chưa thanh toán");
+                        badge.setStyle(badge.getStyle() + "-fx-background-color: #FFEBEE; -fx-text-fill: #C62828;");
+                    }
+                    setGraphic(badge);
+                    setText(null);
+                }
+            }
+        });
+
         TableColumn<InventoryReceipt, String> colOperator = new TableColumn<>("Người Thực Hiện");
         colOperator.setPrefWidth(120);
         colOperator.setCellValueFactory(new PropertyValueFactory<>("operator"));
@@ -317,7 +345,7 @@ public class InventoryHelper {
         });
 
         tableView.getColumns().addAll(
-            colStt, colCode, colDate, colProduct, colQty, colPrice, colTotal, colOperator, colNotes, colAction
+            colStt, colCode, colDate, colProduct, colQty, colPrice, colTotal, colPaymentStatus, colOperator, colNotes, colAction
         );
         tableView.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(tableView, Priority.ALWAYS);
@@ -382,6 +410,7 @@ public class InventoryHelper {
                 if (r.getProductName().toLowerCase().contains(q) ||
                     ("nk-" + String.format("%04d", r.getId())).contains(q) ||
                     r.getOperator().toLowerCase().contains(q) ||
+                    r.getPaymentStatus().toLowerCase().contains(q) ||
                     (r.getNotes() != null && r.getNotes().toLowerCase().contains(q))) {
                     list.add(r);
                 }
@@ -496,7 +525,16 @@ public class InventoryHelper {
             }
         });
 
-        // Row 4: Ngày nhập
+        // Row 4: Trạng thái thanh toán
+        Label lblPaymentStatus = new Label("Trạng thái thanh toán *");
+        lblPaymentStatus.setStyle(labelStyle);
+        ComboBox<String> cbPaymentStatus = new ComboBox<>();
+        cbPaymentStatus.getItems().addAll("Đã thanh toán", "Chưa thanh toán");
+        cbPaymentStatus.setValue(r.getPaymentStatus());
+        cbPaymentStatus.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-pref-height: 44px;");
+        cbPaymentStatus.setMaxWidth(Double.MAX_VALUE);
+
+        // Row 5: Ngày nhập
         Label lblDate = new Label("Ngày nhập *");
         lblDate.setStyle(labelStyle);
         DatePicker dpDate = new DatePicker();
@@ -504,7 +542,7 @@ public class InventoryHelper {
         dpDate.setMaxWidth(Double.MAX_VALUE);
         dpDate.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
 
-        // Row 5: Người thực hiện
+        // Row 6: Người thực hiện
         Label lblOp = new Label("Người thực hiện *");
         lblOp.setStyle(labelStyle);
         TextField txtOp = new TextField(r.getOperator());
@@ -512,7 +550,7 @@ public class InventoryHelper {
         txtOp.setStyle(fieldStyle);
         txtOp.setMaxWidth(Double.MAX_VALUE);
 
-        // Row 6: Ghi chú
+        // Row 7: Ghi chú
         Label lblNotes = new Label("Ghi chú");
         lblNotes.setStyle(labelStyle);
         TextArea txtNotes = new TextArea(r.getNotes() != null ? r.getNotes() : "");
@@ -525,9 +563,10 @@ public class InventoryHelper {
         grid.add(lblCost, 0, 1);  grid.add(txtCost, 1, 1);
         grid.add(lblQty,  0, 2);  grid.add(txtQty,  1, 2);
         grid.add(lblTotal,0, 3);  grid.add(txtTotal,1, 3);
-        grid.add(lblDate, 0, 4);  grid.add(dpDate,  1, 4);
-        grid.add(lblOp,   0, 5);  grid.add(txtOp,   1, 5);
-        grid.add(lblNotes,0, 6);  grid.add(txtNotes,1, 6);
+        grid.add(lblPaymentStatus, 0, 4); grid.add(cbPaymentStatus, 1, 4);
+        grid.add(lblDate, 0, 5);  grid.add(dpDate,  1, 5);
+        grid.add(lblOp,   0, 6);  grid.add(txtOp,   1, 6);
+        grid.add(lblNotes,0, 7);  grid.add(txtNotes,1, 7);
 
         section.getChildren().addAll(sectionTitle, grid);
 
@@ -578,6 +617,7 @@ public class InventoryHelper {
 
             r.setQuantity(newQty);
             r.setTotalPrice(r.getCostPrice() * newQty);
+            r.setPaymentStatus(cbPaymentStatus.getValue());
             r.setReceiptDate(dpDate.getValue().toString());
             r.setOperator(txtOp.getText().trim());
             r.setNotes(txtNotes.getText().trim());

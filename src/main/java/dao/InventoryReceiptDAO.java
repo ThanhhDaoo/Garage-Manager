@@ -121,16 +121,17 @@ public class InventoryReceiptDAO {
     }
 
     public boolean updateReceipt(InventoryReceipt receipt) {
-        String sql = "UPDATE inventory_receipts SET quantity=?, cost_price=?, total_price=?, receipt_date=?, notes=?, operator=? WHERE id=?";
+        String sql = "UPDATE inventory_receipts SET quantity=?, cost_price=?, total_price=?, receipt_date=?, provider=?, notes=?, operator=? WHERE id=?";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setDouble(1, receipt.getQuantity());
             pstmt.setDouble(2, receipt.getCostPrice());
             pstmt.setDouble(3, receipt.getTotalPrice());
             pstmt.setString(4, receipt.getReceiptDate());
-            pstmt.setString(5, receipt.getNotes());
-            pstmt.setString(6, receipt.getOperator());
-            pstmt.setInt(7, receipt.getId());
+            pstmt.setString(5, receipt.getProvider());
+            pstmt.setString(6, receipt.getNotes());
+            pstmt.setString(7, receipt.getOperator());
+            pstmt.setInt(8, receipt.getId());
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();

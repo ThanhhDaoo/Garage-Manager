@@ -63,4 +63,21 @@ public class InventoryReceipt {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+    public String getPaymentStatus() {
+        if (provider != null && !provider.trim().isEmpty()) {
+            if ("paid".equalsIgnoreCase(provider) || "Đã thanh toán".equalsIgnoreCase(provider)) {
+                return "Đã thanh toán";
+            }
+            if ("unpaid".equalsIgnoreCase(provider) || "Chưa thanh toán".equalsIgnoreCase(provider)) {
+                return "Chưa thanh toán";
+            }
+            return provider;
+        }
+        return "Chưa thanh toán";
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.provider = paymentStatus;
+    }
 }
