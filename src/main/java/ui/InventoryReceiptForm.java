@@ -2,10 +2,8 @@ package ui;
 
 import model.Product;
 import model.InventoryReceipt;
-import model.FixedExpense;
 import dao.ProductDAO;
 import dao.InventoryReceiptDAO;
-import dao.FixedExpenseDAO;
 import util.AlertHelper;
 
 import javafx.geometry.Insets;
@@ -369,15 +367,6 @@ public class InventoryReceiptForm {
             // 2. Update stock of product
             double newStock = p.getStock() + qty;
             new ProductDAO().updateProductStock(p.getId(), newStock);
-
-            // 3. Save as Variable Expense (chi phí biến thiên)
-            FixedExpense expense = new FixedExpense();
-            expense.setExpenseName("Nhập kho: " + p.getName() + " (SL: " + new java.text.DecimalFormat("#.##").format(qty) + ")");
-            expense.setCategory("biến thiên");
-            expense.setAmount(total);
-            expense.setExpenseMonth(dateStr.substring(0, 7)); // format: YYYY-MM
-            expense.setNotes("Mã phiếu nhập: NK-" + String.format("%04d", receiptId) + ". Người lập: " + operator);
-            new FixedExpenseDAO().addExpense(expense);
 
             AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã lưu phiếu nhập kho và tự động cập nhật tồn kho!").showAndWait();
             if (onSave != null) {

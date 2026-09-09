@@ -906,7 +906,7 @@ public class ReportHelper {
                     "STT", "Doanh thu rửa xe", "Doanh thu chăm sóc", "Doanh thu phụ kiện", "Doanh thu sơn xe",
                     "Tổng doanh thu",
                     "Tổng VAT", "Lợi nhuận rửa xe", "Lợi nhuận chăm sóc", "Lợi nhuận phụ kiện", "Lợi nhuận sơn",
-                    "Chi phí biến thiên", "Chi Phí Cố định", "TỔNG LỢI NHUẬN"
+                    "Chi phí biến thiên", "Chi Phí Cố định", "TỔNG LỢI NHUẬN", "Tiền nhập kho"
             };
 
             for (int i = 0; i < r2Headers.length; i++) {
@@ -939,8 +939,9 @@ public class ReportHelper {
                 r.createCell(11).setCellValue(data.getVariableCost());
                 r.createCell(12).setCellValue(data.getFixedCost());
                 r.createCell(13).setCellValue(data.getTotalNetProfit());
+                r.createCell(14).setCellValue(data.getWarehouseImport());
 
-                for (int col = 0; col <= 13; col++) {
+                for (int col = 0; col <= 14; col++) {
                     org.apache.poi.xssf.usermodel.XSSFCell c = r.getCell(col);
                     if (c == null)
                         c = r.createCell(col);
@@ -969,20 +970,20 @@ public class ReportHelper {
             totalNumStyle.cloneStyleFrom(totalStyle);
             totalNumStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
 
-            for (int col = 0; col <= 13; col++) {
+            for (int col = 0; col <= 14; col++) {
                 org.apache.poi.xssf.usermodel.XSSFCell c = totalRow.getCell(col);
                 if (c == null)
                     c = totalRow.createCell(col);
                 c.setCellStyle(totalStyle);
 
-                if (col >= 1 && col <= 13) {
+                if (col >= 1 && col <= 14) {
                     char colLetter = (char) ('A' + col);
                     c.setCellFormula("SUM(" + colLetter + "5:" + colLetter + (rowIndex) + ")");
                     c.setCellStyle(totalNumStyle);
                 }
             }
 
-            for (int i = 0; i <= 13; i++) {
+            for (int i = 0; i <= 14; i++) {
                 sheet.autoSizeColumn(i);
             }
 
@@ -1066,7 +1067,7 @@ public class ReportHelper {
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
                     .setMarginBottom(5));
 
-            float[] columnWidths = { 45f, 65f, 65f, 65f, 65f, 75f, 65f, 65f, 65f, 65f, 65f, 65f, 75f };
+            float[] columnWidths = { 42f, 58f, 58f, 58f, 58f, 68f, 58f, 58f, 58f, 58f, 62f, 62f, 74f, 68f };
             com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(columnWidths);
             table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
 
@@ -1092,6 +1093,7 @@ public class ReportHelper {
             table.addHeaderCell(makeHeaderCell.apply("CP Biến Thiên"));
             table.addHeaderCell(makeHeaderCell.apply("CP Cố Định"));
             table.addHeaderCell(makeHeaderCell.apply("LN RÒNG"));
+            table.addHeaderCell(makeHeaderCell.apply("Tiền Nhập Kho"));
 
             for (model.YearlyReportRow row : rows) {
                 boolean isTotal = "TỔNG CỘNG".equals(row.getMonth());
@@ -1134,6 +1136,8 @@ public class ReportHelper {
                 addRowCell.accept(String.format("%,.0f", row.getFixedCost()),
                         com.itextpdf.layout.properties.TextAlignment.RIGHT);
                 addRowCell.accept(String.format("%,.0f", row.getTotalNetProfit()),
+                        com.itextpdf.layout.properties.TextAlignment.RIGHT);
+                addRowCell.accept(String.format("%,.0f", row.getWarehouseImport()),
                         com.itextpdf.layout.properties.TextAlignment.RIGHT);
             }
 

@@ -181,19 +181,19 @@ public class HRHelper {
 
         root.getChildren().addAll(topBar, tableContainer);
 
-        Runnable refreshList = () -> {
+        final Runnable[] refreshRef = new Runnable[1];
+        refreshRef[0] = () -> {
             tableRows.getChildren().clear();
             EmployeeService empService = new EmployeeService();
             List<Employee> list = empService.getAllEmployees();
             String query = searchField.getText().toLowerCase().trim();
             for (Employee emp : list) {
                 if (query.isEmpty() || emp.getName().toLowerCase().contains(query) || emp.getEmployeeCode().toLowerCase().contains(query)) {
-                    tableRows.getChildren().add(createEmployeeRow(mainUI, emp, () -> {
-                        searchField.setText(searchField.getText());
-                    }));
+                    tableRows.getChildren().add(createEmployeeRow(mainUI, emp, refreshRef[0]));
                 }
             }
         };
+        Runnable refreshList = refreshRef[0];
 
         searchField.textProperty().addListener((obs, old, val) -> refreshList.run());
         btnAdd.setOnAction(e -> {

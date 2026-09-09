@@ -3102,7 +3102,12 @@ public class MainUI extends Application {
         colVatY.setPrefWidth(100);
         formatCurrencyColumnYearly(colVatY);
 
-        tableYearly.getColumns().addAll(colYearlyMonth, dtParentY, colTotalY, colVatY, lnParentY, colVarCostY, colFixedCostY, colNetProfitY);
+        TableColumn<model.YearlyReportRow, Double> colWarehouseImportY = new TableColumn<>("Tiền nhập kho");
+        colWarehouseImportY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("warehouseImport"));
+        colWarehouseImportY.setPrefWidth(120);
+        formatCurrencyColumnYearly(colWarehouseImportY);
+
+        tableYearly.getColumns().addAll(colYearlyMonth, dtParentY, colTotalY, colVatY, lnParentY, colVarCostY, colFixedCostY, colNetProfitY, colWarehouseImportY);
 
         // Action to load yearly data
         Runnable loadYearlyData = () -> {
@@ -3111,6 +3116,7 @@ public class MainUI extends Application {
             service.FixedExpenseService expenseService = new service.FixedExpenseService();
             dao.PayrollDAO payrollDAO = new dao.PayrollDAO();
             dao.InvoiceItemDAO yearlyItemDAO = new dao.InvoiceItemDAO();
+            dao.InventoryReceiptDAO receiptDAO = new dao.InventoryReceiptDAO();
 
             java.util.List<model.YearlyReportRow> rows = new java.util.ArrayList<>();
             
@@ -3119,6 +3125,7 @@ public class MainUI extends Application {
             double profitCareAll = 0, profitAccAll = 0, profitPaintAll = 0;
             double varCostAll = 0, fixedCostAll = 0, netProfitAll = 0;
             double totalVatAll = 0;
+            double warehouseImportAll = 0;
 
             for (int m = 1; m <= 12; m++) {
                 String monthKey = String.format("%02d", m);
@@ -3181,6 +3188,11 @@ public class MainUI extends Application {
                 List<model.FixedExpense> expenses = expenseService.getAllExpensesByMonth(periodStr);
                 double varCost = expenses.stream()
                     .filter(exp -> "biến thiên".equalsIgnoreCase(exp.getCategory()))
+                    .filter(exp -> {
+                        String notes = exp.getNotes() != null ? exp.getNotes() : "";
+                        String name = exp.getExpenseName() != null ? exp.getExpenseName() : "";
+                        return !notes.contains("NK-") && !name.startsWith("Nhập kho:");
+                    })
                     .mapToDouble(model.FixedExpense::getAmount)
                     .sum();
                 double fixedCost = expenses.stream()
@@ -3194,11 +3206,12 @@ public class MainUI extends Application {
                     .sum();
 
                 double totalNetProfit = (profitWash + profitCare + profitAccessory + profitPaint) - varCost - fixedCost - totalPayrollCost - mVat;
+                double mWarehouseImport = receiptDAO.getTotalImportCostByMonth(periodStr);
 
                 rows.add(new model.YearlyReportRow(
                     "Tháng " + m, mWash, mCare, mAcc, mPaint,
                     mTotal, mVat, costWash, profitWash, profitCare, profitAccessory, profitPaint,
-                    varCost, fixedCost, totalNetProfit
+                    varCost, fixedCost, totalNetProfit, mWarehouseImport
                 ));
 
                 totalWashAll += mWash;
@@ -3215,12 +3228,13 @@ public class MainUI extends Application {
                 varCostAll += varCost;
                 fixedCostAll += fixedCost;
                 netProfitAll += totalNetProfit;
+                warehouseImportAll += mWarehouseImport;
             }
 
             rows.add(new model.YearlyReportRow(
                 "TỔNG CỘNG", totalWashAll, totalCareAll, totalAccAll, totalPaintAll,
                 totalRevenueAll, totalVatAll, costWashAll, profitWashAll, profitCareAll, profitAccAll, profitPaintAll,
-                varCostAll, fixedCostAll, netProfitAll
+                varCostAll, fixedCostAll, netProfitAll, warehouseImportAll
             ));
 
             tableYearly.getItems().clear();
@@ -6758,20 +6772,19 @@ public class MainUI extends Application {
 
         root.getChildren().addAll(topBar, tableContainer);
 
-        Runnable refreshList = () -> {
+        final Runnable[] refreshRef = new Runnable[1];
+        refreshRef[0] = () -> {
             tableRows.getChildren().clear();
             EmployeeService empService = new EmployeeService();
             List<Employee> list = empService.getAllEmployees();
             String query = searchField.getText().toLowerCase().trim();
             for (Employee emp : list) {
                 if (query.isEmpty() || emp.getName().toLowerCase().contains(query) || emp.getEmployeeCode().toLowerCase().contains(query)) {
-                    tableRows.getChildren().add(createEmployeeRow(emp, () -> {
-                        // Refresh after action
-                        searchField.setText(searchField.getText());
-                    }));
+                    tableRows.getChildren().add(createEmployeeRow(emp, refreshRef[0]));
                 }
             }
         };
+        Runnable refreshList = refreshRef[0];
 
         searchField.textProperty().addListener((obs, old, val) -> refreshList.run());
         btnAdd.setOnAction(e -> showEmployeeDialog(null, refreshList));

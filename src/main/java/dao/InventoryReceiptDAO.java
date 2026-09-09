@@ -82,6 +82,23 @@ public class InventoryReceiptDAO {
         }
         return map;
     }
+
+    public double getTotalImportCostByMonth(String monthStr) {
+        String sql = "SELECT SUM(total_price) FROM inventory_receipts WHERE receipt_date LIKE ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, monthStr + "%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getDouble(1);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0.0;
+    }
+
     public boolean deleteReceipt(int id) {
         String sql = "DELETE FROM inventory_receipts WHERE id = ?";
         try (Connection conn = DatabaseManager.getConnection();

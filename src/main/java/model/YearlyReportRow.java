@@ -16,12 +16,21 @@ public class YearlyReportRow {
     private double variableCost;
     private double fixedCost;
     private double totalNetProfit;
+    private double warehouseImport;
 
     public YearlyReportRow() {}
 
     public YearlyReportRow(String month, double revenueWash, double revenueCare, double revenueAccessory, double revenuePaint,
                            double totalRevenue, double vat, double costWash, double profitWash, double profitCare, double profitAccessory, double profitPaint,
                            double variableCost, double fixedCost, double totalNetProfit) {
+        this(month, revenueWash, revenueCare, revenueAccessory, revenuePaint,
+             totalRevenue, vat, costWash, profitWash, profitCare, profitAccessory, profitPaint,
+             variableCost, fixedCost, totalNetProfit, 0.0);
+    }
+
+    public YearlyReportRow(String month, double revenueWash, double revenueCare, double revenueAccessory, double revenuePaint,
+                           double totalRevenue, double vat, double costWash, double profitWash, double profitCare, double profitAccessory, double profitPaint,
+                           double variableCost, double fixedCost, double totalNetProfit, double warehouseImport) {
         this.month = month;
         this.revenueWash = revenueWash;
         this.revenueCare = revenueCare;
@@ -37,6 +46,7 @@ public class YearlyReportRow {
         this.variableCost = variableCost;
         this.fixedCost = fixedCost;
         this.totalNetProfit = totalNetProfit;
+        this.warehouseImport = warehouseImport;
     }
 
     public String getMonth() { return month; }
@@ -83,4 +93,7 @@ public class YearlyReportRow {
 
     public double getTotalNetProfit() { return totalNetProfit; }
     public void setTotalNetProfit(double totalNetProfit) { this.totalNetProfit = totalNetProfit; }
+
+    public double getWarehouseImport() { return warehouseImport; }
+    public void setWarehouseImport(double warehouseImport) { this.warehouseImport = warehouseImport; }
 }
