@@ -372,6 +372,17 @@ public class MainUI extends Application {
         return str;
     }
 
+    private String formatInvoiceDateOnly(String input) {
+        if (input == null || input.trim().isEmpty()) return "—";
+        String str = input.trim();
+        String datePart = str.split("[ T]")[0];
+        String[] dateParts = datePart.split("-");
+        if (dateParts.length == 3 && dateParts[0].length() == 4) {
+            return dateParts[2] + "/" + dateParts[1] + "/" + dateParts[0];
+        }
+        return str;
+    }
+
     private boolean matchesTimeFilters(String dateStr, String period, String month, String year) {
         boolean hasPeriodFilter = period != null && !period.trim().isEmpty() && !period.contains("Tất cả");
         boolean hasYearFilter = year != null && !year.trim().isEmpty() && !year.contains("Tất cả");
@@ -791,13 +802,13 @@ public class MainUI extends Application {
         hKhachHang.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         hKhachHang.setAlignment(Pos.CENTER_LEFT);
         
-        Label hDichVu = new Label("Dịch Vụ");
+        Label hDichVu = new Label("Ngày Lập");
         hDichVu.setPrefWidth(120);
         hDichVu.setMinWidth(120);
         hDichVu.setMaxWidth(120);
         hDichVu.setPadding(new Insets(0, 5, 0, 5));
         hDichVu.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        hDichVu.setAlignment(Pos.CENTER_LEFT);
+        hDichVu.setAlignment(Pos.CENTER);
         
         Label hGhiChu = new Label("Ghi Chú");
         hGhiChu.setPrefWidth(200);
@@ -915,6 +926,14 @@ public class MainUI extends Application {
                     if (code1.contains(rawSearch) || code2.contains(rawSearch) || code3.equals(rawSearch)) {
                         return true;
                     }
+                    // 6. Tìm theo ngày lập (dd/MM/yyyy hoặc YYYY-MM-DD)
+                    String dmy = formatInvoiceDateOnly(i.getCreatedAt());
+                    if (dmy.contains(rawSearch)) {
+                        return true;
+                    }
+                    if (i.getCreatedAt() != null && i.getCreatedAt().toLowerCase().contains(rawSearch)) {
+                        return true;
+                    }
                     return false;
                 })
                 .collect(java.util.stream.Collectors.toList());
@@ -933,7 +952,7 @@ public class MainUI extends Application {
                 tableRows.getChildren().add(createInvoiceRow(
                     invoice.getId(),
                     invoice.getCustomerName(),
-                    "Dịch vụ",
+                    formatInvoiceDateOnly(invoice.getCreatedAt()),
                     String.format("%,.0f đ", displayTotal),
                     invoice.getStatus(),
                     invoice.getNotes(),
@@ -943,7 +962,7 @@ public class MainUI extends Application {
         }
     }
     
-    private HBox createInvoiceRow(int id, String customerName, String service, String totalAmount, String status, String notes, VBox tableRows) {
+    private HBox createInvoiceRow(int id, String customerName, String dateStr, String totalAmount, String status, String notes, VBox tableRows) {
         HBox row = new HBox(0);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(0));
@@ -980,13 +999,13 @@ public class MainUI extends Application {
         lblCustomer.setPadding(new Insets(12, 5, 12, 5));
         lblCustomer.setAlignment(Pos.CENTER_LEFT);
         
-        Label lblService = new Label(service);
-        lblService.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
-        lblService.setPrefWidth(120);
-        lblService.setMinWidth(120);
-        lblService.setMaxWidth(120);
-        lblService.setPadding(new Insets(12, 5, 12, 5));
-        lblService.setAlignment(Pos.CENTER_LEFT);
+        Label lblDate = new Label(dateStr);
+        lblDate.setStyle("-fx-font-size: 13px; -fx-text-fill: #616161;");
+        lblDate.setPrefWidth(120);
+        lblDate.setMinWidth(120);
+        lblDate.setMaxWidth(120);
+        lblDate.setPadding(new Insets(12, 5, 12, 5));
+        lblDate.setAlignment(Pos.CENTER);
         
         Label lblNotes = new Label(notes != null ? notes : "");
         lblNotes.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
@@ -1120,7 +1139,7 @@ public class MainUI extends Application {
         
         actions.getChildren().addAll(btnPDF, btnView, btnEdit, btnDelete);
         
-        row.getChildren().addAll(lblId, lblCustomer, lblService, lblNotes, lblTotal, lblStatus, actions);
+        row.getChildren().addAll(lblId, lblCustomer, lblDate, lblNotes, lblTotal, lblStatus, actions);
         HBox.setHgrow(lblNotes, Priority.ALWAYS);
         return row;
     }
