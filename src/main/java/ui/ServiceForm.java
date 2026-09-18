@@ -265,7 +265,10 @@ public class ServiceForm {
         List<Product> products = new ProductDAO().getAllProducts();
         ProductWrapper selectedWrapper = defaultWrapper;
         for (Product p : products) {
-            ProductWrapper wrapper = new ProductWrapper(p.getId(), p.getName() + " (" + p.getUnit() + ")");
+            String stockStr = new java.text.DecimalFormat("#.##").format(p.getStock());
+            String unitStr = (p.getUnit() != null && !p.getUnit().trim().isEmpty()) ? " " + p.getUnit().trim() : "";
+            String statusSuffix = p.getStock() <= 0 ? " [HẾT HÀNG - Tồn: 0]" : " (Tồn: " + stockStr + unitStr + ")";
+            ProductWrapper wrapper = new ProductWrapper(p.getId(), p.getName() + statusSuffix);
             allWrappers.add(wrapper);
             if (isEdit && existingService != null && existingService.getLinkedProductId() != null 
                     && existingService.getLinkedProductId().equals(p.getId())) {
@@ -921,6 +924,17 @@ public class ServiceForm {
                     } catch (Exception ex) {
                         showAlert("Lỗi", "Số lượng định mức không hợp lệ!", Alert.AlertType.ERROR);
                         return;
+                    }
+                    if (linkedProductQty <= 0) {
+                        showAlert("Cảnh báo", "Vui lòng nhập định mức tiêu hao lớn hơn 0 cho vật tư đi kèm!", Alert.AlertType.WARNING);
+                        return;
+                    }
+                    Product p = new ProductDAO().getProductById(linkedProductId);
+                    if (p != null && p.getStock() <= 0) {
+                        Alert alert = util.AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Lưu ý tồn kho",
+                                "Vật tư \"" + p.getName() + "\" hiện tại đang hết hàng trong kho (Tồn kho: 0).\n"
+                                + "Bạn vẫn có thể lưu cấu hình dịch vụ, nhưng hệ thống sẽ yêu cầu nhập kho trước khi xuất hóa đơn sử dụng dịch vụ này!");
+                        alert.showAndWait();
                     }
                 }
                 

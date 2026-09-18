@@ -110,14 +110,15 @@ public class ProductDAO {
     }
     
     public boolean reduceStock(int productId, double quantity) {
-        String sql = "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?";
+        String sql = "UPDATE products SET stock = stock - ?, status = CASE WHEN (stock - ?) <= 0 THEN 'Hết hàng' ELSE status END WHERE id = ? AND stock >= ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setDouble(1, quantity);
-            pstmt.setInt(2, productId);
-            pstmt.setDouble(3, quantity);
+            pstmt.setDouble(2, quantity);
+            pstmt.setInt(3, productId);
+            pstmt.setDouble(4, quantity);
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -142,7 +143,7 @@ public class ProductDAO {
                     rs.getString("category"),
                     rs.getDouble("price"),
                     rs.getDouble("cost_price"),
-                    rs.getInt("stock"),
+                    rs.getDouble("stock"),
                     rs.getString("unit"),
                     rs.getString("status"),
                     rs.getInt("min_stock")

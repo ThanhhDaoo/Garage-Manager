@@ -245,13 +245,14 @@ public class CreateInvoiceForm {
     private void restoreOldInvoiceStock(int invoiceId) {
         InvoiceItemService itemService = new InvoiceItemService();
         List<model.InvoiceItem> items = itemService.getItemsByInvoiceId(invoiceId);
-        String sql = "UPDATE products SET stock = stock + ? WHERE id = ?";
+        String sql = "UPDATE products SET stock = stock + ?, status = CASE WHEN (stock + ?) > 0 THEN 'Còn hàng' ELSE status END WHERE id = ?";
         try (java.sql.Connection conn = util.DatabaseManager.getConnection();
              java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
             for (model.InvoiceItem item : items) {
                 if ("product".equals(item.getItemType()) && item.getItemId() != null && item.getItemId() > 0) {
                     pstmt.setDouble(1, item.getQuantity());
-                    pstmt.setInt(2, item.getItemId());
+                    pstmt.setDouble(2, item.getQuantity());
+                    pstmt.setInt(3, item.getItemId());
                     pstmt.addBatch();
                 }
             }
@@ -852,8 +853,10 @@ public class CreateInvoiceForm {
         return section;
     }
 
-    private HBox createServiceItem(int id, String name, String priceMini, String priceSedan, String priceCuv,
+    private HBox createServiceItem(Service service, String priceMini, String priceSedan, String priceCuv,
             String priceSuv, String priceMpv, String pricePickup) {
+        int id = service.getId();
+        String name = service.getName();
         HBox item = new HBox(15);
         item.setAlignment(Pos.CENTER_LEFT);
         item.setPadding(new Insets(12));
@@ -868,10 +871,38 @@ public class CreateInvoiceForm {
         Label lblName = new Label(name);
         lblName.setStyle("-fx-font-size: 14px; -fx-font-weight: 600; -fx-text-fill: #212121;");
 
-        Label lblPrice = new Label(priceSedan); // Default to sedan price
-        lblPrice.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+        String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
+        Label lblPrice = new Label(currentPrice);
+        if (currentPrice.equals("0đ") || currentPrice.equals("0 đ") || currentPrice.equals("0")) {
+            lblPrice.setText("Không áp dụng");
+            lblPrice.setStyle("-fx-font-size: 13px; -fx-text-fill: #e53935; -fx-font-weight: bold;");
+        } else {
+            lblPrice.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
+        }
 
         info.getChildren().addAll(lblName, lblPrice);
+
+        // Hiển thị thông tin tồn kho của vật tư liên kết
+        if (service.getLinkedProductId() != null && service.getLinkedProductQty() != null && service.getLinkedProductQty() > 0) {
+            Product p = new dao.ProductDAO().getProductById(service.getLinkedProductId());
+            if (p != null) {
+                java.text.DecimalFormat df = new java.text.DecimalFormat("#.##");
+                String unit = p.getUnit() != null && !p.getUnit().trim().isEmpty() ? " " + p.getUnit().trim() : "";
+                Label lblLinked;
+                if (p.getStock() <= 0) {
+                    lblLinked = new Label("⚠️ Hết vật tư đi kèm: " + p.getName() + " (Tồn kho: 0)");
+                    lblLinked.setStyle("-fx-font-size: 11px; -fx-text-fill: #d32f2f; -fx-font-weight: bold;");
+                } else if (p.getStock() < service.getLinkedProductQty()) {
+                    lblLinked = new Label("⚠️ Thiếu vật tư đi kèm: " + p.getName() + " (Còn: " + df.format(p.getStock()) + "/" + df.format(service.getLinkedProductQty()) + unit + ")");
+                    lblLinked.setStyle("-fx-font-size: 11px; -fx-text-fill: #e65100; -fx-font-weight: bold;");
+                } else {
+                    lblLinked = new Label("📦 Vật tư đi kèm: " + p.getName() + " (" + df.format(service.getLinkedProductQty()) + unit + ") - Tồn kho: " + df.format(p.getStock()));
+                    lblLinked.setStyle("-fx-font-size: 11px; -fx-text-fill: #2e7d32;");
+                }
+                info.getChildren().add(lblLinked);
+                item.getProperties().put("lblLinked", lblLinked);
+            }
+        }
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -886,14 +917,19 @@ public class CreateInvoiceForm {
                         "-fx-background-radius: 6;" +
                         "-fx-cursor: hand;");
 
+        if (currentPrice.equals("0đ") || currentPrice.equals("0 đ") || currentPrice.equals("0")) {
+            btnAdd.setDisable(true);
+        }
+
         btnAdd.setOnAction(e -> preserveScrollPosition(() -> {
-            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
-            addSelectedService(id, name, currentPrice);
+            String currentPriceNow = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
+            addSelectedService(id, name, currentPriceNow);
         }));
 
         item.getProperties().put("id", id);
         item.getProperties().put("name", name);
         item.getProperties().put("btnAdd", btnAdd);
+        item.getProperties().put("priceLabel", lblPrice);
 
         item.getChildren().addAll(info, spacer, btnAdd);
         return item;
@@ -962,9 +998,20 @@ public class CreateInvoiceForm {
             }
 
             // Find the price label and update it
-            VBox info = (VBox) item.getChildren().get(0);
-            Label priceLabel = (Label) info.getChildren().get(info.getChildren().size() - 1);
-            Button btnAdd = (Button) item.getChildren().get(2);
+            Label priceLabel = (Label) item.getProperties().get("priceLabel");
+            Button btnAdd = (Button) item.getProperties().get("btnAdd");
+
+            if (priceLabel == null) {
+                VBox info = (VBox) item.getChildren().get(0);
+                if (data.length == 7 && info.getChildren().size() >= 2) {
+                    priceLabel = (Label) info.getChildren().get(1);
+                } else {
+                    priceLabel = (Label) info.getChildren().get(info.getChildren().size() - 1);
+                }
+            }
+            if (btnAdd == null) {
+                btnAdd = (Button) item.getChildren().get(2);
+            }
 
             String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
 
@@ -1027,8 +1074,14 @@ public class CreateInvoiceForm {
         Label lblDesc = new Label(description);
         lblDesc.setStyle("-fx-font-size: 13px; -fx-text-fill: #757575;");
 
-        Label lblPrice = new Label(priceSedan); // Default to sedan price
-        lblPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
+        Label lblPrice = new Label(currentPrice);
+        if (currentPrice.equals("0đ") || currentPrice.equals("0 đ") || currentPrice.equals("0")) {
+            lblPrice.setText("Không áp dụng");
+            lblPrice.setStyle("-fx-font-size: 13px; -fx-text-fill: #e53935; -fx-font-weight: bold;");
+        } else {
+            lblPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #2196F3; -fx-font-weight: 600;");
+        }
 
         info.getChildren().addAll(lblName, lblDesc, lblPrice);
 
@@ -1045,14 +1098,19 @@ public class CreateInvoiceForm {
                         "-fx-background-radius: 6;" +
                         "-fx-cursor: hand;");
 
+        if (currentPrice.equals("0đ") || currentPrice.equals("0 đ") || currentPrice.equals("0")) {
+            btnAdd.setDisable(true);
+        }
+
         btnAdd.setOnAction(e -> preserveScrollPosition(() -> {
-            String currentPrice = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
-            addSelectedPackage(id, name, currentPrice);
+            String currentPriceNow = getCurrentPrice(priceMini, priceSedan, priceCuv, priceSuv, priceMpv, pricePickup);
+            addSelectedPackage(id, name, currentPriceNow);
         }));
 
         item.getProperties().put("id", id);
         item.getProperties().put("name", name);
         item.getProperties().put("btnAdd", btnAdd);
+        item.getProperties().put("priceLabel", lblPrice);
 
         item.getChildren().addAll(info, spacer, btnAdd);
         return item;
@@ -1165,83 +1223,8 @@ public class CreateInvoiceForm {
         addSelectedService(serviceId, name, price);
     }
 
-    @SuppressWarnings("unchecked")
     private void addSelectedService(int serviceId, String name, String price) {
-        if (!selectedServicesBox.getChildren().isEmpty() && selectedServicesBox.getChildren().get(0) instanceof Label) {
-            selectedServicesBox.getChildren().clear();
-        }
-
-        double unitPrice = parsePrice(price);
-
-        // Track for database
-        Map<String, Object> item = new HashMap<>();
-        item.put("id", serviceId);
-        item.put("name", name);
-        item.put("price", unitPrice);
-        item.put("linkedProducts", new ArrayList<Map<String, Object>>());
-
-        VBox selectedItem = createSelectedServiceItem(item, name, price, unitPrice);
-        selectedItem.getProperties().put("map", item);
-        selectedServicesBox.getChildren().add(selectedItem);
-
-        item.put("hbox", selectedItem);
-        selectedServices.add(item);
-
-        // Tự động nạp vật tư liên kết định mức ngầm
-        if (!isLoadingInvoice) {
-            try {
-                model.Service svcObj = new dao.ServiceDAO().getServiceById(serviceId);
-                if (svcObj != null && svcObj.getLinkedProductId() != null && svcObj.getLinkedProductQty() != null && svcObj.getLinkedProductQty() > 0) {
-                    model.Product p = new dao.ProductDAO().getProductById(svcObj.getLinkedProductId());
-                    if (p != null) {
-                        List<Map<String, Object>> linked = (List<Map<String, Object>>) item.get("linkedProducts");
-                        VBox linkedList = (VBox) selectedItem.getProperties().get("linkedList");
-                        if (linkedList != null) {
-                            HBox pRow = new HBox(10);
-                            pRow.setAlignment(Pos.CENTER_LEFT);
-                            pRow.setPadding(new Insets(2, 0, 2, 0));
-                            Label lblPInfo = new Label();
-                            lblPInfo.setStyle("-fx-font-size: 11px; -fx-text-fill: #424242;");
-
-                            // Add to database tracker
-                            Map<String, Object> prodMap = new HashMap<>();
-                            prodMap.put("id", p.getId());
-                            prodMap.put("name", p.getName());
-                            prodMap.put("unitPrice", 0.0); // 0đ vì tính vào dịch vụ
-                            prodMap.put("quantity", svcObj.getLinkedProductQty());
-                            prodMap.put("totalPrice", 0.0);
-                            prodMap.put("label", lblPInfo);
-                            prodMap.put("unit", p.getUnit());
-                            prodMap.put("isHidden", 1); // Ẩn khi in mặc định
-                            linked.add(prodMap);
-
-                            CheckBox chkHide = new CheckBox("Ẩn khi in");
-                            chkHide.setStyle("-fx-font-size: 10px; -fx-text-fill: #d32f2f;");
-                            chkHide.setSelected(true);
-                            chkHide.setOnAction(hideEvt -> {
-                                prodMap.put("isHidden", chkHide.isSelected() ? 1 : 0);
-                            });
-
-                            Button btnDelP = new Button("✕");
-                            btnDelP.setStyle(
-                                    "-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-cursor: hand; -fx-font-size: 11px;");
-                            btnDelP.setOnAction(delEvt -> preserveScrollPosition(() -> {
-                                linkedList.getChildren().remove(pRow);
-                                linked.remove(prodMap);
-                                recalculateTotal();
-                            }));
-
-                            pRow.getChildren().addAll(lblPInfo, chkHide, btnDelP);
-                            linkedList.getChildren().add(pRow);
-                        }
-                    }
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-
-        recalculateTotal();
+        addSelectedService(serviceId, name, parsePrice(price));
     }
 
     @SuppressWarnings("unchecked")
@@ -1271,6 +1254,29 @@ public class CreateInvoiceForm {
                 if (svcObj != null && svcObj.getLinkedProductId() != null && svcObj.getLinkedProductQty() != null && svcObj.getLinkedProductQty() > 0) {
                     model.Product p = new dao.ProductDAO().getProductById(svcObj.getLinkedProductId());
                     if (p != null) {
+                        double reqQty = svcObj.getLinkedProductQty();
+
+                        if (p.getStock() < reqQty) {
+                            String stockDisplay = new java.text.DecimalFormat("#.##").format(p.getStock());
+                            String reqDisplay = new java.text.DecimalFormat("#.##").format(reqQty);
+                            String unitDisplay = (p.getUnit() != null && !p.getUnit().trim().isEmpty()) ? p.getUnit().trim() : "đơn vị";
+
+                            Alert alert = util.AlertHelper.createAlert(
+                                    Alert.AlertType.WARNING,
+                                    "Không Thể Chọn Dịch Vụ - Hết Vật Tư",
+                                    "Dịch vụ \"" + name + "\" yêu cầu vật tư đi kèm là \"" + p.getName() + "\" nhưng trong kho không đủ hàng!\n\n"
+                                    + "• Tồn kho hiện có: " + stockDisplay + " " + unitDisplay + "\n"
+                                    + "• Định mức cần: " + reqDisplay + " " + unitDisplay + "\n\n"
+                                    + "Vui lòng nhập thêm hàng vào kho trước khi thực hiện dịch vụ này!"
+                            );
+                            alert.showAndWait();
+
+                            selectedServices.remove(item);
+                            selectedServicesBox.getChildren().remove(selectedItem);
+                            recalculateTotal();
+                            return;
+                        }
+
                         List<Map<String, Object>> linked = (List<Map<String, Object>>) item.get("linkedProducts");
                         VBox linkedList = (VBox) selectedItem.getProperties().get("linkedList");
                         if (linkedList != null) {
@@ -2244,6 +2250,137 @@ public class CreateInvoiceForm {
         return section;
     }
 
+    @SuppressWarnings("unchecked")
+    private boolean validateStockBeforeSave() {
+        Map<Integer, Double> requiredQuantities = new HashMap<>();
+        Map<Integer, String> productNames = new HashMap<>();
+        Map<Integer, String> productUnits = new HashMap<>();
+        Map<Integer, List<String>> productSources = new HashMap<>();
+
+        // 1. Sản phẩm bán lẻ
+        for (Map<String, Object> prod : selectedProducts) {
+            if (prod.containsKey("id")) {
+                int pId = ((Number) prod.get("id")).intValue();
+                if (pId > 0) {
+                    double qty = ((Number) prod.get("quantity")).doubleValue();
+                    requiredQuantities.put(pId, requiredQuantities.getOrDefault(pId, 0.0) + qty);
+                    productNames.put(pId, (String) prod.get("name"));
+                    if (prod.containsKey("unit") && prod.get("unit") != null) {
+                        productUnits.put(pId, (String) prod.get("unit"));
+                    }
+                    productSources.computeIfAbsent(pId, k -> new ArrayList<>())
+                            .add("Bán lẻ (x" + new java.text.DecimalFormat("#.##").format(qty) + ")");
+                }
+            }
+        }
+
+        // 2. Vật tư liên kết từ các dịch vụ
+        for (Map<String, Object> svc : selectedServices) {
+            String svcName = (String) svc.get("name");
+            List<Map<String, Object>> linked = (List<Map<String, Object>>) svc.get("linkedProducts");
+            if (linked != null) {
+                for (Map<String, Object> lp : linked) {
+                    if (lp.containsKey("id")) {
+                        int pId = ((Number) lp.get("id")).intValue();
+                        if (pId > 0) {
+                            double qty = ((Number) lp.get("quantity")).doubleValue();
+                            requiredQuantities.put(pId, requiredQuantities.getOrDefault(pId, 0.0) + qty);
+                            productNames.put(pId, (String) lp.get("name"));
+                            if (lp.containsKey("unit") && lp.get("unit") != null) {
+                                productUnits.put(pId, (String) lp.get("unit"));
+                            }
+                            productSources.computeIfAbsent(pId, k -> new ArrayList<>())
+                                    .add("Dịch vụ \"" + svcName + "\" (x" + new java.text.DecimalFormat("#.##").format(qty) + ")");
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Vật tư liên kết từ các gói dịch vụ
+        for (Map<String, Object> pkg : selectedPackages) {
+            String pkgName = (String) pkg.get("name");
+            List<Map<String, Object>> linked = (List<Map<String, Object>>) pkg.get("linkedProducts");
+            if (linked != null) {
+                for (Map<String, Object> lp : linked) {
+                    if (lp.containsKey("id")) {
+                        int pId = ((Number) lp.get("id")).intValue();
+                        if (pId > 0) {
+                            double qty = ((Number) lp.get("quantity")).doubleValue();
+                            requiredQuantities.put(pId, requiredQuantities.getOrDefault(pId, 0.0) + qty);
+                            productNames.put(pId, (String) lp.get("name"));
+                            if (lp.containsKey("unit") && lp.get("unit") != null) {
+                                productUnits.put(pId, (String) lp.get("unit"));
+                            }
+                            productSources.computeIfAbsent(pId, k -> new ArrayList<>())
+                                    .add("Gói \"" + pkgName + "\" (x" + new java.text.DecimalFormat("#.##").format(qty) + ")");
+                        }
+                    }
+                }
+            }
+        }
+
+        if (requiredQuantities.isEmpty()) {
+            return true;
+        }
+
+        // 4. Nếu là sửa hóa đơn cũ, tính số lượng đã từng trừ bởi hóa đơn này để tính tồn kho khả dụng
+        Map<Integer, Double> oldInvoiceQuantities = new HashMap<>();
+        if (existingInvoice != null) {
+            InvoiceItemService itemService = new InvoiceItemService();
+            List<model.InvoiceItem> oldItems = itemService.getItemsByInvoiceId(existingInvoice.getId());
+            for (model.InvoiceItem oldItem : oldItems) {
+                if ("product".equals(oldItem.getItemType()) && oldItem.getItemId() != null && oldItem.getItemId() > 0) {
+                    oldInvoiceQuantities.put(oldItem.getItemId(),
+                            oldInvoiceQuantities.getOrDefault(oldItem.getItemId(), 0.0) + oldItem.getQuantity());
+                }
+            }
+        }
+
+        // 5. Kiểm tra tồn kho từ database
+        dao.ProductDAO productDAO = new dao.ProductDAO();
+        List<String> errorMessages = new ArrayList<>();
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#.##");
+
+        for (Map.Entry<Integer, Double> entry : requiredQuantities.entrySet()) {
+            int productId = entry.getKey();
+            double requiredQty = entry.getValue();
+            model.Product currentProd = productDAO.getProductById(productId);
+
+            if (currentProd == null) {
+                errorMessages.add("• Sản phẩm #" + productId + " không tồn tại trong hệ thống!");
+                continue;
+            }
+
+            double oldUsed = oldInvoiceQuantities.getOrDefault(productId, 0.0);
+            double availableStock = currentProd.getStock() + oldUsed;
+
+            if (availableStock < requiredQty) {
+                String name = currentProd.getName();
+                String unit = currentProd.getUnit() != null ? currentProd.getUnit() : "";
+                String sources = String.join(", ", productSources.getOrDefault(productId, java.util.Collections.emptyList()));
+
+                errorMessages.add(String.format("• %s:\n   - Số lượng cần xuất: %s %s (từ: %s)\n   - Tồn kho khả dụng: %s %s",
+                        name, df.format(requiredQty), unit, sources, df.format(availableStock), unit));
+            }
+        }
+
+        if (!errorMessages.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Không thể xuất hóa đơn do tồn kho không đủ để trừ số lượng:\n\n");
+            for (String msg : errorMessages) {
+                sb.append(msg).append("\n\n");
+            }
+            sb.append("Vui lòng nhập thêm hàng vào kho hoặc điều chỉnh lại danh sách dịch vụ/vật tư trước khi xuất hóa đơn!");
+
+            Alert alert = util.AlertHelper.createAlert(Alert.AlertType.ERROR, "Không Thể Xuất Hóa Đơn - Hết Hàng", sb.toString());
+            alert.showAndWait();
+            return false;
+        }
+
+        return true;
+    }
+
     private HBox createActionButtons() {
         HBox buttons = new HBox(15);
         buttons.setAlignment(Pos.CENTER_RIGHT);
@@ -2298,6 +2435,11 @@ public class CreateInvoiceForm {
                 Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo",
                         "Vui lòng chọn ít nhất một dịch vụ hoặc sản phẩm!");
                 alert.showAndWait();
+                return;
+            }
+
+            // Ràng buộc kiểm tra tồn kho trước khi xuất hóa đơn
+            if (!validateStockBeforeSave()) {
                 return;
             }
 
@@ -2665,7 +2807,7 @@ public class CreateInvoiceForm {
                 String priceMpv = String.format("%,.0fđ", service.getPriceMpv());
                 String pricePickup = String.format("%,.0fđ", service.getPricePickup());
                 servicesList.getChildren().add(
-                        createServiceItem(service.getId(), service.getName(), priceMini, priceSedan, priceCuv,
+                        createServiceItem(service, priceMini, priceSedan, priceCuv,
                                 service.getPriceSuv() > 0 ? priceSuv : priceSedan, priceMpv, pricePickup));
             }
 
@@ -2796,13 +2938,25 @@ public class CreateInvoiceForm {
                         double quantity = ((Number) product.get("quantity")).doubleValue();
                         String unit = (String) product.get("unit");
                         String formattedQty = new java.text.DecimalFormat("#.##").format(quantity);
-                        if (calcVat) {
-                            lbl.setText("• " + prName + " (x" + formattedQty + " " + (unit != null ? unit : "") + ") - " 
-                                    + formatPrice(pBasePrice) + " (+8% VAT)");
-                        } else {
-                            lbl.setText("• " + prName + " (x" + formattedQty + " " + (unit != null ? unit : "") + ") - " 
-                                    + formatPrice(pBasePrice) + " (VAT 0%)");
+                        String vatStr = calcVat ? " (+8% VAT)" : " (VAT 0%)";
+
+                        int pId = product.containsKey("id") ? ((Number) product.get("id")).intValue() : 0;
+                        model.Product currentP = pId > 0 ? new dao.ProductDAO().getProductById(pId) : null;
+                        String stockWarning = "";
+                        if (currentP != null) {
+                            if (currentP.getStock() <= 0) {
+                                stockWarning = " - ⚠️ HẾT HÀNG (Tồn: 0)";
+                                lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #d32f2f; -fx-font-weight: bold;");
+                            } else if (currentP.getStock() < quantity) {
+                                stockWarning = " - ⚠️ Thiếu hàng (Tồn: " + new java.text.DecimalFormat("#.##").format(currentP.getStock()) + ")";
+                                lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #d32f2f; -fx-font-weight: bold;");
+                            } else {
+                                lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #424242;");
+                            }
                         }
+
+                        lbl.setText("• " + prName + " (x" + formattedQty + " " + (unit != null ? unit : "") + ") - " 
+                                + formatPrice(pBasePrice) + vatStr + stockWarning);
                     }
                 }
             }
@@ -2836,13 +2990,25 @@ public class CreateInvoiceForm {
                         double quantity = ((Number) product.get("quantity")).doubleValue();
                         String unit = (String) product.get("unit");
                         String formattedQty = new java.text.DecimalFormat("#.##").format(quantity);
-                        if (calcVat) {
-                            lbl.setText("• " + prName + " (x" + formattedQty + " " + (unit != null ? unit : "") + ") - " 
-                                    + formatPrice(pBasePrice) + " (+8% VAT)");
-                        } else {
-                            lbl.setText("• " + prName + " (x" + formattedQty + " " + (unit != null ? unit : "") + ") - " 
-                                    + formatPrice(pBasePrice) + " (VAT 0%)");
+                        String vatStr = calcVat ? " (+8% VAT)" : " (VAT 0%)";
+
+                        int pId = product.containsKey("id") ? ((Number) product.get("id")).intValue() : 0;
+                        model.Product currentP = pId > 0 ? new dao.ProductDAO().getProductById(pId) : null;
+                        String stockWarning = "";
+                        if (currentP != null) {
+                            if (currentP.getStock() <= 0) {
+                                stockWarning = " - ⚠️ HẾT HÀNG (Tồn: 0)";
+                                lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #d32f2f; -fx-font-weight: bold;");
+                            } else if (currentP.getStock() < quantity) {
+                                stockWarning = " - ⚠️ Thiếu hàng (Tồn: " + new java.text.DecimalFormat("#.##").format(currentP.getStock()) + ")";
+                                lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #d32f2f; -fx-font-weight: bold;");
+                            } else {
+                                lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #424242;");
+                            }
                         }
+
+                        lbl.setText("• " + prName + " (x" + formattedQty + " " + (unit != null ? unit : "") + ") - " 
+                                + formatPrice(pBasePrice) + vatStr + stockWarning);
                     }
                 }
             }
