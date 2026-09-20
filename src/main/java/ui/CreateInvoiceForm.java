@@ -26,6 +26,17 @@ import java.time.format.DateTimeFormatter;
 public class CreateInvoiceForm {
 
     private Stage stage;
+    private Runnable closeHandler;
+
+    public void close() {
+        if (closeHandler != null) {
+            closeHandler.run();
+        }
+        if (stage != null) {
+            stage.close();
+        }
+    }
+
     private ScrollPane mainScrollPane;
     private VBox selectedServicesBox;
     private VBox selectedPackagesBox;
@@ -122,14 +133,7 @@ public class CreateInvoiceForm {
         }
     }
 
-    public void show() {
-        stage = new Stage();
-        if (MainUI.getMainStage() != null) {
-            stage.initOwner(MainUI.getMainStage());
-        }
-        
-        stage.setTitle(existingInvoice != null ? "Sửa Hóa Đơn #" + String.format("%05d", existingInvoice.getId()) : "Tạo Hóa Đơn Mới");
-
+    public BorderPane createFormLayout() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #f8f9fa;");
 
@@ -177,14 +181,6 @@ public class CreateInvoiceForm {
 
         root.setCenter(mainScrollPane);
         root.setBottom(actionButtons);
-
-        Scene scene = new Scene(root, 1050, 800);
-        try {
-            String css = getClass().getResource("/global-styles.css").toExternalForm();
-            scene.getStylesheets().add(css);
-        } catch (Exception e) {
-        }
-        stage.setScene(scene);
 
         // Tự động chọn dịch vụ hoặc gói dịch vụ nếu có chỉ định từ lịch hẹn
         if (preselectedItemName != null && !preselectedItemName.isEmpty()) {
@@ -246,6 +242,47 @@ public class CreateInvoiceForm {
             loadExistingInvoiceItems();
         }
 
+        return root;
+    }
+
+    public void showInOverlay(StackPane container) {
+        BorderPane root = createFormLayout();
+
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.45);");
+
+        root.setMaxWidth(1050);
+        root.setMaxHeight(780);
+        root.setStyle(
+            "-fx-background-color: #f8f9fa;" +
+            "-fx-background-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+        );
+
+        overlay.getChildren().add(root);
+
+        this.closeHandler = () -> container.getChildren().remove(overlay);
+
+        container.getChildren().add(overlay);
+    }
+
+    public void show() {
+        stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
+        
+        stage.setTitle(existingInvoice != null ? "Sửa Hóa Đơn #" + String.format("%05d", existingInvoice.getId()) : "Tạo Hóa Đơn Mới");
+
+        BorderPane root = createFormLayout();
+
+        Scene scene = new Scene(root, 1050, 800);
+        try {
+            String css = getClass().getResource("/global-styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {
+        }
+        stage.setScene(scene);
         stage.show();
     }
 
@@ -2401,7 +2438,7 @@ public class CreateInvoiceForm {
                         "-fx-padding: 12px 30px;" +
                         "-fx-background-radius: 8;" +
                         "-fx-cursor: hand;");
-        btnCancel.setOnAction(e -> stage.close());
+        btnCancel.setOnAction(e -> close());
 
         Button btnCreate = new Button(existingInvoice != null ? "Lưu Thay Đổi" : "Tạo Hóa Đơn");
         btnCreate.setStyle(
@@ -2774,23 +2811,20 @@ public class CreateInvoiceForm {
                     new service.AppointmentService().updateAppointment(fromAppointment);
                 }
 
-                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công",
-                        existingInvoice != null ? "Lưu thay đổi hóa đơn thành công!" : "Tạo hóa đơn thành công!");
-                alert.showAndWait();
+                close();
 
-                // Call callback to refresh invoice list
-                if (onInvoiceUpdated != null) {
-                    onInvoiceUpdated.accept(existingInvoice);
-                }
-                if (onInvoiceCreated != null) {
-                    onInvoiceCreated.run();
-                }
-
-                stage.close();
+                javafx.application.Platform.runLater(() -> {
+                    if (onInvoiceUpdated != null) {
+                        onInvoiceUpdated.accept(existingInvoice);
+                    }
+                    if (onInvoiceCreated != null) {
+                        onInvoiceCreated.run();
+                    }
+                });
             } else {
                 Alert alert = util.AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", 
                         existingInvoice != null ? "Không thể cập nhật hóa đơn!" : "Không thể tạo hóa đơn!");
-                alert.showAndWait();
+                alert.show();
             }
         });
 

@@ -534,7 +534,7 @@ public class MainUI extends Application {
 
         btnNewInvoice.setOnAction(e -> {
             CreateInvoiceForm form = new CreateInvoiceForm(() -> refreshInvoiceTable(invoiceTableRows));
-            form.show();
+            form.showInOverlay(contentArea);
         });
         btnViewServices.setOnAction(e -> showServiceManagement());
         btnViewPackages.setOnAction(e -> showPackageManagement());
@@ -681,7 +681,7 @@ public class MainUI extends Application {
                 }
                 refreshInvoiceTable(invoiceTableRows);
             });
-            form.show();
+            form.showInOverlay(contentArea);
         });
         
         header.getChildren().addAll(title, spacer, btnNew);
@@ -775,7 +775,9 @@ public class MainUI extends Application {
             );
         };
         
-        invoiceSearchField.textProperty().addListener((obs, oldVal, newVal) -> triggerFilter.run());
+        javafx.animation.PauseTransition invoiceSearchDebounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
+        invoiceSearchDebounce.setOnFinished(e -> triggerFilter.run());
+        invoiceSearchField.textProperty().addListener((obs, oldVal, newVal) -> invoiceSearchDebounce.playFromStart());
         invoiceStatusFilterBox.valueProperty().addListener((obs, oldVal, newVal) -> triggerFilter.run());
         invoicePeriodBox.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
         invoiceMonthBox.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
@@ -1177,7 +1179,7 @@ public class MainUI extends Application {
                     }
                     refreshInvoiceTable(tableRows);
                 });
-                form.show();
+                form.showInOverlay(contentArea);
             }
         });
         
@@ -4734,12 +4736,10 @@ public class MainUI extends Application {
         service.InvoiceItemService itemService = new service.InvoiceItemService();
         List<model.InvoiceItem> items = itemService.getItemsByInvoiceId(invoiceId);
         
-        Stage dialogStage = new Stage();
-        if (mainStage != null) {
-            dialogStage.initOwner(mainStage);
-        }
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.45);");
         
-        dialogStage.setTitle("Chi Tiết Hóa Đơn #" + String.format("%05d", invoiceId));
+        Runnable closeDialog = () -> contentArea.getChildren().remove(overlay);
         
         VBox content = new VBox(20);
         content.setPadding(new Insets(30));
@@ -4967,7 +4967,7 @@ public class MainUI extends Application {
         btnClose.setOnMouseExited(e -> btnClose.setStyle(
             btnClose.getStyle().replace("-fx-background-color: #e0e0e0;", "-fx-background-color: #f5f5f5;")
         ));
-        btnClose.setOnAction(e -> dialogStage.close());
+        btnClose.setOnAction(e -> closeDialog.run());
         
         Button btnUpdate = new Button("Cập Nhật");
         btnUpdate.setStyle(
@@ -4994,9 +4994,8 @@ public class MainUI extends Application {
                 inv.setStatus(newStatus);
                 inv.setNotes(newNotes);
                 if (invoiceService.updateInvoice(inv)) {
-                    showSuccessAlert("Thành công", "Cập nhật hóa đơn thành công!");
+                    closeDialog.run();
                     refreshInvoiceTable(tableRows);
-                    dialogStage.close();
                 } else {
                     showErrorAlert("Lỗi", "Không thể cập nhật hóa đơn!");
                 }
@@ -5022,14 +5021,16 @@ public class MainUI extends Application {
         BorderPane root = new BorderPane();
         root.setCenter(scrollPane);
         root.setBottom(buttonBox);
+        root.setMaxWidth(650);
+        root.setMaxHeight(750);
+        root.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+        );
         
-        Scene scene = new Scene(root, 650, 750);
-        try {
-            String css = getClass().getResource("/global-styles.css").toExternalForm();
-            scene.getStylesheets().add(css);
-        } catch (Exception e) {}
-        dialogStage.setScene(scene);
-        dialogStage.show();
+        overlay.getChildren().add(root);
+        contentArea.getChildren().add(overlay);
     }
     
     private void exportInvoiceToPDF(Invoice invoice) {
@@ -6331,7 +6332,7 @@ public class MainUI extends Application {
                 CreateInvoiceForm form = new CreateInvoiceForm(() -> {
                     showAppointmentManagement();
                 }, appt);
-                form.show();
+                form.showInOverlay(contentArea);
             });
             actions.getChildren().add(btnInvoice);
         }
