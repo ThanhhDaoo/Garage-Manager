@@ -206,10 +206,10 @@ public class InventoryReceiptForm {
         dpDate.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
 
         // Supplier
-        Label lblOperator = new Label("Nhà cung cấp *");
+        Label lblOperator = new Label("Nhà cung cấp");
         lblOperator.setStyle(labelStyle);
         txtOperator = new TextField();
-        txtOperator.setPromptText("Nhập tên nhà cung cấp...");
+        txtOperator.setPromptText("Nhập tên nhà cung cấp (nếu có)...");
         txtOperator.setStyle(fieldStyle);
         txtOperator.setMaxWidth(Double.MAX_VALUE);
 
@@ -358,10 +358,6 @@ public class InventoryReceiptForm {
         }
 
         String operator = txtOperator.getText().trim();
-        if (operator.isEmpty()) {
-            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập tên nhà cung cấp!").showAndWait();
-            return;
-        }
 
         double cost = p.getCostPrice();
         double total = cost * qty;

@@ -24,9 +24,12 @@ public class InventoryHelper {
 
     private static Label lblTotalValue;
     private static Label lblReceiptCount;
+    private static Label lblTotalValueTitle;
+    private static Label lblReceiptCountTitle;
     
     private static ComboBox<String> cbMonth;
     private static ComboBox<String> cbYear;
+    private static ComboBox<String> cbPaymentFilter;
     private static TextField txtSearch;
 
     public static void showInventoryManagement(MainUI mainUI, StackPane contentArea) {
@@ -52,8 +55,8 @@ public class InventoryHelper {
 
         txtSearch = new TextField();
         txtSearch.setPromptText("🔍 Tìm kiếm phiếu nhập...");
-        txtSearch.setPrefWidth(260);
-        txtSearch.setMinWidth(200);
+        txtSearch.setPrefWidth(240);
+        txtSearch.setMinWidth(180);
         txtSearch.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-padding: 10px 15px;" +
@@ -82,6 +85,13 @@ public class InventoryHelper {
         cbYear.setValue(String.valueOf(curYear));
         cbYear.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 100px;");
         cbYear.setMinWidth(100);
+
+        // Payment status filter
+        cbPaymentFilter = new ComboBox<>();
+        cbPaymentFilter.getItems().addAll("Tất cả trạng thái", "Đã thanh toán", "Chưa thanh toán");
+        cbPaymentFilter.setValue("Tất cả trạng thái");
+        cbPaymentFilter.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 155px;");
+        cbPaymentFilter.setMinWidth(155);
 
         Button btnNewReceipt = new Button("➕ Tạo Phiếu Nhập");
         btnNewReceipt.setStyle(
@@ -144,7 +154,7 @@ public class InventoryHelper {
         });
 
         filterBar.getChildren().addAll(
-            txtSearch, cbMonth, cbYear, btnNewReceipt, spacer, btnPdf, btnExcel
+            txtSearch, cbMonth, cbYear, cbPaymentFilter, btnNewReceipt, spacer, btnPdf, btnExcel
         );
 
         // Summary Cards
@@ -267,6 +277,15 @@ public class InventoryHelper {
                         badge.setText("⏳ Chưa thanh toán");
                         badge.setStyle(badge.getStyle() + "-fx-background-color: #FFEBEE; -fx-text-fill: #C62828;");
                     }
+                    badge.setCursor(javafx.scene.Cursor.HAND);
+                    badge.setTooltip(new Tooltip("Nhấn để chuyển đổi trạng thái thanh toán"));
+                    badge.setOnMouseClicked(e -> {
+                        InventoryReceipt r = getTableView().getItems().get(getIndex());
+                        String newStatus = "Đã thanh toán".equalsIgnoreCase(r.getPaymentStatus()) ? "Chưa thanh toán" : "Đã thanh toán";
+                        r.setPaymentStatus(newStatus);
+                        new InventoryReceiptDAO().updateReceipt(r);
+                        loadReceiptsData();
+                    });
                     setGraphic(badge);
                     setText(null);
                 }
@@ -276,6 +295,21 @@ public class InventoryHelper {
         TableColumn<InventoryReceipt, String> colOperator = new TableColumn<>("Nhà Cung Cấp");
         colOperator.setPrefWidth(120);
         colOperator.setCellValueFactory(new PropertyValueFactory<>("operator"));
+        colOperator.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String op, boolean empty) {
+                super.updateItem(op, empty);
+                if (empty) {
+                    setText(null);
+                } else if (op == null || op.trim().isEmpty()) {
+                    setText("-");
+                    setStyle("-fx-alignment: CENTER; -fx-text-fill: #9e9e9e;");
+                } else {
+                    setText(op);
+                    setStyle("-fx-alignment: CENTER-LEFT; -fx-text-fill: #212121;");
+                }
+            }
+        });
 
         TableColumn<InventoryReceipt, String> colNotes = new TableColumn<>("Ghi Chú");
         colNotes.setPrefWidth(150);
@@ -356,9 +390,10 @@ public class InventoryHelper {
         // Bind events
         cbMonth.setOnAction(e -> loadReceiptsData());
         cbYear.setOnAction(e -> loadReceiptsData());
+        cbPaymentFilter.setOnAction(e -> filterData());
         
         txtSearch.textProperty().addListener((obs, oldVal, newVal) -> {
-            filterData(newVal);
+            filterData();
         });
 
         // Initialize Data
@@ -383,8 +418,10 @@ public class InventoryHelper {
 
         if (title.contains("GIÁ TRỊ")) {
             lblTotalValue = lblValue;
+            lblTotalValueTitle = lblTitle;
         } else {
             lblReceiptCount = lblValue;
+            lblReceiptCountTitle = lblTitle;
         }
 
         card.getChildren().addAll(lblTitle, lblValue);
@@ -397,27 +434,42 @@ public class InventoryHelper {
         List<InventoryReceipt> receipts = dao.getReceiptsByMonth(monthStr);
 
         masterData.setAll(receipts);
-        filterData(txtSearch.getText());
+        filterData();
     }
 
-    private static void filterData(String query) {
-        if (query == null || query.trim().isEmpty()) {
-            filteredData.setAll(masterData);
-        } else {
-            String q = query.toLowerCase().trim();
-            List<InventoryReceipt> list = new ArrayList<>();
-            for (InventoryReceipt r : masterData) {
-                if (r.getProductName().toLowerCase().contains(q) ||
-                    ("nk-" + String.format("%04d", r.getId())).contains(q) ||
-                    r.getOperator().toLowerCase().contains(q) ||
-                    r.getPaymentStatus().toLowerCase().contains(q) ||
-                    (r.getNotes() != null && r.getNotes().toLowerCase().contains(q))) {
-                    list.add(r);
-                }
+    private static void filterData() {
+        String query = txtSearch != null && txtSearch.getText() != null ? txtSearch.getText().toLowerCase().trim() : "";
+        String statusFilter = cbPaymentFilter != null && cbPaymentFilter.getValue() != null 
+            ? cbPaymentFilter.getValue().trim() 
+            : "Tất cả trạng thái";
+
+        List<InventoryReceipt> list = new ArrayList<>();
+        for (InventoryReceipt r : masterData) {
+            // Lọc theo trạng thái thanh toán
+            boolean matchStatus = true;
+            if ("Đã thanh toán".equalsIgnoreCase(statusFilter)) {
+                matchStatus = "Đã thanh toán".equalsIgnoreCase(r.getPaymentStatus()) || "paid".equalsIgnoreCase(r.getProvider());
+            } else if ("Chưa thanh toán".equalsIgnoreCase(statusFilter)) {
+                matchStatus = "Chưa thanh toán".equalsIgnoreCase(r.getPaymentStatus()) || "unpaid".equalsIgnoreCase(r.getProvider()) || r.getProvider() == null || r.getProvider().trim().isEmpty();
             }
-            filteredData.setAll(list);
+
+            if (!matchStatus) continue;
+
+            // Lọc theo từ khóa tìm kiếm
+            boolean matchQuery = query.isEmpty() ||
+                (r.getProductName() != null && r.getProductName().toLowerCase().contains(query)) ||
+                ("nk-" + String.format("%04d", r.getId())).contains(query) ||
+                (r.getOperator() != null && r.getOperator().toLowerCase().contains(query)) ||
+                (r.getReceiptDate() != null && r.getReceiptDate().contains(query)) ||
+                (r.getPaymentStatus() != null && r.getPaymentStatus().toLowerCase().contains(query)) ||
+                (r.getNotes() != null && r.getNotes().toLowerCase().contains(query));
+
+            if (matchQuery) {
+                list.add(r);
+            }
         }
         
+        filteredData.setAll(list);
         tableView.setItems(filteredData);
         updateSummary();
     }
@@ -433,6 +485,20 @@ public class InventoryHelper {
         }
         if (lblReceiptCount != null) {
             lblReceiptCount.setText(count + " phiếu");
+        }
+
+        String filter = cbPaymentFilter != null && cbPaymentFilter.getValue() != null ? cbPaymentFilter.getValue().trim() : "Tất cả trạng thái";
+        if (lblTotalValueTitle != null && lblReceiptCountTitle != null) {
+            if ("Đã thanh toán".equalsIgnoreCase(filter)) {
+                lblTotalValueTitle.setText("TỔNG GIÁ TRỊ (ĐÃ THANH TOÁN)");
+                lblReceiptCountTitle.setText("SỐ PHIẾU (ĐÃ THANH TOÁN)");
+            } else if ("Chưa thanh toán".equalsIgnoreCase(filter)) {
+                lblTotalValueTitle.setText("TỔNG GIÁ TRỊ (CHƯA THANH TOÁN)");
+                lblReceiptCountTitle.setText("SỐ PHIẾU (CHƯA THANH TOÁN)");
+            } else {
+                lblTotalValueTitle.setText("TỔNG GIÁ TRỊ NHẬP KHO");
+                lblReceiptCountTitle.setText("SỐ PHIẾU NHẬP KHO");
+            }
         }
     }
 
@@ -545,10 +611,10 @@ public class InventoryHelper {
         dpDate.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
 
         // Row 6: Nhà cung cấp
-        Label lblOp = new Label("Nhà cung cấp *");
+        Label lblOp = new Label("Nhà cung cấp");
         lblOp.setStyle(labelStyle);
         TextField txtOp = new TextField(r.getOperator() != null ? r.getOperator() : "");
-        txtOp.setPromptText("Nhập tên nhà cung cấp...");
+        txtOp.setPromptText("Nhập tên nhà cung cấp (nếu có)...");
         txtOp.setStyle(fieldStyle);
         txtOp.setMaxWidth(Double.MAX_VALUE);
 
@@ -609,11 +675,6 @@ public class InventoryHelper {
                 AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng chọn ngày nhập!").showAndWait();
                 return;
             }
-            if (txtOp.getText().trim().isEmpty()) {
-                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập tên nhà cung cấp!").showAndWait();
-                return;
-            }
-
             double oldQty  = r.getQuantity();
             double diffQty = newQty - oldQty;
 
@@ -642,7 +703,8 @@ public class InventoryHelper {
                 String receiptCode = "NK-" + String.format("%04d", r.getId());
                 String newExpenseName = "Nhập kho: " + r.getProductName() + " (SL: " + new java.text.DecimalFormat("#.##").format(r.getQuantity()) + ")";
                 String newMonth = r.getReceiptDate().substring(0, 7); // format: YYYY-MM
-                String newNotes = "Mã phiếu nhập: NK-" + String.format("%04d", r.getId()) + ". Nhà cung cấp: " + r.getOperator();
+                String opText = (r.getOperator() != null && !r.getOperator().trim().isEmpty()) ? ". Nhà cung cấp: " + r.getOperator().trim() : "";
+                String newNotes = "Mã phiếu nhập: NK-" + String.format("%04d", r.getId()) + opText;
                 String newCreatedAt = (r.getReceiptDate() != null && r.getReceiptDate().length() >= 10)
                     ? r.getReceiptDate().substring(0, 10) + " 12:00:00"
                     : r.getReceiptDate();
