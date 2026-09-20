@@ -5636,6 +5636,7 @@ public class MainUI extends Application {
     // ==========================================
 
     private VBox appointmentTableRows;
+    private Runnable appointmentFilterAction;
 
     private void setupAppointmentNotificationTimeline() {
         javafx.animation.Timeline timeline = new javafx.animation.Timeline(
@@ -5951,8 +5952,11 @@ public class MainUI extends Application {
                 cbYear.getValue()
             );
         };
+        this.appointmentFilterAction = filterAction;
         
-        searchField.textProperty().addListener((obs, old, newVal) -> filterAction.run());
+        javafx.animation.PauseTransition debounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
+        debounce.setOnFinished(e -> filterAction.run());
+        searchField.textProperty().addListener((obs, old, newVal) -> debounce.playFromStart());
         cbStatusFilter.valueProperty().addListener((obs, old, newVal) -> filterAction.run());
         cbPeriod.valueProperty().addListener((obs, old, newVal) -> filterAction.run());
         cbMonth.valueProperty().addListener((obs, old, newVal) -> filterAction.run());
@@ -6199,16 +6203,18 @@ public class MainUI extends Application {
                     warnNote = "Bạn có chắc chắn muốn tiếp nhận xe " + appt.getLicensePlate() + " vào xưởng để thực hiện dịch vụ không?";
                 }
 
-                Stage confirmStage = new Stage();
-                if (mainStage != null) {
-                    confirmStage.initOwner(mainStage);
-                }
-                
-                confirmStage.setTitle("Xác Nhận Tiếp Nhận Xe");
+                StackPane confirmOverlay = new StackPane();
+                confirmOverlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.45);");
+                Runnable closeConfirm = () -> contentArea.getChildren().remove(confirmOverlay);
 
                 VBox dRoot = new VBox(18);
                 dRoot.setPadding(new Insets(24));
-                dRoot.setStyle("-fx-background-color: #FFFFFF;");
+                dRoot.setMaxWidth(480);
+                dRoot.setStyle(
+                    "-fx-background-color: #FFFFFF;" +
+                    "-fx-background-radius: 12;" +
+                    "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+                );
 
                 // Title
                 Label lblTitle = new Label("Tiếp Nhận Xe Vào Xưởng");
@@ -6282,7 +6288,7 @@ public class MainUI extends Application {
                 );
                 btnCancel.setOnMouseEntered(ev -> btnCancel.setOpacity(0.85));
                 btnCancel.setOnMouseExited(ev -> btnCancel.setOpacity(1.0));
-                btnCancel.setOnAction(ev -> confirmStage.close());
+                btnCancel.setOnAction(ev -> closeConfirm.run());
 
                 Button btnConfirm = new Button(isEarly ? "Xác Nhận Nhận Sớm" : "Nhận Xe Ngay");
                 btnConfirm.setStyle(
@@ -6299,22 +6305,19 @@ public class MainUI extends Application {
                 btnConfirm.setOnAction(ev -> {
                     appt.setStatus("Đang thực hiện");
                     new service.AppointmentService().updateAppointment(appt);
-                    confirmStage.close();
-                    showAppointmentManagement();
+                    closeConfirm.run();
+                    if (appointmentFilterAction != null) {
+                        appointmentFilterAction.run();
+                    } else {
+                        showAppointmentManagement();
+                    }
                 });
 
                 btnBox.getChildren().addAll(btnCancel, btnConfirm);
 
                 dRoot.getChildren().addAll(lblTitle, detailsGrid, noteBox, btnBox);
-
-                Scene scene = new Scene(dRoot, 480, -1);
-                try {
-                    scene.getStylesheets().add(getClass().getResource("/global-styles.css").toExternalForm());
-                } catch (Exception ex) {}
-
-                confirmStage.setScene(scene);
-                confirmStage.setResizable(false);
-                confirmStage.show();
+                confirmOverlay.getChildren().add(dRoot);
+                contentArea.getChildren().add(confirmOverlay);
             });
             actions.getChildren().add(btnStart);
         } else if (appt.getStatus().equals("Đang thực hiện")) {
@@ -6330,7 +6333,11 @@ public class MainUI extends Application {
             );
             btnInvoice.setOnAction(e -> {
                 CreateInvoiceForm form = new CreateInvoiceForm(() -> {
-                    showAppointmentManagement();
+                    if (appointmentFilterAction != null) {
+                        appointmentFilterAction.run();
+                    } else {
+                        showAppointmentManagement();
+                    }
                 }, appt);
                 form.showInOverlay(contentArea);
             });
@@ -6372,8 +6379,11 @@ public class MainUI extends Application {
             alert.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.YES) {
                     if (new service.AppointmentService().deleteAppointment(appt.getId())) {
-                        showSuccessAlert("Thành công", "Xóa lịch hẹn thành công!");
-                        showAppointmentManagement();
+                        if (appointmentFilterAction != null) {
+                            appointmentFilterAction.run();
+                        } else {
+                            showAppointmentManagement();
+                        }
                     } else {
                         showErrorAlert("Lỗi", "Không thể xóa lịch hẹn!");
                     }
@@ -6389,13 +6399,10 @@ public class MainUI extends Application {
     }
 
     private void showCreateAppointmentDialog(model.Appointment existing) {
-        Stage dialogStage = new Stage();
-        if (mainStage != null) {
-            dialogStage.initOwner(mainStage);
-        }
-        
-        dialogStage.setTitle(existing != null ? "Sửa Lịch Hẹn" : "Tạo Lịch Hẹn Mới");
-        
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.45);");
+        Runnable closeDialog = () -> contentArea.getChildren().remove(overlay);
+
         VBox root = new VBox(20);
         root.setPadding(new Insets(25));
         root.setStyle("-fx-background-color: white;");
@@ -6605,7 +6612,7 @@ public class MainUI extends Application {
         
         Button btnCancel = new Button("Hủy");
         btnCancel.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #424242; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 6; -fx-cursor: hand;");
-        btnCancel.setOnAction(e -> dialogStage.close());
+        btnCancel.setOnAction(e -> closeDialog.run());
         
         Button btnSave = new Button("Lưu Lịch Hẹn");
         btnSave.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 25px; -fx-background-radius: 6; -fx-cursor: hand;");
@@ -6654,9 +6661,10 @@ public class MainUI extends Application {
             }
             
             if (ok) {
-                showSuccessAlert("Thành công", "Lưu lịch hẹn thành công!");
-                dialogStage.close();
-                if ("appointment".equals(currentView)) {
+                closeDialog.run();
+                if (appointmentFilterAction != null && "appointment".equals(currentView)) {
+                    appointmentFilterAction.run();
+                } else if ("appointment".equals(currentView)) {
                     showAppointmentManagement();
                 } else {
                     showDashboard();
@@ -6683,28 +6691,32 @@ public class MainUI extends Application {
         BorderPane dialogRoot = new BorderPane();
         dialogRoot.setCenter(sp);
         dialogRoot.setBottom(btnBox);
-        
-        Scene scene = new Scene(dialogRoot, 600, 660);
-        try {
-            String css = getClass().getResource("/global-styles.css").toExternalForm();
-            scene.getStylesheets().add(css);
-        } catch (Exception e) {}
-        dialogStage.setScene(scene);
-        dialogStage.show();
+        dialogRoot.setMaxWidth(620);
+        dialogRoot.setMaxHeight(680);
+        dialogRoot.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+        );
+
+        overlay.getChildren().add(dialogRoot);
+        contentArea.getChildren().add(overlay);
     }
 
     private void showConflictWarningDialog(String warningMsg, List<String> alternates, java.util.function.Consumer<String> onTimeSelected) {
-        Stage dialogStage = new Stage();
-        if (mainStage != null) {
-            dialogStage.initOwner(mainStage);
-        }
-        
-        dialogStage.setTitle("Cảnh Báo Trùng / Quá Tải Lịch Hẹn");
+        StackPane warnOverlay = new StackPane();
+        warnOverlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.5);");
+        Runnable closeWarn = () -> contentArea.getChildren().remove(warnOverlay);
 
         VBox content = new VBox(18);
         content.setPadding(new Insets(24));
         content.setAlignment(Pos.TOP_LEFT);
-        content.setStyle("-fx-background-color: #FFFFFF;");
+        content.setMaxWidth(460);
+        content.setStyle(
+            "-fx-background-color: #FFFFFF;" +
+            "-fx-background-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+        );
 
         // Title Header
         Label titleLabel = new Label("⚠️ Cảnh Báo Quá Tải / Trùng Lịch Hẹn");
@@ -6762,7 +6774,7 @@ public class MainUI extends Application {
             btnAlt.setOnAction(e -> {
                 String cleanTime = altTime.split(" ")[0];
                 onTimeSelected.accept(cleanTime);
-                dialogStage.close();
+                closeWarn.run();
             });
             alternatesBox.getChildren().add(btnAlt);
         }
@@ -6784,20 +6796,13 @@ public class MainUI extends Application {
         );
         btnClose.setOnMouseEntered(e -> btnClose.setOpacity(0.85));
         btnClose.setOnMouseExited(e -> btnClose.setOpacity(1.0));
-        btnClose.setOnAction(e -> dialogStage.close());
+        btnClose.setOnAction(e -> closeWarn.run());
 
         btnBox.getChildren().add(btnClose);
 
         content.getChildren().addAll(titleLabel, warnCard, suggestLabel, alternatesBox, btnBox);
-
-        Scene scene = new Scene(content, 460, -1);
-        try {
-            scene.getStylesheets().add(getClass().getResource("/global-styles.css").toExternalForm());
-        } catch (Exception e) {}
-
-        dialogStage.setScene(scene);
-        dialogStage.setResizable(false);
-        dialogStage.show();
+        warnOverlay.getChildren().add(content);
+        contentArea.getChildren().add(warnOverlay);
     }
 
     private void showHRManagement() {

@@ -117,17 +117,20 @@ public class ExpenseHelper {
         root.getChildren().addAll(topBar, tableContainer);
         contentArea.getChildren().add(root);
 
-        Runnable refreshList = () -> refreshExpenseList(tableRows, searchField, cbMonth, cbYear, lblTotal);
+        Runnable refreshList = () -> refreshExpenseList(contentArea, tableRows, searchField, cbMonth, cbYear, lblTotal);
 
-        // Wire event handlers
-        searchField.textProperty().addListener((obs, oldVal, newVal) -> refreshList.run());
+        // Wire event handlers with debounce for search
+        javafx.animation.PauseTransition debounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
+        debounce.setOnFinished(e -> refreshList.run());
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> debounce.playFromStart());
+
         cbMonth.setOnAction(e -> refreshList.run());
         cbYear.setOnAction(e -> refreshList.run());
         btnAdd.setOnAction(e -> {
             int year = Integer.parseInt(cbYear.getValue());
             int month = Integer.parseInt(cbMonth.getValue());
             ExpenseForm form = new ExpenseForm(year, month, refreshList);
-            form.show();
+            form.showInOverlay(contentArea);
         });
         btnPdf.setOnAction(e -> {
             String monthStr = cbYear.getValue() + "-" + cbMonth.getValue();
@@ -138,14 +141,14 @@ public class ExpenseHelper {
         refreshList.run();
     }
 
-    private static void refreshExpenseList(VBox tableRows, TextField searchField, ComboBox<String> cbMonth, ComboBox<String> cbYear, Label lblTotal) {
+    private static void refreshExpenseList(StackPane contentArea, VBox tableRows, TextField searchField, ComboBox<String> cbMonth, ComboBox<String> cbYear, Label lblTotal) {
         tableRows.getChildren().clear();
         FixedExpenseService service = new FixedExpenseService();
         String monthStr = cbYear.getValue() + "-" + cbMonth.getValue();
         List<FixedExpense> list = service.getAllExpensesByMonth(monthStr);
         String query = searchField.getText().toLowerCase().trim();
 
-        Runnable refreshSelf = () -> refreshExpenseList(tableRows, searchField, cbMonth, cbYear, lblTotal);
+        Runnable refreshSelf = () -> refreshExpenseList(contentArea, tableRows, searchField, cbMonth, cbYear, lblTotal);
 
         double totalAmount = 0;
         int stt = 1;
@@ -179,7 +182,7 @@ public class ExpenseHelper {
                 btnEdit.setStyle("-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2; -fx-font-size: 13px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
                 btnEdit.setOnAction(e -> {
                     ExpenseForm form = new ExpenseForm(exp, refreshSelf);
-                    form.show();
+                    form.showInOverlay(contentArea);
                 });
 
                 Button btnDelete = new Button("🗑");

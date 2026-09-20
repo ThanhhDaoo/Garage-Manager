@@ -39,7 +39,7 @@ public class HRHelper {
         // Tab Switching logic
         btnTabEmployee.setOnAction(e -> {
             setTabActive(btnTabEmployee, btnTabAttendance, btnTabPayroll);
-            tabContentArea.getChildren().setAll(createEmployeeTab(mainUI));
+            tabContentArea.getChildren().setAll(createEmployeeTab(mainUI, contentArea));
         });
         btnTabAttendance.setOnAction(e -> {
             setTabActive(btnTabAttendance, btnTabEmployee, btnTabPayroll);
@@ -52,7 +52,7 @@ public class HRHelper {
 
         // Initialize with Employee Tab
         setTabActive(btnTabEmployee, btnTabAttendance, btnTabPayroll);
-        tabContentArea.getChildren().setAll(createEmployeeTab(mainUI));
+        tabContentArea.getChildren().setAll(createEmployeeTab(mainUI, contentArea));
 
         view.getChildren().addAll(title, navBar, tabContentArea);
 
@@ -98,7 +98,7 @@ public class HRHelper {
         return lbl;
     }
 
-    private static VBox createEmployeeTab(MainUI mainUI) {
+    private static VBox createEmployeeTab(MainUI mainUI, StackPane contentArea) {
         VBox root = new VBox(20);
         root.setStyle("-fx-background-color: transparent;");
 
@@ -189,23 +189,26 @@ public class HRHelper {
             String query = searchField.getText().toLowerCase().trim();
             for (Employee emp : list) {
                 if (query.isEmpty() || emp.getName().toLowerCase().contains(query) || emp.getEmployeeCode().toLowerCase().contains(query)) {
-                    tableRows.getChildren().add(createEmployeeRow(mainUI, emp, refreshRef[0]));
+                    tableRows.getChildren().add(createEmployeeRow(mainUI, contentArea, emp, refreshRef[0]));
                 }
             }
         };
         Runnable refreshList = refreshRef[0];
 
-        searchField.textProperty().addListener((obs, old, val) -> refreshList.run());
+        javafx.animation.PauseTransition debounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
+        debounce.setOnFinished(e -> refreshList.run());
+        searchField.textProperty().addListener((obs, old, val) -> debounce.playFromStart());
+
         btnAdd.setOnAction(e -> {
             EmployeeForm form = new EmployeeForm(refreshList);
-            form.show();
+            form.showInOverlay(contentArea);
         });
 
         refreshList.run();
         return root;
     }
 
-    private static HBox createEmployeeRow(MainUI mainUI, Employee emp, Runnable onRefresh) {
+    private static HBox createEmployeeRow(MainUI mainUI, StackPane contentArea, Employee emp, Runnable onRefresh) {
         HBox row = new HBox(0);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(12, 0, 12, 0));
@@ -229,7 +232,7 @@ public class HRHelper {
         btnEdit.setStyle("-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2; -fx-font-size: 13px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
         btnEdit.setOnAction(e -> {
             EmployeeForm form = new EmployeeForm(emp, onRefresh);
-            form.show();
+            form.showInOverlay(contentArea);
         });
 
         Button btnDelete = new Button("🗑");

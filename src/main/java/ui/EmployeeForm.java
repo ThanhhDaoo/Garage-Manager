@@ -39,14 +39,17 @@ public class EmployeeForm {
         this.onSave = onSave;
     }
 
-    public void show() {
-        stage = new Stage();
-        if (MainUI.getMainStage() != null) {
-            stage.initOwner(MainUI.getMainStage());
-        }
-        
-        stage.setTitle(isEdit ? "Sửa Nhân Viên" : "Thêm Nhân Viên Mới");
+    private Runnable closeHandler;
 
+    public void close() {
+        if (closeHandler != null) {
+            closeHandler.run();
+        } else if (stage != null) {
+            stage.close();
+        }
+    }
+
+    public BorderPane createFormLayout() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #f8f9fa;");
 
@@ -77,6 +80,37 @@ public class EmployeeForm {
 
         root.setCenter(scrollPane);
         root.setBottom(actionButtons);
+        return root;
+    }
+
+    public void showInOverlay(StackPane container) {
+        BorderPane root = createFormLayout();
+
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.45);");
+
+        root.setMaxWidth(700);
+        root.setMaxHeight(700);
+        root.setStyle(
+            "-fx-background-color: #f8f9fa;" +
+            "-fx-background-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+        );
+
+        overlay.getChildren().add(root);
+        this.closeHandler = () -> container.getChildren().remove(overlay);
+        container.getChildren().add(overlay);
+    }
+
+    public void show() {
+        stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
+        
+        stage.setTitle(isEdit ? "Sửa Nhân Viên" : "Thêm Nhân Viên Mới");
+
+        BorderPane root = createFormLayout();
 
         Scene scene = new Scene(root, 700, 700);
         try {
@@ -223,7 +257,7 @@ public class EmployeeForm {
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
-        btnCancel.setOnAction(e -> stage.close());
+        btnCancel.setOnAction(e -> close());
 
         Button btnSave = new Button(isEdit ? "Cập Nhật" : "Thêm Mới");
         btnSave.setStyle(
@@ -269,7 +303,7 @@ public class EmployeeForm {
             }
 
             if (success) {
-                stage.close();
+                close();
                 if (onSave != null) javafx.application.Platform.runLater(onSave);
             } else {
                 Alert alert = util.AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Mã nhân viên đã tồn tại hoặc có lỗi xảy ra!");

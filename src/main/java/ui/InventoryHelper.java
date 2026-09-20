@@ -108,8 +108,7 @@ public class InventoryHelper {
         btnNewReceipt.setOnMouseEntered(e -> btnNewReceipt.setOpacity(0.9));
         btnNewReceipt.setOnMouseExited(e -> btnNewReceipt.setOpacity(1.0));
         btnNewReceipt.setOnAction(e -> {
-            Window owner = contentArea.getScene().getWindow();
-            new InventoryReceiptForm(() -> loadReceiptsData()).show();
+            new InventoryReceiptForm(() -> loadReceiptsData()).showInOverlay(contentArea);
         });
 
         Region spacer = new Region();
@@ -338,7 +337,7 @@ public class InventoryHelper {
                 // --- EDIT ---
                 btnEdit.setOnAction(e -> {
                     InventoryReceipt r = getTableView().getItems().get(getIndex());
-                    showEditDialog(r);
+                    showEditOverlay(contentArea, r);
                 });
 
                 // --- DELETE ---
@@ -364,7 +363,7 @@ public class InventoryHelper {
                                 loadReceiptsData();
                             } else {
                                 AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi",
-                                    "Không thể xoá phiếu nhập!").showAndWait();
+                                    "Không thể xoá phiếu nhập!").show();
                             }
                         }
                     });
@@ -387,14 +386,14 @@ public class InventoryHelper {
         root.getChildren().addAll(headerTitle, filterBar, summaryCards, tableView);
         contentArea.getChildren().add(root);
 
-        // Bind events
+        // Bind events with debounce for search
         cbMonth.setOnAction(e -> loadReceiptsData());
         cbYear.setOnAction(e -> loadReceiptsData());
         cbPaymentFilter.setOnAction(e -> filterData());
         
-        txtSearch.textProperty().addListener((obs, oldVal, newVal) -> {
-            filterData();
-        });
+        javafx.animation.PauseTransition debounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
+        debounce.setOnFinished(e -> filterData());
+        txtSearch.textProperty().addListener((obs, oldVal, newVal) -> debounce.playFromStart());
 
         // Initialize Data
         loadReceiptsData();
@@ -502,14 +501,7 @@ public class InventoryHelper {
         }
     }
 
-    private static void showEditDialog(InventoryReceipt r) {
-        javafx.stage.Stage dialog = new javafx.stage.Stage();
-        if (MainUI.getMainStage() != null) {
-            dialog.initOwner(MainUI.getMainStage());
-        }
-        dialog.initModality(javafx.stage.Modality.APPLICATION_MODAL);
-        dialog.setTitle("Sửa Phiếu Nhập – NK-" + String.format("%04d", r.getId()));
-
+    private static void showEditOverlay(StackPane container, InventoryReceipt r) {
         BorderPane root = new BorderPane();
 
         // ===== Outer scroll =====
@@ -638,6 +630,10 @@ public class InventoryHelper {
 
         section.getChildren().addAll(sectionTitle, grid);
 
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.45);");
+        Runnable closeEdit = () -> container.getChildren().remove(overlay);
+
         // ===== Action buttons =====
         Button btnCancel = new Button("Hủy");
         btnCancel.setStyle(
@@ -649,7 +645,7 @@ public class InventoryHelper {
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
-        btnCancel.setOnAction(e -> dialog.close());
+        btnCancel.setOnAction(e -> closeEdit.run());
 
         Button btnSave = new Button("Lưu Thay Đổi");
         btnSave.setStyle(
@@ -668,11 +664,11 @@ public class InventoryHelper {
                 newQty = Double.parseDouble(txtQty.getText().trim().replace(",", ""));
                 if (newQty <= 0) throw new NumberFormatException();
             } catch (NumberFormatException ex) {
-                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Số lượng không hợp lệ!").showAndWait();
+                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Số lượng không hợp lệ!").show();
                 return;
             }
             if (dpDate.getValue() == null) {
-                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng chọn ngày nhập!").showAndWait();
+                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng chọn ngày nhập!").show();
                 return;
             }
             double oldQty  = r.getQuantity();
@@ -710,13 +706,11 @@ public class InventoryHelper {
                     : r.getReceiptDate();
                 new dao.FixedExpenseDAO().updateExpenseByReceiptCode(receiptCode, newExpenseName, r.getTotalPrice(), newMonth, newNotes, newCreatedAt);
 
-                AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công",
-                    "Đã cập nhật phiếu nhập kho!").showAndWait();
-                dialog.close();
+                closeEdit.run();
                 loadReceiptsData();
             } else {
                 AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi",
-                    "Không thể cập nhật phiếu nhập!").showAndWait();
+                    "Không thể cập nhật phiếu nhập!").show();
             }
         });
 
@@ -736,14 +730,16 @@ public class InventoryHelper {
         root.setCenter(scrollPane);
         root.setBottom(btnBar);
 
-        javafx.scene.Scene scene = new javafx.scene.Scene(root, 700, 700);
-        try {
-            String css = MainUI.class.getResource("/global-styles.css").toExternalForm();
-            scene.getStylesheets().add(css);
-        } catch (Exception ignored) {}
+        root.setMaxWidth(700);
+        root.setMaxHeight(700);
+        root.setStyle(
+            "-fx-background-color: #f8f9fa;" +
+            "-fx-background-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+        );
 
-        dialog.setScene(scene);
-        dialog.showAndWait();
+        overlay.getChildren().add(root);
+        container.getChildren().add(overlay);
     }
 }
 

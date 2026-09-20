@@ -34,14 +34,17 @@ public class InventoryReceiptForm {
         this.onSave = onSave;
     }
 
-    public void show() {
-        stage = new Stage();
-        if (MainUI.getMainStage() != null) {
-            stage.initOwner(MainUI.getMainStage());
-        }
-        
-        stage.setTitle("Tạo Phiếu Nhập Kho");
+    private Runnable closeHandler;
 
+    public void close() {
+        if (closeHandler != null) {
+            closeHandler.run();
+        } else if (stage != null) {
+            stage.close();
+        }
+    }
+
+    public BorderPane createFormLayout() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #f8f9fa;");
 
@@ -72,6 +75,37 @@ public class InventoryReceiptForm {
 
         root.setCenter(scrollPane);
         root.setBottom(actionButtons);
+        return root;
+    }
+
+    public void showInOverlay(StackPane container) {
+        BorderPane root = createFormLayout();
+
+        StackPane overlay = new StackPane();
+        overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.45);");
+
+        root.setMaxWidth(700);
+        root.setMaxHeight(700);
+        root.setStyle(
+            "-fx-background-color: #f8f9fa;" +
+            "-fx-background-radius: 12;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.35), 20, 0, 0, 0);"
+        );
+
+        overlay.getChildren().add(root);
+        this.closeHandler = () -> container.getChildren().remove(overlay);
+        container.getChildren().add(overlay);
+    }
+
+    public void show() {
+        stage = new Stage();
+        if (MainUI.getMainStage() != null) {
+            stage.initOwner(MainUI.getMainStage());
+        }
+        
+        stage.setTitle("Tạo Phiếu Nhập Kho");
+
+        BorderPane root = createFormLayout();
 
         Scene scene = new Scene(root, 700, 700);
         try {
@@ -314,7 +348,7 @@ public class InventoryReceiptForm {
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
-        btnCancel.setOnAction(e -> stage.close());
+        btnCancel.setOnAction(e -> close());
 
         Button btnSave = new Button("Xác nhận nhập kho");
         btnSave.setStyle(
@@ -335,7 +369,7 @@ public class InventoryReceiptForm {
     private void saveReceipt() {
         Product p = cbProducts.getValue();
         if (p == null) {
-            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng chọn sản phẩm cần nhập!").showAndWait();
+            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng chọn sản phẩm cần nhập!").show();
             return;
         }
 
@@ -343,17 +377,17 @@ public class InventoryReceiptForm {
         try {
             qty = Double.parseDouble(txtQty.getText().trim());
             if (qty <= 0) {
-                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Số lượng nhập phải lớn hơn 0!").showAndWait();
+                AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Số lượng nhập phải lớn hơn 0!").show();
                 return;
             }
         } catch (NumberFormatException e) {
-            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Số lượng nhập không đúng định dạng!").showAndWait();
+            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Số lượng nhập không đúng định dạng!").show();
             return;
         }
 
         LocalDate date = dpDate.getValue();
         if (date == null) {
-            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng chọn ngày nhập!").showAndWait();
+            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng chọn ngày nhập!").show();
             return;
         }
 
@@ -375,13 +409,12 @@ public class InventoryReceiptForm {
             double newStock = p.getStock() + qty;
             new ProductDAO().updateProductStock(p.getId(), newStock);
 
-            AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã lưu phiếu nhập kho và tự động cập nhật tồn kho!").showAndWait();
+            close();
             if (onSave != null) {
-                onSave.run();
+                javafx.application.Platform.runLater(onSave);
             }
-            stage.close();
         } else {
-            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể lưu phiếu nhập kho vào cơ sở dữ liệu!").showAndWait();
+            AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể lưu phiếu nhập kho vào cơ sở dữ liệu!").show();
         }
     }
 }
