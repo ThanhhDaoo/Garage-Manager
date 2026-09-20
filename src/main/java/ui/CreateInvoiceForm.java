@@ -86,6 +86,8 @@ public class CreateInvoiceForm {
         this.onInvoiceCreated = onInvoiceCreated;
     }
 
+    private java.util.function.Consumer<model.Invoice> onInvoiceUpdated;
+
     public CreateInvoiceForm(Runnable onInvoiceCreated, model.Invoice existingInvoice) {
         this.onInvoiceCreated = onInvoiceCreated;
         this.existingInvoice = existingInvoice;
@@ -98,6 +100,11 @@ public class CreateInvoiceForm {
             this.prefilledNotes = existingInvoice.getNotes();
             this.prefilledCreatedAt = existingInvoice.getCreatedAt();
         }
+    }
+
+    public CreateInvoiceForm(model.Invoice existingInvoice, java.util.function.Consumer<model.Invoice> onInvoiceUpdated) {
+        this(null, existingInvoice);
+        this.onInvoiceUpdated = onInvoiceUpdated;
     }
 
     public CreateInvoiceForm(Runnable onInvoiceCreated, model.Appointment appointment) {
@@ -2772,6 +2779,9 @@ public class CreateInvoiceForm {
                 alert.showAndWait();
 
                 // Call callback to refresh invoice list
+                if (onInvoiceUpdated != null) {
+                    onInvoiceUpdated.accept(existingInvoice);
+                }
                 if (onInvoiceCreated != null) {
                     onInvoiceCreated.run();
                 }

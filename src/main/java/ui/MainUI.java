@@ -47,6 +47,12 @@ public class MainUI extends Application {
     private StackPane contentArea;
     private VBox sidebar;
     private VBox invoiceTableRows;
+    private TextField invoiceSearchField;
+    private ComboBox<String> invoiceStatusFilterBox;
+    private ComboBox<String> invoicePeriodBox;
+    private ComboBox<String> invoiceMonthBox;
+    private ComboBox<String> invoiceYearBox;
+    private volatile boolean isRefreshingInvoice = false;
     private String currentView = "dashboard";
     private String selectedServiceCategoryFilter = "Tất cả";
     private String selectedPackageCategoryFilter = "Tất cả";
@@ -669,7 +675,12 @@ public class MainUI extends Application {
         btnNew.setOnMouseEntered(e -> btnNew.setOpacity(0.9));
         btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
         btnNew.setOnAction(e -> {
-            CreateInvoiceForm form = new CreateInvoiceForm(() -> refreshInvoiceTable(invoiceTableRows));
+            CreateInvoiceForm form = new CreateInvoiceForm(() -> {
+                if (invoiceSearchField != null) {
+                    invoiceSearchField.setText("");
+                }
+                refreshInvoiceTable(invoiceTableRows);
+            });
             form.show();
         });
         
@@ -687,67 +698,67 @@ public class MainUI extends Application {
             "-fx-border-radius: 12;"
         );
         
-        TextField searchField = new TextField();
-        searchField.setPromptText("🔍 Tìm theo tên, SĐT, biển số...");
-        searchField.setPrefWidth(220);
-        searchField.setMinWidth(200);
-        searchField.setMaxWidth(250);
-        searchField.setStyle(
+        invoiceSearchField = new TextField();
+        invoiceSearchField.setPromptText("🔍 Tìm theo tên, SĐT, biển số...");
+        invoiceSearchField.setPrefWidth(220);
+        invoiceSearchField.setMinWidth(200);
+        invoiceSearchField.setMaxWidth(250);
+        invoiceSearchField.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-padding: 10px 15px;" +
             "-fx-background-radius: 8;" +
             "-fx-border-color: transparent;" +
             "-fx-font-size: 14px;"
         );
-        UIUtils.setupIMEFix(searchField);
+        UIUtils.setupIMEFix(invoiceSearchField);
         
-        ComboBox<String> cbStatusFilter = new ComboBox<>();
-        cbStatusFilter.getItems().addAll("Tất cả trạng thái", "Đã thanh toán", "Chưa thanh toán");
-        cbStatusFilter.setValue("Tất cả trạng thái");
-        cbStatusFilter.setPrefWidth(150);
-        cbStatusFilter.setMinWidth(150);
-        cbStatusFilter.setMaxWidth(150);
-        cbStatusFilter.setStyle(
+        invoiceStatusFilterBox = new ComboBox<>();
+        invoiceStatusFilterBox.getItems().addAll("Tất cả trạng thái", "Đã thanh toán", "Chưa thanh toán");
+        invoiceStatusFilterBox.setValue("Tất cả trạng thái");
+        invoiceStatusFilterBox.setPrefWidth(150);
+        invoiceStatusFilterBox.setMinWidth(150);
+        invoiceStatusFilterBox.setMaxWidth(150);
+        invoiceStatusFilterBox.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-background-radius: 8;" +
             "-fx-font-size: 13px;"
         );
         
-        ComboBox<String> cbPeriod = new ComboBox<>();
-        cbPeriod.getItems().addAll("Tất cả mốc thời gian", "Tuần này", "Tháng này", "Quý này", "Năm nay");
-        cbPeriod.setValue("Tất cả mốc thời gian");
-        cbPeriod.setPrefWidth(180);
-        cbPeriod.setMinWidth(180);
-        cbPeriod.setMaxWidth(180);
-        cbPeriod.setStyle(
+        invoicePeriodBox = new ComboBox<>();
+        invoicePeriodBox.getItems().addAll("Tất cả mốc thời gian", "Tuần này", "Tháng này", "Quý này", "Năm nay");
+        invoicePeriodBox.setValue("Tất cả mốc thời gian");
+        invoicePeriodBox.setPrefWidth(180);
+        invoicePeriodBox.setMinWidth(180);
+        invoicePeriodBox.setMaxWidth(180);
+        invoicePeriodBox.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-background-radius: 8;" +
             "-fx-font-size: 13px;"
         );
         
-        ComboBox<String> cbMonth = new ComboBox<>();
-        cbMonth.getItems().add("Tất cả các tháng");
+        invoiceMonthBox = new ComboBox<>();
+        invoiceMonthBox.getItems().add("Tất cả các tháng");
         for (int m = 1; m <= 12; m++) {
-            cbMonth.getItems().add("Tháng " + m);
+            invoiceMonthBox.getItems().add("Tháng " + m);
         }
-        cbMonth.setValue("Tất cả các tháng");
-        cbMonth.setPrefWidth(150);
-        cbMonth.setMinWidth(150);
-        cbMonth.setMaxWidth(150);
-        cbMonth.setStyle(
+        invoiceMonthBox.setValue("Tất cả các tháng");
+        invoiceMonthBox.setPrefWidth(150);
+        invoiceMonthBox.setMinWidth(150);
+        invoiceMonthBox.setMaxWidth(150);
+        invoiceMonthBox.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-background-radius: 8;" +
             "-fx-font-size: 13px;"
         );
         
-        ComboBox<String> cbYear = new ComboBox<>();
-        cbYear.getItems().add("Tất cả các năm");
-        cbYear.getItems().addAll(getAvailableYears());
-        cbYear.setValue("Tất cả các năm");
-        cbYear.setPrefWidth(140);
-        cbYear.setMinWidth(140);
-        cbYear.setMaxWidth(140);
-        cbYear.setStyle(
+        invoiceYearBox = new ComboBox<>();
+        invoiceYearBox.getItems().add("Tất cả các năm");
+        invoiceYearBox.getItems().addAll(getAvailableYears());
+        invoiceYearBox.setValue("Tất cả các năm");
+        invoiceYearBox.setPrefWidth(140);
+        invoiceYearBox.setMinWidth(140);
+        invoiceYearBox.setMaxWidth(140);
+        invoiceYearBox.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-background-radius: 8;" +
             "-fx-font-size: 13px;"
@@ -756,21 +767,21 @@ public class MainUI extends Application {
         Runnable triggerFilter = () -> {
             refreshInvoiceTableWithFilter(
                 invoiceTableRows,
-                searchField.getText(),
-                cbStatusFilter.getValue(),
-                cbPeriod.getValue(),
-                cbMonth.getValue(),
-                cbYear.getValue()
+                invoiceSearchField.getText(),
+                invoiceStatusFilterBox.getValue(),
+                invoicePeriodBox.getValue(),
+                invoiceMonthBox.getValue(),
+                invoiceYearBox.getValue()
             );
         };
         
-        searchField.textProperty().addListener((obs, oldVal, newVal) -> triggerFilter.run());
-        cbStatusFilter.valueProperty().addListener((obs, oldVal, newVal) -> triggerFilter.run());
-        cbPeriod.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
-        cbMonth.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
-        cbYear.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
+        invoiceSearchField.textProperty().addListener((obs, oldVal, newVal) -> triggerFilter.run());
+        invoiceStatusFilterBox.valueProperty().addListener((obs, oldVal, newVal) -> triggerFilter.run());
+        invoicePeriodBox.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
+        invoiceMonthBox.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
+        invoiceYearBox.valueProperty().addListener((obs, old, newVal) -> triggerFilter.run());
         
-        filterBar.getChildren().addAll(searchField, cbStatusFilter, cbPeriod, cbMonth, cbYear);
+        filterBar.getChildren().addAll(invoiceSearchField, invoiceStatusFilterBox, invoicePeriodBox, invoiceMonthBox, invoiceYearBox);
 
         // Table
         VBox tableContainer = new VBox(0);
@@ -875,100 +886,113 @@ public class MainUI extends Application {
     }
     
     private void refreshInvoiceTable(VBox tableRows) {
-        refreshInvoiceTableWithFilter(tableRows, "", "", "Tất cả", "Tất cả các tháng", "Tất cả các năm");
+        String searchText = (invoiceSearchField != null) ? invoiceSearchField.getText() : "";
+        String status = (invoiceStatusFilterBox != null && invoiceStatusFilterBox.getValue() != null) ? invoiceStatusFilterBox.getValue() : "";
+        String period = (invoicePeriodBox != null && invoicePeriodBox.getValue() != null) ? invoicePeriodBox.getValue() : "Tất cả";
+        String month = (invoiceMonthBox != null && invoiceMonthBox.getValue() != null) ? invoiceMonthBox.getValue() : "Tất cả các tháng";
+        String year = (invoiceYearBox != null && invoiceYearBox.getValue() != null) ? invoiceYearBox.getValue() : "Tất cả các năm";
+        refreshInvoiceTableWithFilter(tableRows, searchText, status, period, month, year);
     }
     
     private void refreshInvoiceTableWithFilter(VBox tableRows, String searchText, String status, String period, String month, String year) {
-        tableRows.getChildren().clear();
-        InvoiceService invoiceService = new InvoiceService();
-        List<Invoice> invoices = invoiceService.getAllInvoices();
-        
-        // Filter by status
-        if (status != null && !status.trim().isEmpty() && !status.contains("Tất cả")) {
-            invoices = invoices.stream()
-                .filter(i -> {
-                    String invStatus = i.getStatus();
-                    if ("Đã thanh toán".equalsIgnoreCase(status)) {
-                        return "paid".equalsIgnoreCase(invStatus) || "Đã thanh toán".equalsIgnoreCase(invStatus);
-                    } else if ("Chưa thanh toán".equalsIgnoreCase(status)) {
-                        return invStatus == null || "nhap".equalsIgnoreCase(invStatus) || "unpaid".equalsIgnoreCase(invStatus) || "Chưa thanh toán".equalsIgnoreCase(invStatus) || (!"paid".equalsIgnoreCase(invStatus) && !"Đã thanh toán".equalsIgnoreCase(invStatus));
-                    }
-                    return status.equalsIgnoreCase(invStatus);
-                })
-                .collect(java.util.stream.Collectors.toList());
+        if (isRefreshingInvoice) {
+            return;
         }
-        
-        // Filter by time filters
-        invoices = invoices.stream()
-            .filter(i -> matchesTimeFilters(i.getCreatedAt(), period, month, year))
-            .collect(java.util.stream.Collectors.toList());
-        
-        // Filter by search text (Tên khách hàng, SĐT, Biển số xe, Mã hóa đơn, Ghi chú)
-        if (searchText != null && !searchText.trim().isEmpty()) {
-            String rawSearch = searchText.toLowerCase().trim();
-            String cleanSearch = rawSearch.replaceAll("[^a-z0-9]", "");
+        isRefreshingInvoice = true;
+        try {
+            tableRows.getChildren().clear();
+            InvoiceService invoiceService = new InvoiceService();
+            List<Invoice> invoices = invoiceService.getAllInvoices();
             
-            invoices = invoices.stream()
-                .filter(i -> {
-                    // 1. Tìm theo tên khách hàng
-                    if (i.getCustomerName() != null && i.getCustomerName().toLowerCase().contains(rawSearch)) {
-                        return true;
-                    }
-                    // 2. Tìm theo số điện thoại
-                    if (i.getPhone() != null && i.getPhone().toLowerCase().contains(rawSearch)) {
-                        return true;
-                    }
-                    // 3. Tìm theo biển số xe (kể cả gõ có hoặc không có dấu gạch/khoảng trắng)
-                    if (i.getLicensePlate() != null) {
-                        String plate = i.getLicensePlate().toLowerCase();
-                        if (plate.contains(rawSearch)) return true;
-                        String cleanPlate = plate.replaceAll("[^a-z0-9]", "");
-                        if (!cleanSearch.isEmpty() && cleanPlate.contains(cleanSearch)) return true;
-                    }
-                    // 4. Tìm theo ghi chú
-                    if (i.getNotes() != null && i.getNotes().toLowerCase().contains(rawSearch)) {
-                        return true;
-                    }
-                    // 5. Tìm theo mã hóa đơn (ví dụ: HD-00001, HD00001, 00001, 1)
-                    String code1 = String.format("hd-%05d", i.getId());
-                    String code2 = String.format("%05d", i.getId());
-                    String code3 = String.valueOf(i.getId());
-                    if (code1.contains(rawSearch) || code2.contains(rawSearch) || code3.equals(rawSearch)) {
-                        return true;
-                    }
-                    // 6. Tìm theo ngày lập (dd/MM/yyyy hoặc YYYY-MM-DD)
-                    String dmy = formatInvoiceDateOnly(i.getCreatedAt());
-                    if (dmy.contains(rawSearch)) {
-                        return true;
-                    }
-                    if (i.getCreatedAt() != null && i.getCreatedAt().toLowerCase().contains(rawSearch)) {
-                        return true;
-                    }
-                    return false;
-                })
-                .collect(java.util.stream.Collectors.toList());
-        }
-        
-        if (invoices.isEmpty()) {
-            Label emptyState = new Label("Không tìm thấy hóa đơn nào");
-            emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
-            tableRows.getChildren().add(emptyState);
-        } else {
-            for (Invoice invoice : invoices) {
-                boolean isCK = "CK".equalsIgnoreCase(invoice.getPaymentMethod());
-                double subtotal = invoice.getTotalBeforeDiscount() - invoice.getDiscount();
-                double displayTotal = isCK ? subtotal * 1.08 : subtotal;
-                
-                tableRows.getChildren().add(createInvoiceRow(
-                    invoice.getId(),
-                    invoice.getCustomerName(),
-                    formatInvoiceDateOnly(invoice.getCreatedAt()),
-                    String.format("%,.0f đ", displayTotal),
-                    invoice.getStatus(),
-                    invoice.getNotes(),
-                    tableRows
-                ));
+            // Filter by status
+            if (status != null && !status.trim().isEmpty() && !status.contains("Tất cả")) {
+                invoices = invoices.stream()
+                    .filter(i -> {
+                        String invStatus = i.getStatus();
+                        if ("Đã thanh toán".equalsIgnoreCase(status)) {
+                            return "paid".equalsIgnoreCase(invStatus) || "Đã thanh toán".equalsIgnoreCase(invStatus);
+                        } else if ("Chưa thanh toán".equalsIgnoreCase(status)) {
+                            return invStatus == null || "nhap".equalsIgnoreCase(invStatus) || "unpaid".equalsIgnoreCase(invStatus) || "Chưa thanh toán".equalsIgnoreCase(invStatus) || (!"paid".equalsIgnoreCase(invStatus) && !"Đã thanh toán".equalsIgnoreCase(invStatus));
+                        }
+                        return status.equalsIgnoreCase(invStatus);
+                    })
+                    .collect(java.util.stream.Collectors.toList());
             }
+            
+            // Filter by time filters
+            invoices = invoices.stream()
+                .filter(i -> matchesTimeFilters(i.getCreatedAt(), period, month, year))
+                .collect(java.util.stream.Collectors.toList());
+            
+            // Filter by search text (Tên khách hàng, SĐT, Biển số xe, Mã hóa đơn, Ghi chú)
+            if (searchText != null && !searchText.trim().isEmpty()) {
+                String rawSearch = searchText.toLowerCase().trim();
+                String cleanSearch = rawSearch.replaceAll("[^a-z0-9]", "");
+                
+                invoices = invoices.stream()
+                    .filter(i -> {
+                        // 1. Tìm theo tên khách hàng
+                        if (i.getCustomerName() != null && i.getCustomerName().toLowerCase().contains(rawSearch)) {
+                            return true;
+                        }
+                        // 2. Tìm theo số điện thoại
+                        if (i.getPhone() != null && i.getPhone().toLowerCase().contains(rawSearch)) {
+                            return true;
+                        }
+                        // 3. Tìm theo biển số xe (kể cả gõ có hoặc không có dấu gạch/khoảng trắng)
+                        if (i.getLicensePlate() != null) {
+                            String plate = i.getLicensePlate().toLowerCase();
+                            if (plate.contains(rawSearch)) return true;
+                            String cleanPlate = plate.replaceAll("[^a-z0-9]", "");
+                            if (!cleanSearch.isEmpty() && cleanPlate.contains(cleanSearch)) return true;
+                        }
+                        // 4. Tìm theo ghi chú
+                        if (i.getNotes() != null && i.getNotes().toLowerCase().contains(rawSearch)) {
+                            return true;
+                        }
+                        // 5. Tìm theo mã hóa đơn (ví dụ: HD-00001, HD00001, 00001, 1)
+                        String code1 = String.format("hd-%05d", i.getId());
+                        String code2 = String.format("%05d", i.getId());
+                        String code3 = String.valueOf(i.getId());
+                        if (code1.contains(rawSearch) || code2.contains(rawSearch) || code3.equals(rawSearch)) {
+                            return true;
+                        }
+                        // 6. Tìm theo ngày lập (dd/MM/yyyy hoặc YYYY-MM-DD)
+                        String dmy = formatInvoiceDateOnly(i.getCreatedAt());
+                        if (dmy.contains(rawSearch)) {
+                            return true;
+                        }
+                        if (i.getCreatedAt() != null && i.getCreatedAt().toLowerCase().contains(rawSearch)) {
+                            return true;
+                        }
+                        return false;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+            }
+            
+            if (invoices.isEmpty()) {
+                Label emptyState = new Label("Không tìm thấy hóa đơn nào");
+                emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
+                tableRows.getChildren().add(emptyState);
+            } else {
+                for (Invoice invoice : invoices) {
+                    boolean isCK = "CK".equalsIgnoreCase(invoice.getPaymentMethod());
+                    double subtotal = invoice.getTotalBeforeDiscount() - invoice.getDiscount();
+                    double displayTotal = isCK ? subtotal * 1.08 : subtotal;
+                    
+                    tableRows.getChildren().add(createInvoiceRow(
+                        invoice.getId(),
+                        invoice.getCustomerName(),
+                        formatInvoiceDateOnly(invoice.getCreatedAt()),
+                        String.format("%,.0f đ", displayTotal),
+                        invoice.getStatus(),
+                        invoice.getNotes(),
+                        tableRows
+                    ));
+                }
+            }
+        } finally {
+            isRefreshingInvoice = false;
         }
     }
     
@@ -1116,7 +1140,43 @@ public class MainUI extends Application {
             InvoiceService invoiceService = new InvoiceService();
             Invoice invoice = invoiceService.getInvoiceById(id);
             if (invoice != null) {
-                CreateInvoiceForm form = new CreateInvoiceForm(() -> refreshInvoiceTable(tableRows), invoice);
+                CreateInvoiceForm form = new CreateInvoiceForm(invoice, (updatedInvoice) -> {
+                    if (invoiceSearchField != null && !invoiceSearchField.getText().trim().isEmpty()) {
+                        String rawSearch = invoiceSearchField.getText().toLowerCase().trim();
+                        String cleanSearch = rawSearch.replaceAll("[^a-z0-9]", "");
+                        
+                        boolean stillMatches = false;
+                        if (updatedInvoice.getCustomerName() != null && updatedInvoice.getCustomerName().toLowerCase().contains(rawSearch)) {
+                            stillMatches = true;
+                        } else if (updatedInvoice.getPhone() != null && updatedInvoice.getPhone().toLowerCase().contains(rawSearch)) {
+                            stillMatches = true;
+                        } else if (updatedInvoice.getLicensePlate() != null) {
+                            String plate = updatedInvoice.getLicensePlate().toLowerCase();
+                            String cleanPlate = plate.replaceAll("[^a-z0-9]", "");
+                            if (plate.contains(rawSearch) || (!cleanSearch.isEmpty() && cleanPlate.contains(cleanSearch))) {
+                                stillMatches = true;
+                            }
+                        } else if (updatedInvoice.getNotes() != null && updatedInvoice.getNotes().toLowerCase().contains(rawSearch)) {
+                            stillMatches = true;
+                        } else {
+                            String code1 = String.format("hd-%05d", updatedInvoice.getId());
+                            String code2 = String.format("%05d", updatedInvoice.getId());
+                            String code3 = String.valueOf(updatedInvoice.getId());
+                            if (code1.contains(rawSearch) || code2.contains(rawSearch) || code3.equals(rawSearch)) {
+                                stillMatches = true;
+                            }
+                        }
+
+                        if (!stillMatches) {
+                            if (updatedInvoice.getCustomerName() != null && !updatedInvoice.getCustomerName().trim().isEmpty()) {
+                                invoiceSearchField.setText(updatedInvoice.getCustomerName().trim());
+                            } else {
+                                invoiceSearchField.setText("");
+                            }
+                        }
+                    }
+                    refreshInvoiceTable(tableRows);
+                });
                 form.show();
             }
         });
