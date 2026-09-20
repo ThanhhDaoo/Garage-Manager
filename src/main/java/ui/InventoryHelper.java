@@ -35,8 +35,8 @@ public class InventoryHelper {
     public static void showInventoryManagement(MainUI mainUI, StackPane contentArea) {
         contentArea.getChildren().clear();
 
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(25));
+        VBox root = new VBox(16);
+        root.setPadding(new Insets(20));
         root.setStyle("-fx-background-color: #f8f9fa;");
 
         // Header Title
@@ -44,9 +44,9 @@ public class InventoryHelper {
         headerTitle.setStyle("-fx-font-size: 24px; -fx-font-weight: 700; -fx-text-fill: #1a237e;");
 
         // Control & Filter Panel
-        HBox filterBar = new HBox(15);
+        HBox filterBar = new HBox(10);
         filterBar.setAlignment(Pos.CENTER_LEFT);
-        filterBar.setPadding(new Insets(15));
+        filterBar.setPadding(new Insets(12, 16, 12, 16));
         filterBar.setStyle(
             "-fx-background-color: white;" +
             "-fx-background-radius: 12;" +
@@ -55,15 +55,16 @@ public class InventoryHelper {
 
         txtSearch = new TextField();
         txtSearch.setPromptText("🔍 Tìm kiếm phiếu nhập...");
-        txtSearch.setPrefWidth(240);
-        txtSearch.setMinWidth(180);
+        txtSearch.setPrefWidth(180);
+        txtSearch.setMinWidth(130);
+        HBox.setHgrow(txtSearch, Priority.SOMETIMES);
         txtSearch.setStyle(
             "-fx-background-color: #f5f5f5;" +
-            "-fx-padding: 10px 15px;" +
+            "-fx-padding: 8px 12px;" +
             "-fx-background-radius: 8;" +
             "-fx-border-color: transparent;" +
             "-fx-font-size: 13px;" +
-            "-fx-pref-height: 38px;"
+            "-fx-pref-height: 36px;"
         );
         UIUtils.setupIMEFix(txtSearch);
 
@@ -73,8 +74,8 @@ public class InventoryHelper {
             cbMonth.getItems().add(String.format("%02d", i));
         }
         cbMonth.setValue(String.format("%02d", LocalDate.now().getMonthValue()));
-        cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 90px;");
-        cbMonth.setMinWidth(90);
+        cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px; -fx-pref-width: 75px;");
+        cbMonth.setMinWidth(75);
 
         // Year filter
         cbYear = new ComboBox<>();
@@ -83,15 +84,15 @@ public class InventoryHelper {
             cbYear.getItems().add(String.valueOf(i));
         }
         cbYear.setValue(String.valueOf(curYear));
-        cbYear.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 100px;");
-        cbYear.setMinWidth(100);
+        cbYear.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px; -fx-pref-width: 85px;");
+        cbYear.setMinWidth(85);
 
         // Payment status filter
         cbPaymentFilter = new ComboBox<>();
         cbPaymentFilter.getItems().addAll("Tất cả trạng thái", "Đã thanh toán", "Chưa thanh toán");
         cbPaymentFilter.setValue("Tất cả trạng thái");
-        cbPaymentFilter.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 155px;");
-        cbPaymentFilter.setMinWidth(155);
+        cbPaymentFilter.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px; -fx-pref-width: 140px;");
+        cbPaymentFilter.setMinWidth(135);
 
         Button btnNewReceipt = new Button("➕ Tạo Phiếu Nhập");
         btnNewReceipt.setStyle(
@@ -99,12 +100,12 @@ public class InventoryHelper {
             "-fx-text-fill: white;" +
             "-fx-font-weight: bold;" +
             "-fx-font-size: 13px;" +
-            "-fx-padding: 10px 20px;" +
+            "-fx-padding: 8px 14px;" +
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
-        btnNewReceipt.setMinWidth(165);
-        btnNewReceipt.setPrefHeight(38);
+        btnNewReceipt.setMinWidth(135);
+        btnNewReceipt.setPrefHeight(36);
         btnNewReceipt.setOnMouseEntered(e -> btnNewReceipt.setOpacity(0.9));
         btnNewReceipt.setOnMouseExited(e -> btnNewReceipt.setOpacity(1.0));
         btnNewReceipt.setOnAction(e -> {
@@ -120,12 +121,12 @@ public class InventoryHelper {
             "-fx-text-fill: #2E7D32;" +
             "-fx-font-weight: bold;" +
             "-fx-font-size: 13px;" +
-            "-fx-padding: 10px 18px;" +
+            "-fx-padding: 8px 12px;" +
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
-        btnPdf.setMinWidth(115);
-        btnPdf.setPrefHeight(38);
+        btnPdf.setMinWidth(95);
+        btnPdf.setPrefHeight(36);
         btnPdf.setOnMouseEntered(e -> btnPdf.setOpacity(0.9));
         btnPdf.setOnMouseExited(e -> btnPdf.setOpacity(1.0));
         btnPdf.setOnAction(e -> {
@@ -139,12 +140,12 @@ public class InventoryHelper {
             "-fx-text-fill: #2E7D32;" +
             "-fx-font-weight: bold;" +
             "-fx-font-size: 13px;" +
-            "-fx-padding: 10px 18px;" +
+            "-fx-padding: 8px 12px;" +
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
-        btnExcel.setMinWidth(125);
-        btnExcel.setPrefHeight(38);
+        btnExcel.setMinWidth(100);
+        btnExcel.setPrefHeight(36);
         btnExcel.setOnMouseEntered(e -> btnExcel.setOpacity(0.9));
         btnExcel.setOnMouseExited(e -> btnExcel.setOpacity(1.0));
         btnExcel.setOnAction(e -> {
@@ -175,7 +176,9 @@ public class InventoryHelper {
         );
         
         TableColumn<InventoryReceipt, Integer> colStt = new TableColumn<>("STT");
-        colStt.setPrefWidth(50);
+        colStt.setMinWidth(36);
+        colStt.setPrefWidth(42);
+        colStt.setMaxWidth(50);
         colStt.setStyle("-fx-alignment: CENTER;");
         colStt.setCellFactory(column -> new TableCell<>() {
             @Override
@@ -190,7 +193,9 @@ public class InventoryHelper {
         });
 
         TableColumn<InventoryReceipt, String> colCode = new TableColumn<>("Mã Phiếu");
-        colCode.setPrefWidth(90);
+        colCode.setMinWidth(75);
+        colCode.setPrefWidth(82);
+        colCode.setMaxWidth(95);
         colCode.setStyle("-fx-alignment: CENTER; -fx-font-weight: bold;");
         colCode.setCellValueFactory(cellData -> {
             int id = cellData.getValue().getId();
@@ -198,16 +203,21 @@ public class InventoryHelper {
         });
 
         TableColumn<InventoryReceipt, String> colDate = new TableColumn<>("Ngày Nhập");
-        colDate.setPrefWidth(110);
+        colDate.setMinWidth(85);
+        colDate.setPrefWidth(90);
+        colDate.setMaxWidth(105);
         colDate.setStyle("-fx-alignment: CENTER;");
         colDate.setCellValueFactory(new PropertyValueFactory<>("receiptDate"));
 
         TableColumn<InventoryReceipt, String> colProduct = new TableColumn<>("Sản Phẩm");
-        colProduct.setPrefWidth(170);
+        colProduct.setMinWidth(120);
+        colProduct.setPrefWidth(160);
         colProduct.setCellValueFactory(new PropertyValueFactory<>("productName"));
 
         TableColumn<InventoryReceipt, Double> colQty = new TableColumn<>("Số Lượng");
-        colQty.setPrefWidth(80);
+        colQty.setMinWidth(50);
+        colQty.setPrefWidth(60);
+        colQty.setMaxWidth(75);
         colQty.setStyle("-fx-alignment: CENTER-RIGHT;");
         colQty.setCellValueFactory(new PropertyValueFactory<>("quantity"));
         colQty.setCellFactory(col -> new TableCell<>() {
@@ -223,7 +233,9 @@ public class InventoryHelper {
         });
 
         TableColumn<InventoryReceipt, Double> colPrice = new TableColumn<>("Đơn Giá");
-        colPrice.setPrefWidth(110);
+        colPrice.setMinWidth(80);
+        colPrice.setPrefWidth(90);
+        colPrice.setMaxWidth(110);
         colPrice.setStyle("-fx-alignment: CENTER-RIGHT;");
         colPrice.setCellValueFactory(new PropertyValueFactory<>("costPrice"));
         colPrice.setCellFactory(col -> new TableCell<>() {
@@ -239,7 +251,9 @@ public class InventoryHelper {
         });
 
         TableColumn<InventoryReceipt, Double> colTotal = new TableColumn<>("Thành Tiền");
-        colTotal.setPrefWidth(130);
+        colTotal.setMinWidth(90);
+        colTotal.setPrefWidth(105);
+        colTotal.setMaxWidth(125);
         colTotal.setStyle("-fx-alignment: CENTER-RIGHT; -fx-font-weight: bold; -fx-text-fill: #2E7D32;");
         colTotal.setCellValueFactory(new PropertyValueFactory<>("totalPrice"));
         colTotal.setCellFactory(col -> new TableCell<>() {
@@ -255,7 +269,9 @@ public class InventoryHelper {
         });
 
         TableColumn<InventoryReceipt, String> colPaymentStatus = new TableColumn<>("Trạng Thái TT");
-        colPaymentStatus.setPrefWidth(140);
+        colPaymentStatus.setMinWidth(115);
+        colPaymentStatus.setPrefWidth(120);
+        colPaymentStatus.setMaxWidth(135);
         colPaymentStatus.setStyle("-fx-alignment: CENTER;");
         colPaymentStatus.setCellValueFactory(new PropertyValueFactory<>("paymentStatus"));
         colPaymentStatus.setCellFactory(col -> new TableCell<>() {
@@ -267,8 +283,8 @@ public class InventoryHelper {
                     setText(null);
                 } else {
                     Label badge = new Label();
-                    badge.setPadding(new Insets(4, 10, 4, 10));
-                    badge.setStyle("-fx-background-radius: 12; -fx-font-size: 12px; -fx-font-weight: bold;");
+                    badge.setPadding(new Insets(3, 8, 3, 8));
+                    badge.setStyle("-fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;");
                     if ("Đã thanh toán".equalsIgnoreCase(status) || "paid".equalsIgnoreCase(status)) {
                         badge.setText("✓ Đã thanh toán");
                         badge.setStyle(badge.getStyle() + "-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32;");
@@ -292,7 +308,9 @@ public class InventoryHelper {
         });
 
         TableColumn<InventoryReceipt, String> colOperator = new TableColumn<>("Nhà Cung Cấp");
-        colOperator.setPrefWidth(120);
+        colOperator.setMinWidth(80);
+        colOperator.setPrefWidth(95);
+        colOperator.setMaxWidth(130);
         colOperator.setCellValueFactory(new PropertyValueFactory<>("operator"));
         colOperator.setCellFactory(col -> new TableCell<>() {
             @Override
@@ -311,12 +329,15 @@ public class InventoryHelper {
         });
 
         TableColumn<InventoryReceipt, String> colNotes = new TableColumn<>("Ghi Chú");
-        colNotes.setPrefWidth(150);
+        colNotes.setMinWidth(80);
+        colNotes.setPrefWidth(110);
         colNotes.setCellValueFactory(new PropertyValueFactory<>("notes"));
 
         // ---- ACTION COLUMN ----
         TableColumn<InventoryReceipt, Void> colAction = new TableColumn<>("Thao Tác");
-        colAction.setPrefWidth(95);
+        colAction.setMinWidth(70);
+        colAction.setPrefWidth(75);
+        colAction.setMaxWidth(80);
         colAction.setStyle("-fx-alignment: CENTER;");
         colAction.setSortable(false);
         colAction.setCellFactory(col -> new TableCell<>() {
@@ -380,7 +401,7 @@ public class InventoryHelper {
         tableView.getColumns().addAll(
             colStt, colCode, colDate, colProduct, colQty, colPrice, colTotal, colPaymentStatus, colOperator, colNotes, colAction
         );
-        tableView.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(tableView, Priority.ALWAYS);
 
         root.getChildren().addAll(headerTitle, filterBar, summaryCards, tableView);

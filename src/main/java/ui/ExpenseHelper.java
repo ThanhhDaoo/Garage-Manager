@@ -16,26 +16,28 @@ public class ExpenseHelper {
     public static void showExpenseManagement(MainUI mainUI, StackPane contentArea) {
         contentArea.getChildren().clear();
 
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(25));
+        VBox root = new VBox(16);
+        root.setPadding(new Insets(20));
         root.setStyle("-fx-background-color: #f8f9fa;");
 
         // Top bar: Search & Filters
-        HBox topBar = new HBox(15);
+        HBox topBar = new HBox(10);
         topBar.setAlignment(Pos.CENTER_LEFT);
-        topBar.setPadding(new Insets(0, 20, 0, 0)); // Thêm padding phải 20px để tránh khuất nút
 
         TextField searchField = new TextField();
-        searchField.setPromptText("Tìm kiếm khoản chi phí...");
-        searchField.setPrefWidth(220);
-        searchField.setStyle("-fx-background-color: white; -fx-padding: 10 12; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8; -fx-font-size: 13px;");
+        searchField.setPromptText("🔍 Tìm kiếm khoản chi phí...");
+        searchField.setPrefWidth(200);
+        searchField.setMinWidth(140);
+        searchField.setStyle("-fx-background-color: white; -fx-padding: 9 12; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8; -fx-font-size: 13px;");
+        UIUtils.setupIMEFix(searchField);
 
         ComboBox<String> cbMonth = new ComboBox<>();
         for (int i = 1; i <= 12; i++) {
             cbMonth.getItems().add(String.format("%02d", i));
         }
         cbMonth.setValue(String.format("%02d", LocalDate.now().getMonthValue()));
-        cbMonth.setStyle("-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 90px;");
+        cbMonth.setStyle("-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 75px;");
+        cbMonth.setMinWidth(75);
 
         ComboBox<String> cbYear = new ComboBox<>();
         int currentYear = LocalDate.now().getYear();
@@ -43,7 +45,8 @@ public class ExpenseHelper {
             cbYear.getItems().add(String.valueOf(i));
         }
         cbYear.setValue(String.valueOf(currentYear));
-        cbYear.setStyle("-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 100px;");
+        cbYear.setStyle("-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px; -fx-pref-width: 85px;");
+        cbYear.setMinWidth(85);
 
         Button btnAdd = new Button("➕ Thêm Chi Phí");
         btnAdd.setStyle(
@@ -51,10 +54,14 @@ public class ExpenseHelper {
             "-fx-text-fill: white;" +
             "-fx-font-weight: bold;" +
             "-fx-font-size: 13px;" +
-            "-fx-padding: 10 18;" +
+            "-fx-padding: 9 14;" +
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
+        btnAdd.setMinWidth(130);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button btnPdf = new Button("📄 Xuất Báo Cáo");
         btnPdf.setStyle(
@@ -62,13 +69,11 @@ public class ExpenseHelper {
             "-fx-text-fill: #2E7D32;" +
             "-fx-font-weight: bold;" +
             "-fx-font-size: 13px;" +
-            "-fx-padding: 10 18;" +
+            "-fx-padding: 9 14;" +
             "-fx-background-radius: 8;" +
             "-fx-cursor: hand;"
         );
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+        btnPdf.setMinWidth(120);
 
         topBar.getChildren().addAll(searchField, cbMonth, cbYear, btnAdd, spacer, btnPdf);
 
@@ -77,39 +82,46 @@ public class ExpenseHelper {
         tableContainer.setStyle("-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e0e0e0; -fx-border-width: 1; -fx-border-radius: 12;");
         
         Label tableTitle = new Label("Danh Sách Chi Phí");
-        tableTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121; -fx-padding: 20 20 15 20;");
+        tableTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: #212121; -fx-padding: 16 16 12 16;");
 
         HBox tableHeader = new HBox(0);
         tableHeader.setAlignment(Pos.CENTER_LEFT);
-        tableHeader.setPadding(new Insets(12, 20, 12, 20));
+        tableHeader.setPadding(new Insets(12, 16, 12, 16));
         tableHeader.setStyle("-fx-background-color: #F9FAFB; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
 
-        Label colStt = createLabel("STT", 50, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colDate = createLabel("Ngày Chi", 110, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colName = createLabel("Khoản Mục Chi Phí", 230, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colCategory = createLabel("Phân Loại", 120, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colAmount = createLabel("Số Tiền", 130, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colNotes = createLabel("Ghi Chú", 180, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colAction = createLabel("Thao Tác", 100, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colStt = createFixedLabel("STT", 45, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colDate = createFixedLabel("Ngày Chi", 95, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colName = createFlexLabel("Khoản Mục Chi Phí", 140, 200, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colCategory = createFixedLabel("Phân Loại", 100, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colAmount = createFixedLabel("Số Tiền", 120, Pos.CENTER_RIGHT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colNotes = createFlexLabel("Ghi Chú", 90, 130, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colAction = createFixedLabel("Thao Tác", 80, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
 
         HBox.setHgrow(colName, Priority.ALWAYS);
+        HBox.setHgrow(colNotes, Priority.SOMETIMES);
         tableHeader.getChildren().addAll(colStt, colDate, colName, colCategory, colAmount, colNotes, colAction);
 
         VBox tableRows = new VBox(0);
         ScrollPane scrollPane = new ScrollPane(tableRows);
         scrollPane.setFitToWidth(true);
-        scrollPane.setStyle("-fx-background-color: white; -fx-background: white; -fx-padding: 0 10 0 10;");
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: white; -fx-padding: 0;");
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
         // Footer Summary
         HBox tableFooter = new HBox(0);
         tableFooter.setAlignment(Pos.CENTER_LEFT);
-        tableFooter.setPadding(new Insets(15, 20, 15, 20));
+        tableFooter.setPadding(new Insets(12, 16, 12, 16));
         tableFooter.setStyle("-fx-background-color: #ECEFF1; -fx-background-radius: 0 0 12 12; -fx-border-color: #cfd8dc; -fx-border-width: 1 0 0 0;");
 
-        Label lblSummary = createLabel("TỔNG CHI PHÍ THÁNG:", 510, Pos.CENTER_LEFT, "-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #374151;");
-        Label lblTotal = createLabel("0 đ", 200, Pos.CENTER_LEFT, "-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #D32F2F;");
-        tableFooter.getChildren().addAll(lblSummary, lblTotal);
+        Label lblSummary = new Label("TỔNG CHI PHÍ THÁNG:");
+        lblSummary.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #374151;");
+        Region footerSpacer = new Region();
+        HBox.setHgrow(footerSpacer, Priority.ALWAYS);
+        Label lblTotal = new Label("0 đ");
+        lblTotal.setAlignment(Pos.CENTER_RIGHT);
+        lblTotal.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #D32F2F;");
+        tableFooter.getChildren().addAll(lblSummary, footerSpacer, lblTotal);
 
         tableContainer.getChildren().addAll(tableTitle, tableHeader, scrollPane, tableFooter);
         VBox.setVgrow(tableContainer, Priority.ALWAYS);
@@ -158,35 +170,34 @@ public class ExpenseHelper {
 
                 HBox row = new HBox(0);
                 row.setAlignment(Pos.CENTER_LEFT);
-                row.setPadding(new Insets(12, 20, 12, 20));
+                row.setPadding(new Insets(10, 16, 10, 16));
                 row.setStyle("-fx-background-color: white; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
 
                 row.setOnMouseEntered(e -> row.setStyle("-fx-background-color: #f9fafb; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;"));
                 row.setOnMouseExited(e -> row.setStyle("-fx-background-color: white; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;"));
 
-                Label rStt = createLabel(String.valueOf(stt++), 50, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
-                Label rDate = createLabel(exp.getFormattedDate(), 110, Pos.CENTER, "-fx-text-fill: #1976D2; -fx-font-weight: 600; -fx-font-size: 13px;");
-                Label rName = createLabel(exp.getExpenseName(), 230, Pos.CENTER_LEFT, "-fx-font-weight: 500; -fx-text-fill: #212121; -fx-font-size: 13px;");
-                HBox.setHgrow(rName, Priority.ALWAYS);
-                Label rCategory = createLabel(exp.getCategory() != null ? exp.getCategory() : "-", 120, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
-                Label rAmount = createLabel(String.format("%,.0f đ", exp.getAmount()), 130, Pos.CENTER_LEFT, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
-                Label rNotes = createLabel(exp.getNotes() != null && !exp.getNotes().isEmpty() ? exp.getNotes() : "-", 180, Pos.CENTER_LEFT, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+                Label rStt = createFixedLabel(String.valueOf(stt++), 45, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+                Label rDate = createFixedLabel(exp.getFormattedDate(), 95, Pos.CENTER, "-fx-text-fill: #1976D2; -fx-font-weight: 600; -fx-font-size: 13px;");
+                Label rName = createFlexLabel(exp.getExpenseName(), 140, 200, Pos.CENTER_LEFT, "-fx-font-weight: 500; -fx-text-fill: #212121; -fx-font-size: 13px;");
+                Label rCategory = createFixedLabel(exp.getCategory() != null ? exp.getCategory() : "-", 100, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
+                Label rAmount = createFixedLabel(String.format("%,.0f đ", exp.getAmount()), 120, Pos.CENTER_RIGHT, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
+                Label rNotes = createFlexLabel(exp.getNotes() != null && !exp.getNotes().isEmpty() ? exp.getNotes() : "-", 90, 130, Pos.CENTER_LEFT, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
 
-                HBox actions = new HBox(8);
-                actions.setPrefWidth(100);
-                actions.setMinWidth(100);
-                actions.setMaxWidth(100);
+                HBox actions = new HBox(6);
+                actions.setPrefWidth(80);
+                actions.setMinWidth(80);
+                actions.setMaxWidth(80);
                 actions.setAlignment(Pos.CENTER);
 
                 Button btnEdit = new Button("✏");
-                btnEdit.setStyle("-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2; -fx-font-size: 13px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
+                btnEdit.setStyle("-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2; -fx-font-size: 12px; -fx-padding: 5 8; -fx-background-radius: 6; -fx-cursor: hand;");
                 btnEdit.setOnAction(e -> {
                     ExpenseForm form = new ExpenseForm(exp, refreshSelf);
                     form.showInOverlay(contentArea);
                 });
 
                 Button btnDelete = new Button("🗑");
-                btnDelete.setStyle("-fx-background-color: #FFEBEE; -fx-text-fill: #D32F2F; -fx-font-size: 13px; -fx-padding: 6 10; -fx-background-radius: 6; -fx-cursor: hand;");
+                btnDelete.setStyle("-fx-background-color: #FFEBEE; -fx-text-fill: #D32F2F; -fx-font-size: 12px; -fx-padding: 5 8; -fx-background-radius: 6; -fx-cursor: hand;");
                 btnDelete.setOnAction(e -> {
                     Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Bạn có chắc muốn xóa khoản chi phí \"" + exp.getExpenseName() + "\"?", ButtonType.YES, ButtonType.NO);
                     confirm.setHeaderText(null);
@@ -199,6 +210,10 @@ public class ExpenseHelper {
                 });
 
                 actions.getChildren().addAll(btnEdit, btnDelete);
+
+                HBox.setHgrow(rName, Priority.ALWAYS);
+                HBox.setHgrow(rNotes, Priority.SOMETIMES);
+
                 row.getChildren().addAll(rStt, rDate, rName, rCategory, rAmount, rNotes, actions);
                 tableRows.getChildren().add(row);
             }
@@ -206,11 +221,21 @@ public class ExpenseHelper {
         lblTotal.setText(String.format("%,.0f đ", totalAmount));
     }
 
-    private static Label createLabel(String text, double width, Pos alignment, String style) {
+    private static Label createFixedLabel(String text, double width, Pos alignment, String style) {
         Label label = new Label(text);
         label.setPrefWidth(width);
         label.setMinWidth(width);
         label.setMaxWidth(width);
+        label.setAlignment(alignment);
+        label.setStyle(style);
+        return label;
+    }
+
+    private static Label createFlexLabel(String text, double minWidth, double prefWidth, Pos alignment, String style) {
+        Label label = new Label(text);
+        label.setMinWidth(minWidth);
+        label.setPrefWidth(prefWidth);
+        label.setMaxWidth(Double.MAX_VALUE);
         label.setAlignment(alignment);
         label.setStyle(style);
         return label;
