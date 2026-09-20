@@ -32,6 +32,7 @@ public class ProductForm {
     private TextField txtMinStock;
     private ToggleGroup statusGroup;
     private Runnable onSave;
+    private java.util.function.Consumer<Product> onProductSaved;
     
     public ProductForm() {
         this.isEdit = false;
@@ -53,6 +54,19 @@ public class ProductForm {
         this.productCostPrice = String.format("%.0f", product.getCostPrice());
         this.productUnit = product.getUnit();
         this.onSave = onSave;
+    }
+
+    public ProductForm(Product product, java.util.function.Consumer<Product> onProductSaved) {
+        this.isEdit = true;
+        this.productId = product.getId();
+        this.productName = product.getName();
+        this.productCategory = product.getCategory();
+        this.productPrice = String.format("%.0f", product.getPrice());
+        this.productStock = String.valueOf(product.getStock());
+        this.productMinStock = String.valueOf(product.getMinStock());
+        this.productCostPrice = String.format("%.0f", product.getCostPrice());
+        this.productUnit = product.getUnit();
+        this.onProductSaved = onProductSaved;
     }
     
     private Runnable closeHandler;
@@ -544,7 +558,11 @@ public class ProductForm {
                 
                 if (success) {
                     close();
+                    Product savedProduct = new Product(productId, name, category, price, costPrice, stock, unit, status, minStock);
                     javafx.application.Platform.runLater(() -> {
+                        if (onProductSaved != null) {
+                            onProductSaved.accept(savedProduct);
+                        }
                         if (onSave != null) {
                             onSave.run();
                         }

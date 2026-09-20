@@ -1,5 +1,8 @@
 package model;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 public class FixedExpense {
     private int id;
     private String expenseName;
@@ -7,7 +10,7 @@ public class FixedExpense {
     private double amount;
     private String expenseMonth; // Format: YYYY-MM
     private String notes;
-    private String createdAt;
+    private String createdAt;    // Format: YYYY-MM-DD HH:MM:SS hoặc YYYY-MM-DD
 
     public FixedExpense() {}
 
@@ -41,4 +44,23 @@ public class FixedExpense {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+    /**
+     * Lấy ngày chi hiển thị rõ ràng theo định dạng dd/MM/yyyy
+     * Dùng trường created_at có sẵn trong CSDL (không cần thay đổi cấu trúc bảng).
+     */
+    public String getFormattedDate() {
+        if (createdAt != null && createdAt.trim().length() >= 10) {
+            try {
+                LocalDate d = LocalDate.parse(createdAt.trim().substring(0, 10));
+                return d.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            } catch (Exception ignored) {}
+        }
+        if (expenseMonth != null && expenseMonth.trim().length() >= 7) {
+            try {
+                return "01/" + expenseMonth.trim().substring(5, 7) + "/" + expenseMonth.trim().substring(0, 4);
+            } catch (Exception ignored) {}
+        }
+        return "-";
+    }
 }

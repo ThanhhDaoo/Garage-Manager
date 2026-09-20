@@ -643,7 +643,10 @@ public class InventoryHelper {
                 String newExpenseName = "Nhập kho: " + r.getProductName() + " (SL: " + new java.text.DecimalFormat("#.##").format(r.getQuantity()) + ")";
                 String newMonth = r.getReceiptDate().substring(0, 7); // format: YYYY-MM
                 String newNotes = "Mã phiếu nhập: NK-" + String.format("%04d", r.getId()) + ". Nhà cung cấp: " + r.getOperator();
-                new dao.FixedExpenseDAO().updateExpenseByReceiptCode(receiptCode, newExpenseName, r.getTotalPrice(), newMonth, newNotes);
+                String newCreatedAt = (r.getReceiptDate() != null && r.getReceiptDate().length() >= 10)
+                    ? r.getReceiptDate().substring(0, 10) + " 12:00:00"
+                    : r.getReceiptDate();
+                new dao.FixedExpenseDAO().updateExpenseByReceiptCode(receiptCode, newExpenseName, r.getTotalPrice(), newMonth, newNotes, newCreatedAt);
 
                 AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công",
                     "Đã cập nhật phiếu nhập kho!").showAndWait();

@@ -7,32 +7,45 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
 import model.FixedExpense;
 import service.FixedExpenseService;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 
 public class ExpenseForm {
     private Stage stage;
     private boolean isEdit;
     private FixedExpense expense;
+    private int defaultYear;
+    private int defaultMonth;
     private Runnable onSave;
     
     private TextField txtName;
     private ComboBox<String> cbCategory;
     private TextField txtAmount;
-    private ComboBox<String> cbMonth;
-    private ComboBox<String> cbYear;
+    private DatePicker dpDate;
     private TextField txtNotes;
 
     public ExpenseForm(Runnable onSave) {
-        this.isEdit = false;
-        this.onSave = onSave;
+        this(null, LocalDate.now().getYear(), LocalDate.now().getMonthValue(), onSave);
+    }
+
+    public ExpenseForm(int defaultYear, int defaultMonth, Runnable onSave) {
+        this(null, defaultYear, defaultMonth, onSave);
     }
 
     public ExpenseForm(FixedExpense exp, Runnable onSave) {
+        this(exp, LocalDate.now().getYear(), LocalDate.now().getMonthValue(), onSave);
+    }
+
+    public ExpenseForm(FixedExpense exp, int defaultYear, int defaultMonth, Runnable onSave) {
         this.isEdit = exp != null;
         this.expense = exp;
+        this.defaultYear = defaultYear;
+        this.defaultMonth = defaultMonth;
         this.onSave = onSave;
     }
 
@@ -42,7 +55,7 @@ public class ExpenseForm {
             stage.initOwner(MainUI.getMainStage());
         }
         
-        stage.setTitle(isEdit ? "Sửa Chi Phí Cố Định" : "Thêm Chi Phí Cố Định Mới");
+        stage.setTitle(isEdit ? "Sửa Khoản Chi Phí" : "Thêm Chi Phí Mới");
 
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #f8f9fa;");
@@ -55,7 +68,7 @@ public class ExpenseForm {
         mainContent.setPadding(new Insets(30));
         mainContent.setStyle("-fx-background-color: #f8f9fa;");
 
-        Label title = new Label(isEdit ? "✏ Sửa Chi Phí Cố Định" : "💰 Thêm Chi Phí Cố Định Mới");
+        Label title = new Label(isEdit ? "✏ Sửa Khoản Chi Phí" : "💰 Thêm Chi Phí Mới");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: 600; -fx-text-fill: #212121;");
 
         VBox formSection = createFormSection();
@@ -120,6 +133,7 @@ public class ExpenseForm {
         txtName.setPrefWidth(300);
         txtName.setMaxWidth(Double.MAX_VALUE);
         txtName.setStyle(fieldStyle);
+        UIUtils.setupIMEFix(txtName);
 
         Label lblCategory = new Label("Phân loại chi phí *");
         lblCategory.setStyle(labelStyle);
@@ -137,39 +151,73 @@ public class ExpenseForm {
         txtAmount.setPrefWidth(300);
         txtAmount.setMaxWidth(Double.MAX_VALUE);
         txtAmount.setStyle(fieldStyle);
+        UIUtils.setupIMEFix(txtAmount);
 
-        Label lblPeriod = new Label("Tháng/Năm *");
-        lblPeriod.setStyle(labelStyle);
+        Label lblDate = new Label("Ngày chi *");
+        lblDate.setStyle(labelStyle);
 
-        cbMonth = new ComboBox<>();
-        for (int i = 1; i <= 12; i++) {
-            cbMonth.getItems().add(String.format("%02d", i));
-        }
+        dpDate = new DatePicker();
+        dpDate.setPromptText("dd/MM/yyyy");
+        dpDate.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-pref-height: 44px; -fx-pref-width: 300px;");
+        dpDate.setMaxWidth(Double.MAX_VALUE);
 
-        cbYear = new ComboBox<>();
-        int currentYear = LocalDate.now().getYear();
-        for (int i = currentYear - 5; i <= currentYear + 5; i++) {
-            cbYear.getItems().add(String.valueOf(i));
-        }
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        dpDate.setConverter(new StringConverter<LocalDate>() {
+            @Override
+            public String toString(LocalDate date) {
+                return date != null ? dateFormatter.format(date) : "";
+            }
 
-        if (isEdit && expense.getExpenseMonth() != null && expense.getExpenseMonth().length() == 7) {
-            cbMonth.setValue(expense.getExpenseMonth().substring(5, 7));
-            cbYear.setValue(expense.getExpenseMonth().substring(0, 4));
+            @Override
+            public LocalDate fromString(String string) {
+                if (string != null && !string.trim().isEmpty()) {
+                    String clean = string.trim();
+                    for (String pattern : new String[]{"dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "d-M-yyyy", "yyyy-MM-dd"}) {
+                        try {
+                            return LocalDate.parse(clean, DateTimeFormatter.ofPattern(pattern));
+                        } catch (Exception ignored) {}
+                    }
+                }
+                return null;
+            }
+        });
+
+        dpDate.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                try {
+                    String text = dpDate.getEditor().getText();
+                    if (text != null && !text.trim().isEmpty()) {
+                        dpDate.setValue(dpDate.getConverter().fromString(text));
+                    }
+                } catch (Exception ignored) {}
+            }
+        });
+
+        LocalDate initialDate = LocalDate.now();
+        if (isEdit && expense != null) {
+            if (expense.getCreatedAt() != null && expense.getCreatedAt().trim().length() >= 10) {
+                try {
+                    initialDate = LocalDate.parse(expense.getCreatedAt().trim().substring(0, 10));
+                } catch (Exception ignored) {}
+            } else if (expense.getExpenseMonth() != null && expense.getExpenseMonth().trim().length() >= 7) {
+                try {
+                    initialDate = LocalDate.parse(expense.getExpenseMonth().trim() + "-01");
+                } catch (Exception ignored) {}
+            }
         } else {
-            cbMonth.setValue(String.format("%02d", LocalDate.now().getMonthValue()));
-            cbYear.setValue(String.valueOf(currentYear));
+            LocalDate now = LocalDate.now();
+            if (defaultYear == now.getYear() && defaultMonth == now.getMonthValue()) {
+                initialDate = now;
+            } else {
+                try {
+                    int maxDays = YearMonth.of(defaultYear, defaultMonth).lengthOfMonth();
+                    initialDate = LocalDate.of(defaultYear, defaultMonth, Math.min(now.getDayOfMonth(), maxDays));
+                } catch (Exception e) {
+                    initialDate = now;
+                }
+            }
         }
-
-        cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-pref-height: 44px; -fx-pref-width: 140px;");
-        cbYear.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-border-color: transparent; -fx-font-size: 14px; -fx-pref-height: 44px; -fx-pref-width: 140px;");
-        cbMonth.setMaxWidth(Double.MAX_VALUE);
-        cbYear.setMaxWidth(Double.MAX_VALUE);
-
-        HBox periodBox = new HBox(20);
-        periodBox.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(cbMonth, Priority.ALWAYS);
-        HBox.setHgrow(cbYear, Priority.ALWAYS);
-        periodBox.getChildren().addAll(cbMonth, cbYear);
+        dpDate.setValue(initialDate);
 
         Label lblNotes = new Label("Ghi chú");
         lblNotes.setStyle(labelStyle);
@@ -178,11 +226,12 @@ public class ExpenseForm {
         txtNotes.setPrefWidth(300);
         txtNotes.setMaxWidth(Double.MAX_VALUE);
         txtNotes.setStyle(fieldStyle);
+        UIUtils.setupIMEFix(txtNotes);
 
         grid.add(lblName, 0, 0); grid.add(txtName, 1, 0);
         grid.add(lblCategory, 0, 1); grid.add(cbCategory, 1, 1);
         grid.add(lblAmount, 0, 2); grid.add(txtAmount, 1, 2);
-        grid.add(lblPeriod, 0, 3); grid.add(periodBox, 1, 3);
+        grid.add(lblDate, 0, 3); grid.add(dpDate, 1, 3);
         grid.add(lblNotes, 0, 4); grid.add(txtNotes, 1, 4);
 
         section.getChildren().addAll(sectionTitle, grid);
@@ -222,23 +271,36 @@ public class ExpenseForm {
             String name = txtName.getText().trim();
             String cat = cbCategory.getValue() != null ? cbCategory.getValue().trim() : "cố định";
             double amount = parseDoubleSafe(txtAmount.getText());
-            String m = cbMonth.getValue();
-            String y = cbYear.getValue();
             String notes = txtNotes.getText().trim();
 
-            if (name.isEmpty() || cat.isEmpty() || amount <= 0 || m == null || y == null) {
-                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng điền đầy đủ Tên khoản mục, Phân loại và Số tiền hợp lệ!");
+            LocalDate date = dpDate.getValue();
+            if (date == null) {
+                String text = dpDate.getEditor().getText();
+                if (text != null && !text.trim().isEmpty()) {
+                    date = dpDate.getConverter().fromString(text);
+                }
+            }
+
+            if (name.isEmpty() || cat.isEmpty() || amount <= 0 || date == null) {
+                Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng điền đầy đủ Tên khoản mục, Phân loại, Số tiền và Ngày chi hợp lệ!");
                 alert.show();
                 return;
             }
 
-            String monthStr = y + "-" + m;
+            String monthStr = String.format("%04d-%02d", date.getYear(), date.getMonthValue());
+            String timeStr = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
+            String createdAtStr = date.toString() + " " + timeStr;
+            if (isEdit && expense != null && expense.getCreatedAt() != null && expense.getCreatedAt().trim().length() >= 19) {
+                createdAtStr = date.toString() + " " + expense.getCreatedAt().trim().substring(11, 19);
+            }
+
             FixedExpenseService service = new FixedExpenseService();
             FixedExpense saveExp = isEdit ? expense : new FixedExpense();
             saveExp.setExpenseName(name);
             saveExp.setCategory(cat);
             saveExp.setAmount(amount);
             saveExp.setExpenseMonth(monthStr);
+            saveExp.setCreatedAt(createdAtStr);
             saveExp.setNotes(notes);
 
             boolean success;

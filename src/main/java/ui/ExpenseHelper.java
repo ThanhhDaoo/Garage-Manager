@@ -84,14 +84,16 @@ public class ExpenseHelper {
         tableHeader.setPadding(new Insets(12, 20, 12, 20));
         tableHeader.setStyle("-fx-background-color: #F9FAFB; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
 
-        Label colStt = createLabel("STT", 60, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colName = createLabel("Khoản Mục Chi Phí", 250, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colCategory = createLabel("Phân Loại", 140, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colAmount = createLabel("Số Tiền", 140, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colStt = createLabel("STT", 50, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colDate = createLabel("Ngày Chi", 110, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colName = createLabel("Khoản Mục Chi Phí", 230, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colCategory = createLabel("Phân Loại", 120, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colAmount = createLabel("Số Tiền", 130, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         Label colNotes = createLabel("Ghi Chú", 180, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         Label colAction = createLabel("Thao Tác", 100, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
 
-        tableHeader.getChildren().addAll(colStt, colName, colCategory, colAmount, colNotes, colAction);
+        HBox.setHgrow(colName, Priority.ALWAYS);
+        tableHeader.getChildren().addAll(colStt, colDate, colName, colCategory, colAmount, colNotes, colAction);
 
         VBox tableRows = new VBox(0);
         ScrollPane scrollPane = new ScrollPane(tableRows);
@@ -105,7 +107,7 @@ public class ExpenseHelper {
         tableFooter.setPadding(new Insets(15, 20, 15, 20));
         tableFooter.setStyle("-fx-background-color: #ECEFF1; -fx-background-radius: 0 0 12 12; -fx-border-color: #cfd8dc; -fx-border-width: 1 0 0 0;");
 
-        Label lblSummary = createLabel("TỔNG CHI PHÍ THÁNG:", 450, Pos.CENTER_LEFT, "-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #374151;");
+        Label lblSummary = createLabel("TỔNG CHI PHÍ THÁNG:", 510, Pos.CENTER_LEFT, "-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #374151;");
         Label lblTotal = createLabel("0 đ", 200, Pos.CENTER_LEFT, "-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #D32F2F;");
         tableFooter.getChildren().addAll(lblSummary, lblTotal);
 
@@ -122,7 +124,9 @@ public class ExpenseHelper {
         cbMonth.setOnAction(e -> refreshList.run());
         cbYear.setOnAction(e -> refreshList.run());
         btnAdd.setOnAction(e -> {
-            ExpenseForm form = new ExpenseForm(refreshList);
+            int year = Integer.parseInt(cbYear.getValue());
+            int month = Integer.parseInt(cbMonth.getValue());
+            ExpenseForm form = new ExpenseForm(year, month, refreshList);
             form.show();
         });
         btnPdf.setOnAction(e -> {
@@ -146,18 +150,23 @@ public class ExpenseHelper {
         double totalAmount = 0;
         int stt = 1;
         for (FixedExpense exp : list) {
-            if (query.isEmpty() || exp.getExpenseName().toLowerCase().contains(query)) {
+            if (query.isEmpty() || exp.getExpenseName().toLowerCase().contains(query) || exp.getFormattedDate().contains(query)) {
                 totalAmount += exp.getAmount();
 
                 HBox row = new HBox(0);
                 row.setAlignment(Pos.CENTER_LEFT);
-                row.setPadding(new Insets(12, 10, 12, 10));
+                row.setPadding(new Insets(12, 20, 12, 20));
                 row.setStyle("-fx-background-color: white; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
 
-                Label rStt = createLabel(String.valueOf(stt++), 60, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
-                Label rName = createLabel(exp.getExpenseName(), 250, Pos.CENTER_LEFT, "-fx-font-weight: 500; -fx-text-fill: #212121; -fx-font-size: 13px;");
-                Label rCategory = createLabel(exp.getCategory() != null ? exp.getCategory() : "-", 140, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
-                Label rAmount = createLabel(String.format("%,.0f đ", exp.getAmount()), 140, Pos.CENTER_LEFT, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
+                row.setOnMouseEntered(e -> row.setStyle("-fx-background-color: #f9fafb; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;"));
+                row.setOnMouseExited(e -> row.setStyle("-fx-background-color: white; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;"));
+
+                Label rStt = createLabel(String.valueOf(stt++), 50, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+                Label rDate = createLabel(exp.getFormattedDate(), 110, Pos.CENTER, "-fx-text-fill: #1976D2; -fx-font-weight: 600; -fx-font-size: 13px;");
+                Label rName = createLabel(exp.getExpenseName(), 230, Pos.CENTER_LEFT, "-fx-font-weight: 500; -fx-text-fill: #212121; -fx-font-size: 13px;");
+                HBox.setHgrow(rName, Priority.ALWAYS);
+                Label rCategory = createLabel(exp.getCategory() != null ? exp.getCategory() : "-", 120, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
+                Label rAmount = createLabel(String.format("%,.0f đ", exp.getAmount()), 130, Pos.CENTER_LEFT, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
                 Label rNotes = createLabel(exp.getNotes() != null && !exp.getNotes().isEmpty() ? exp.getNotes() : "-", 180, Pos.CENTER_LEFT, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
 
                 HBox actions = new HBox(8);
@@ -187,7 +196,7 @@ public class ExpenseHelper {
                 });
 
                 actions.getChildren().addAll(btnEdit, btnDelete);
-                row.getChildren().addAll(rStt, rName, rCategory, rAmount, rNotes, actions);
+                row.getChildren().addAll(rStt, rDate, rName, rCategory, rAmount, rNotes, actions);
                 tableRows.getChildren().add(row);
             }
         }
@@ -258,7 +267,7 @@ public class ExpenseHelper {
             List<FixedExpense> list = service.getAllExpensesByMonth(expenseMonth);
 
             // Grid Table
-            float[] columnWidths = {25f, 200f, 90f, 95f, 105f};
+            float[] columnWidths = {25f, 65f, 155f, 75f, 85f, 110f};
             com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(columnWidths);
             table.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             table.setFontSize(8);
@@ -277,13 +286,14 @@ public class ExpenseHelper {
 
             // Table Headers
             table.addHeaderCell(makeHeaderCell.apply("STT"));
-            table.addHeaderCell(makeHeaderCell.apply("Khoản mục chi phí\nCHI PHÍ CỐ ĐỊNH"));
-            table.addHeaderCell(makeHeaderCell.apply("Phân loại chi phí"));
+            table.addHeaderCell(makeHeaderCell.apply("Ngày chi"));
+            table.addHeaderCell(makeHeaderCell.apply("Khoản mục chi phí\nCHI PHÍ"));
+            table.addHeaderCell(makeHeaderCell.apply("Phân loại"));
             table.addHeaderCell(makeHeaderCell.apply("Số tiền"));
             table.addHeaderCell(makeHeaderCell.apply("Ghi chú"));
 
-            // Row Numbering (1 to 5)
-            for (int i = 1; i <= 5; i++) {
+            // Row Numbering (1 to 6)
+            for (int i = 1; i <= 6; i++) {
                 table.addHeaderCell(new com.itextpdf.layout.element.Cell()
                     .add(new com.itextpdf.layout.element.Paragraph(String.valueOf(i)).setFont(font))
                     .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
@@ -294,6 +304,7 @@ public class ExpenseHelper {
             double totalSum = 0;
             for (FixedExpense exp : list) {
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER).setPadding(5));
+                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(exp.getFormattedDate()).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER).setPadding(5));
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(exp.getExpenseName()).setFont(font)).setPadding(5));
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(exp.getCategory() != null ? exp.getCategory() : "-").setFont(font)).setPadding(5));
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", exp.getAmount())).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT).setPadding(5));
@@ -302,7 +313,7 @@ public class ExpenseHelper {
             }
 
             // Summary row in Table
-            table.addCell(new com.itextpdf.layout.element.Cell(1, 3)
+            table.addCell(new com.itextpdf.layout.element.Cell(1, 4)
                 .add(new com.itextpdf.layout.element.Paragraph("Tổng cộng").setFont(boldFont))
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT)
                 .setPadding(6));

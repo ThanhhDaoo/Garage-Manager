@@ -54,6 +54,16 @@ public class MainUI extends Application {
     private String currentPackageSearchText = "";
     private volatile boolean isRefreshingService = false;
     private volatile boolean isRefreshingPackage = false;
+    private String selectedProductCategoryFilter = "";
+    private String selectedProductStatusFilter = "Tất cả trạng thái";
+    private String currentProductSearchText = "";
+    private volatile boolean isRefreshingProduct = false;
+    private TextField productSearchField;
+    private Button btnProductAllCat;
+    private Button btnProductWater;
+    private Button btnProductSolution;
+    private Button btnProductAccessory;
+    private ComboBox<String> productStatusFilterBox;
 
     @Override
     public void start(Stage stage) {
@@ -1847,7 +1857,13 @@ public class MainUI extends Application {
         btnNew.setOnMouseEntered(e -> btnNew.setOpacity(0.9));
         btnNew.setOnMouseExited(e -> btnNew.setOpacity(1.0));
         btnNew.setOnAction(e -> {
-            ProductForm form = new ProductForm(() -> refreshProductTable(tableRows));
+            ProductForm form = new ProductForm(() -> {
+                if (productSearchField != null) {
+                    productSearchField.setText("");
+                }
+                currentProductSearchText = "";
+                refreshProductTable(tableRows);
+            });
             form.showInOverlay(contentArea);
         });
 
@@ -1915,48 +1931,56 @@ public class MainUI extends Application {
         );
         
         // Store current filter
-        final String[] currentCategory = {""};
-        final String[] currentStatus = {"Tất cả trạng thái"};
+        currentProductSearchText = "";
+        selectedProductCategoryFilter = "";
+        selectedProductStatusFilter = "Tất cả trạng thái";
+        productSearchField = searchField;
+        btnProductAllCat = btnAllCat;
+        btnProductWater = btnWater;
+        btnProductSolution = btnSolution;
+        btnProductAccessory = btnAccessory;
+        productStatusFilterBox = statusFilterBox;
         
         // Add search listener with debounce to prevent UI lag and IME typing bugs
         javafx.animation.PauseTransition searchDebounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(250));
         searchDebounce.setOnFinished(e -> {
-            refreshProductTableWithFilter(tableRows, searchField.getText(), currentCategory[0], currentStatus[0]);
+            refreshProductTable(tableRows);
         });
         
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            currentProductSearchText = newVal != null ? newVal : "";
             searchDebounce.playFromStart();
         });
         
         // Add filter button actions
         btnAllCat.setOnAction(e -> {
-            currentCategory[0] = "";
+            selectedProductCategoryFilter = "";
             updateFilterButtonStyles(btnAllCat, btnWater, btnSolution, btnAccessory);
-            refreshProductTableWithFilter(tableRows, searchField.getText(), "", currentStatus[0]);
+            refreshProductTable(tableRows);
         });
         
         btnWater.setOnAction(e -> {
-            currentCategory[0] = "Nước rửa xe";
+            selectedProductCategoryFilter = "Nước rửa xe";
             updateFilterButtonStyles(btnWater, btnAllCat, btnSolution, btnAccessory);
-            refreshProductTableWithFilter(tableRows, searchField.getText(), "Nước rửa xe", currentStatus[0]);
+            refreshProductTable(tableRows);
         });
         
         btnSolution.setOnAction(e -> {
-            currentCategory[0] = "Dung dịch";
+            selectedProductCategoryFilter = "Dung dịch";
             updateFilterButtonStyles(btnSolution, btnAllCat, btnWater, btnAccessory);
-            refreshProductTableWithFilter(tableRows, searchField.getText(), "Dung dịch", currentStatus[0]);
+            refreshProductTable(tableRows);
         });
         
         btnAccessory.setOnAction(e -> {
-            currentCategory[0] = "Phụ kiện";
+            selectedProductCategoryFilter = "Phụ kiện";
             updateFilterButtonStyles(btnAccessory, btnAllCat, btnWater, btnSolution);
-            refreshProductTableWithFilter(tableRows, searchField.getText(), "Phụ kiện", currentStatus[0]);
+            refreshProductTable(tableRows);
         });
         
         // Add status filter action
         statusFilterBox.setOnAction(e -> {
-            currentStatus[0] = statusFilterBox.getValue();
-            refreshProductTableWithFilter(tableRows, searchField.getText(), currentCategory[0], currentStatus[0]);
+            selectedProductStatusFilter = statusFilterBox.getValue() != null ? statusFilterBox.getValue() : "Tất cả trạng thái";
+            refreshProductTable(tableRows);
         });
         
         categoryButtons.getChildren().addAll(btnAllCat, btnWater, btnSolution, btnAccessory);
@@ -2393,70 +2417,78 @@ public class MainUI extends Application {
     }
     
     private void refreshProductTable(VBox tableRows) {
-        refreshProductTableWithFilter(tableRows, "", "", "Tất cả trạng thái");
+        refreshProductTableWithFilter(tableRows, currentProductSearchText, selectedProductCategoryFilter, selectedProductStatusFilter);
     }
     
     private void refreshProductTableWithFilter(VBox tableRows, String searchText, String category, String statusFilter) {
-        tableRows.getChildren().clear();
-        ProductService productService = new ProductService();
-        List<Product> products = productService.getAllProducts();
-        
-        // Filter by category
-        if (category != null && !category.trim().isEmpty()) {
-            products = products.stream()
-                .filter(p -> p.getCategory() != null && p.getCategory().equals(category))
-                .collect(java.util.stream.Collectors.toList());
+        if (isRefreshingProduct) {
+            return;
         }
-        
-        // Filter by search text
-        if (searchText != null && !searchText.trim().isEmpty()) {
-            String search = searchText.toLowerCase().trim();
-            products = products.stream()
-                .filter(p -> (p.getName() != null && p.getName().toLowerCase().contains(search)) || 
-                            (p.getCategory() != null && p.getCategory().toLowerCase().contains(search)) ||
-                            String.valueOf(p.getId()).contains(search) ||
-                            ("sp-" + String.format("%04d", p.getId())).contains(search))
-                .collect(java.util.stream.Collectors.toList());
-        }
-        
-        // Filter by status
-        if (statusFilter != null && !statusFilter.equals("Tất cả trạng thái")) {
-            products = products.stream()
-                .filter(p -> {
-                    String status = p.getStatus();
-                    double stock = p.getStock();
-                    int minStock = p.getMinStock();
-
-                    if ("Đang bán".equals(statusFilter)) {
-                        if ("Tạm dừng".equals(status)) return false;
-                        if (stock == 0 || "Hết hàng".equals(status)) return false;
-                        if (stock <= minStock) return false;
-                        return "Đang bán".equals(status);
-                    } else if ("Sắp hết hàng".equals(statusFilter)) {
-                        if ("Tạm dừng".equals(status)) return false;
-                        if (stock == 0 || "Hết hàng".equals(status)) return false;
-                        return stock <= minStock;
-                    } else if ("Hết hàng".equals(statusFilter)) {
-                        return stock == 0 || "Hết hàng".equals(status);
-                    } else if ("Tạm dừng".equals(statusFilter)) {
-                        return "Tạm dừng".equals(status);
-                    }
-                    return true;
-                })
-                .collect(java.util.stream.Collectors.toList());
-        }
-        
-        if (products.isEmpty()) {
-            Label emptyState = new Label((searchText != null && !searchText.trim().isEmpty()) || 
-                                         (category != null && !category.trim().isEmpty()) ||
-                                         (statusFilter != null && !statusFilter.equals("Tất cả trạng thái")) ? 
-                "Không tìm thấy sản phẩm nào" : "Chưa có sản phẩm nào");
-            emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
-            tableRows.getChildren().add(emptyState);
-        } else {
-            for (Product product : products) {
-                tableRows.getChildren().add(createProductRow(product, tableRows));
+        isRefreshingProduct = true;
+        try {
+            tableRows.getChildren().clear();
+            ProductService productService = new ProductService();
+            List<Product> products = productService.getAllProducts();
+            
+            // Filter by category
+            if (category != null && !category.trim().isEmpty()) {
+                products = products.stream()
+                    .filter(p -> p.getCategory() != null && p.getCategory().equals(category))
+                    .collect(java.util.stream.Collectors.toList());
             }
+            
+            // Filter by search text
+            if (searchText != null && !searchText.trim().isEmpty()) {
+                String search = searchText.toLowerCase().trim();
+                products = products.stream()
+                    .filter(p -> (p.getName() != null && p.getName().toLowerCase().contains(search)) || 
+                                (p.getCategory() != null && p.getCategory().toLowerCase().contains(search)) ||
+                                String.valueOf(p.getId()).contains(search) ||
+                                ("sp-" + String.format("%04d", p.getId())).contains(search))
+                    .collect(java.util.stream.Collectors.toList());
+            }
+            
+            // Filter by status
+            if (statusFilter != null && !statusFilter.equals("Tất cả trạng thái")) {
+                products = products.stream()
+                    .filter(p -> {
+                        String status = p.getStatus();
+                        double stock = p.getStock();
+                        int minStock = p.getMinStock();
+
+                        if ("Đang bán".equals(statusFilter)) {
+                            if ("Tạm dừng".equals(status)) return false;
+                            if (stock == 0 || "Hết hàng".equals(status)) return false;
+                            if (stock <= minStock) return false;
+                            return "Đang bán".equals(status);
+                        } else if ("Sắp hết hàng".equals(statusFilter)) {
+                            if ("Tạm dừng".equals(status)) return false;
+                            if (stock == 0 || "Hết hàng".equals(status)) return false;
+                            return stock <= minStock;
+                        } else if ("Hết hàng".equals(statusFilter)) {
+                            return stock == 0 || "Hết hàng".equals(status);
+                        } else if ("Tạm dừng".equals(statusFilter)) {
+                            return "Tạm dừng".equals(status);
+                        }
+                        return true;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+            }
+            
+            if (products.isEmpty()) {
+                Label emptyState = new Label((searchText != null && !searchText.trim().isEmpty()) || 
+                                             (category != null && !category.trim().isEmpty()) ||
+                                             (statusFilter != null && !statusFilter.equals("Tất cả trạng thái")) ? 
+                    "Không tìm thấy sản phẩm nào" : "Chưa có sản phẩm nào");
+                emptyState.setStyle("-fx-font-size: 14px; -fx-text-fill: #9e9e9e; -fx-padding: 40px;");
+                tableRows.getChildren().add(emptyState);
+            } else {
+                for (Product product : products) {
+                    tableRows.getChildren().add(createProductRow(product, tableRows));
+                }
+            }
+        } finally {
+            isRefreshingProduct = false;
         }
     }
     
@@ -4235,7 +4267,30 @@ public class MainUI extends Application {
             "-fx-min-height: 32;"
         );
         btnEdit.setOnAction(e -> {
-            ProductForm form = new ProductForm(product, () -> refreshProductTable(tableRows));
+            ProductForm form = new ProductForm(product, (updatedProduct) -> {
+                // If user changed the name and the new name no longer matches current search text,
+                // update searchField and currentProductSearchText to the new name so the product remains visible
+                if (currentProductSearchText != null && !currentProductSearchText.trim().isEmpty()) {
+                    String searchLower = currentProductSearchText.toLowerCase().trim();
+                    boolean stillMatches = (updatedProduct.getName() != null && updatedProduct.getName().toLowerCase().contains(searchLower)) ||
+                                           (updatedProduct.getCategory() != null && updatedProduct.getCategory().toLowerCase().contains(searchLower)) ||
+                                           String.valueOf(updatedProduct.getId()).contains(searchLower) ||
+                                           ("sp-" + String.format("%04d", updatedProduct.getId())).contains(searchLower);
+                    if (!stillMatches && productSearchField != null) {
+                        productSearchField.setText(updatedProduct.getName());
+                        currentProductSearchText = updatedProduct.getName();
+                    }
+                }
+                // If category was changed outside active filter, reset to "Tất cả"
+                if (selectedProductCategoryFilter != null && !selectedProductCategoryFilter.isEmpty() &&
+                    !selectedProductCategoryFilter.equalsIgnoreCase(updatedProduct.getCategory())) {
+                    selectedProductCategoryFilter = "";
+                    if (btnProductAllCat != null && btnProductWater != null && btnProductSolution != null && btnProductAccessory != null) {
+                        updateFilterButtonStyles(btnProductAllCat, btnProductWater, btnProductSolution, btnProductAccessory);
+                    }
+                }
+                refreshProductTable(tableRows);
+            });
             form.showInOverlay(contentArea);
         });
         
