@@ -43,3 +43,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Launch4j tool ###
+launch4j/

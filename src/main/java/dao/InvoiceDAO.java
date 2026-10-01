@@ -148,22 +148,71 @@ public class InvoiceDAO {
     }
     
     public boolean deleteInvoice(int id) {
-        String sql = "DELETE FROM invoices WHERE id = ?";
+        String selectItemsSql = "SELECT item_id, item_name, quantity FROM invoice_items WHERE invoice_id = ? AND item_type = 'product'";
+        String restoreStockByIdSql = "UPDATE products SET stock = stock + ?, status = CASE WHEN (stock + ?) > 0 THEN 'Còn hàng' ELSE status END WHERE id = ?";
+        String restoreStockByNameSql = "UPDATE products SET stock = stock + ?, status = CASE WHEN (stock + ?) > 0 THEN 'Còn hàng' ELSE status END WHERE name = ?";
+        String deleteSql = "DELETE FROM invoices WHERE id = ?";
         
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, id);
-            boolean deleted = pstmt.executeUpdate() > 0;
-            if (deleted) {
-                try (Statement stmt = conn.createStatement();
-                     ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM invoices")) {
-                    if (rs.next() && rs.getInt(1) == 0) {
-                        stmt.executeUpdate("DELETE FROM sqlite_sequence WHERE name = 'invoices'");
+        try (Connection conn = DatabaseManager.getConnection()) {
+            boolean oldAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                // 1. Tự động hoàn trả tồn kho cho tất cả sản phẩm trong hóa đơn
+                try (PreparedStatement selectStmt = conn.prepareStatement(selectItemsSql);
+                     PreparedStatement restoreByIdStmt = conn.prepareStatement(restoreStockByIdSql);
+                     PreparedStatement restoreByNameStmt = conn.prepareStatement(restoreStockByNameSql)) {
+                    
+                    selectStmt.setInt(1, id);
+                    try (ResultSet rs = selectStmt.executeQuery()) {
+                        while (rs.next()) {
+                            int prId = rs.getInt("item_id");
+                            boolean hasPrId = !rs.wasNull() && prId > 0;
+                            String prName = rs.getString("item_name");
+                            double qty = rs.getDouble("quantity");
+                            
+                            if (qty > 0) {
+                                if (hasPrId) {
+                                    restoreByIdStmt.setDouble(1, qty);
+                                    restoreByIdStmt.setDouble(2, qty);
+                                    restoreByIdStmt.setInt(3, prId);
+                                    restoreByIdStmt.addBatch();
+                                } else if (prName != null && !prName.trim().isEmpty()) {
+                                    restoreByNameStmt.setDouble(1, qty);
+                                    restoreByNameStmt.setDouble(2, qty);
+                                    restoreByNameStmt.setString(3, prName.trim());
+                                    restoreByNameStmt.addBatch();
+                                }
+                            }
+                        }
                     }
-                } catch (SQLException ignored) {}
+                    restoreByIdStmt.executeBatch();
+                    restoreByNameStmt.executeBatch();
+                }
+
+                // 2. Xóa hóa đơn (cascade sẽ tự động xóa invoice_items)
+                boolean deleted = false;
+                try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                    deleteStmt.setInt(1, id);
+                    deleted = deleteStmt.executeUpdate() > 0;
+                }
+
+                if (deleted) {
+                    try (Statement stmt = conn.createStatement();
+                         ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM invoices")) {
+                        if (rs.next() && rs.getInt(1) == 0) {
+                            stmt.executeUpdate("DELETE FROM sqlite_sequence WHERE name = 'invoices'");
+                        }
+                    } catch (SQLException ignored) {}
+                }
+
+                conn.commit();
+                return deleted;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(oldAutoCommit);
             }
-            return deleted;
         } catch (SQLException e) {
             e.printStackTrace();
         }
