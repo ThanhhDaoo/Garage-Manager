@@ -223,11 +223,12 @@ public class EmployeeForm {
 
         Label lblSalary = new Label("Lương cơ bản *");
         lblSalary.setStyle(labelStyle);
-        txtSalary = new TextField(isEdit ? String.format("%.0f", employee.getBasicSalary()) : "0");
-        txtSalary.setPromptText("Nhập mức lương cơ bản...");
+        txtSalary = new TextField(isEdit && employee != null && employee.getBasicSalary() > 0 ? UIUtils.formatCurrency(employee.getBasicSalary()) : "0");
+        txtSalary.setPromptText("Nhập mức lương cơ bản (VD: 7.000.000)...");
         txtSalary.setPrefWidth(300);
         txtSalary.setMaxWidth(Double.MAX_VALUE);
         txtSalary.setStyle(fieldStyle);
+        UIUtils.formatCurrencyInput(txtSalary);
 
         grid.add(lblCode, 0, 0); grid.add(txtCode, 1, 0);
         grid.add(lblName, 0, 1); grid.add(txtName, 1, 1);
@@ -275,7 +276,7 @@ public class EmployeeForm {
             String code = txtCode.getText().trim();
             String name = txtName.getText().trim();
             String position = cbPosition.getValue() != null ? cbPosition.getValue().trim() : "";
-            double salary = parseDoubleSafe(txtSalary.getText());
+            double salary = UIUtils.parseCurrency(txtSalary.getText());
 
             if (code.isEmpty() || name.isEmpty() || position.isEmpty()) {
                 Alert alert = util.AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng nhập đầy đủ Họ Tên và Chức Vụ!");

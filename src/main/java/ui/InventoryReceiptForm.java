@@ -259,7 +259,7 @@ public class InventoryReceiptForm {
         // Actions & Calculations Bindings
         cbProducts.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
-                txtCostPrice.setText(String.format("%.0f", newVal.getCostPrice()));
+                txtCostPrice.setText(UIUtils.formatCurrency(newVal.getCostPrice()));
                 calculateTotal();
             } else {
                 txtCostPrice.setText("0");
@@ -321,14 +321,14 @@ public class InventoryReceiptForm {
 
     private void calculateTotal() {
         try {
-            double cost = Double.parseDouble(txtCostPrice.getText());
+            double cost = UIUtils.parseCurrency(txtCostPrice.getText());
             String qtyText = txtQty.getText().trim();
             if (qtyText.isEmpty()) {
                 txtTotalPrice.setText("0");
                 return;
             }
             double qty = Double.parseDouble(qtyText);
-            txtTotalPrice.setText(String.format("%.0f", cost * qty));
+            txtTotalPrice.setText(UIUtils.formatCurrency(cost * qty));
         } catch (NumberFormatException e) {
             txtTotalPrice.setText("0");
         }

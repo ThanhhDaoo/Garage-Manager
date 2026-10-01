@@ -245,7 +245,7 @@ public class ProductForm {
         Label lblPrice = new Label("Giá bán *");
         lblPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
         txtPrice = new TextField();
-        txtPrice.setPromptText("Nhập giá bán (VD: 150000)");
+        txtPrice.setPromptText("Nhập giá bán (VD: 150.000)");
         txtPrice.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-padding: 12px 15px;" +
@@ -255,27 +255,17 @@ public class ProductForm {
         );
         txtPrice.setPrefWidth(400);
         txtPrice.setMaxWidth(Double.MAX_VALUE);
-        txtPrice.focusedProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue) { // Lost focus
-                String text = txtPrice.getText().trim();
-                if (!text.isEmpty()) {
-                    String clean = text.replaceAll("[^\\d]", "");
-                    if (!text.equals(clean)) {
-                        txtPrice.setText(clean);
-                    }
-                }
-            }
-        });
-        UIUtils.setupIMEFix(txtPrice);
+        UIUtils.formatCurrencyInput(txtPrice);
         if (isEdit && productPrice != null) {
-            txtPrice.setText(productPrice.replace("đ", "").trim());
+            double p = UIUtils.parseCurrency(productPrice);
+            if (p > 0) txtPrice.setText(UIUtils.formatCurrency(p));
         }
         
         // Cost price
         Label lblCostPrice = new Label("Giá nhập");
         lblCostPrice.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 600;");
         txtCostPrice = new TextField();
-        txtCostPrice.setPromptText("Nhập giá nhập (VD: 100000)");
+        txtCostPrice.setPromptText("Nhập giá nhập (VD: 100.000)");
         txtCostPrice.setStyle(
             "-fx-background-color: #f5f5f5;" +
             "-fx-padding: 12px 15px;" +
@@ -285,21 +275,11 @@ public class ProductForm {
         );
         txtCostPrice.setPrefWidth(400);
         txtCostPrice.setMaxWidth(Double.MAX_VALUE);
-        txtCostPrice.focusedProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue) { // Lost focus
-                String text = txtCostPrice.getText().trim();
-                if (!text.isEmpty()) {
-                    String clean = text.replaceAll("[^\\d]", "");
-                    if (!text.equals(clean)) {
-                        txtCostPrice.setText(clean);
-                    }
-                }
-            }
-        });
+        UIUtils.formatCurrencyInput(txtCostPrice);
         if (isEdit && productCostPrice != null) {
-            txtCostPrice.setText(productCostPrice);
+            double cp = UIUtils.parseCurrency(productCostPrice);
+            if (cp > 0) txtCostPrice.setText(UIUtils.formatCurrency(cp));
         }
-        UIUtils.setupIMEFix(txtCostPrice);
         
         // Stock quantity
         Label lblStock = new Label("Số lượng tồn kho *");
@@ -492,7 +472,7 @@ public class ProductForm {
                 RadioButton selectedCategory = (RadioButton) categoryGroup.getSelectedToggle();
                 String category = selectedCategory != null ? selectedCategory.getText() : "Khác";
                 
-                double price = Double.parseDouble(txtPrice.getText().trim());
+                double price = UIUtils.parseCurrency(txtPrice.getText());
                 if (price < 0) {
                     Alert alert = new Alert(Alert.AlertType.WARNING);
                     alert.setTitle("Cảnh báo");
@@ -530,18 +510,14 @@ public class ProductForm {
                     }
                 }
                 
-                double costPrice = 0;
-                String costPriceText = txtCostPrice.getText().trim();
-                if (!costPriceText.isEmpty()) {
-                    costPrice = Double.parseDouble(costPriceText);
-                    if (costPrice < 0) {
-                        Alert alert = new Alert(Alert.AlertType.WARNING);
-                        alert.setTitle("Cảnh báo");
-                        alert.setHeaderText(null);
-                        alert.setContentText("Giá nhập không được nhỏ hơn 0!");
-                        alert.showAndWait();
-                        return;
-                    }
+                double costPrice = UIUtils.parseCurrency(txtCostPrice.getText());
+                if (costPrice < 0) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Cảnh báo");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Giá nhập không được nhỏ hơn 0!");
+                    alert.showAndWait();
+                    return;
                 }
                 
                 String unit = txtUnit.getText().trim();

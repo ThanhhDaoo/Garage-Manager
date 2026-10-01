@@ -180,12 +180,12 @@ public class ExpenseForm {
 
         Label lblAmount = new Label("Số tiền (VNĐ) *");
         lblAmount.setStyle(labelStyle);
-        txtAmount = new TextField(isEdit ? String.format("%.0f", expense.getAmount()) : "");
-        txtAmount.setPromptText("Nhập số tiền...");
+        txtAmount = new TextField(isEdit && expense != null && expense.getAmount() > 0 ? UIUtils.formatCurrency(expense.getAmount()) : "");
+        txtAmount.setPromptText("Nhập số tiền (VD: 500.000)...");
         txtAmount.setPrefWidth(300);
         txtAmount.setMaxWidth(Double.MAX_VALUE);
         txtAmount.setStyle(fieldStyle);
-        UIUtils.setupIMEFix(txtAmount);
+        UIUtils.formatCurrencyInput(txtAmount);
 
         Label lblDate = new Label("Ngày chi *");
         lblDate.setStyle(labelStyle);
@@ -304,7 +304,7 @@ public class ExpenseForm {
         btnSave.setOnAction(e -> {
             String name = txtName.getText().trim();
             String cat = cbCategory.getValue() != null ? cbCategory.getValue().trim() : "cố định";
-            double amount = parseDoubleSafe(txtAmount.getText());
+            double amount = UIUtils.parseCurrency(txtAmount.getText());
             String notes = txtNotes.getText().trim();
 
             LocalDate date = dpDate.getValue();

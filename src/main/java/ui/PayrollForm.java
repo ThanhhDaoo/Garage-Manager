@@ -85,16 +85,16 @@ public class PayrollForm {
 
         // Recalculation logic
         Runnable recalculate = () -> {
-            double holidayDays = parseDoubleSafe(txtHolidayDays.getText());
+            double holidayDays = parseDoubleDays(txtHolidayDays.getText());
             double totalPaidDays = actualWorkDaysFromAtt + holidayDays;
 
-            double resp = parseDoubleSafe(txtResponsibility.getText());
-            double oth = parseDoubleSafe(txtOther.getText());
-            double cons = parseDoubleSafe(txtConsulting.getText());
-            double serv = parseDoubleSafe(txtServiceComm.getText());
-            double ot = parseDoubleSafe(txtOvertime.getText());
-            double ins = parseDoubleSafe(txtInsurance.getText());
-            double adv = parseDoubleSafe(txtAdvance.getText());
+            double resp = UIUtils.parseCurrency(txtResponsibility.getText());
+            double oth = UIUtils.parseCurrency(txtOther.getText());
+            double cons = UIUtils.parseCurrency(txtConsulting.getText());
+            double serv = UIUtils.parseCurrency(txtServiceComm.getText());
+            double ot = UIUtils.parseCurrency(txtOvertime.getText());
+            double ins = UIUtils.parseCurrency(txtInsurance.getText());
+            double adv = UIUtils.parseCurrency(txtAdvance.getText());
 
             double basicSalary = existing != null ? existing.getBasicSalary() : employee.getBasicSalary();
             int standardDays = totalDays - 2;
@@ -289,42 +289,49 @@ public class PayrollForm {
         txtResponsibility = new TextField(formatValue(respVal));
         txtResponsibility.setPrefWidth(300);
         txtResponsibility.setStyle(fieldStyle);
+        UIUtils.formatCurrencyInput(txtResponsibility);
 
         Label lblOther = new Label("Phụ cấp khác (VNĐ)");
         lblOther.setStyle(labelStyle);
         txtOther = new TextField(formatValue(othVal));
         txtOther.setPrefWidth(300);
         txtOther.setStyle(fieldStyle);
+        UIUtils.formatCurrencyInput(txtOther);
 
         Label lblConsulting = new Label("Hoa hồng tư vấn (VNĐ)");
         lblConsulting.setStyle(labelStyle);
         txtConsulting = new TextField(formatValue(consVal));
         txtConsulting.setPrefWidth(300);
         txtConsulting.setStyle(fieldStyle);
+        UIUtils.formatCurrencyInput(txtConsulting);
 
         Label lblServiceComm = new Label("Hoa hồng dịch vụ (VNĐ)");
         lblServiceComm.setStyle(labelStyle);
         txtServiceComm = new TextField(formatValue(servVal));
         txtServiceComm.setPrefWidth(300);
         txtServiceComm.setStyle(fieldStyle);
+        UIUtils.formatCurrencyInput(txtServiceComm);
 
         Label lblOvertime = new Label("Tiền tăng ca (VNĐ)");
         lblOvertime.setStyle(labelStyle);
         txtOvertime = new TextField(formatValue(otVal));
         txtOvertime.setPrefWidth(300);
         txtOvertime.setStyle(fieldStyle);
+        UIUtils.formatCurrencyInput(txtOvertime);
 
         Label lblInsurance = new Label("Bảo hiểm xã hội (-) (VNĐ)");
         lblInsurance.setStyle(labelStyle);
         txtInsurance = new TextField(formatValue(insVal));
         txtInsurance.setPrefWidth(300);
         txtInsurance.setStyle(fieldStyle);
+        UIUtils.formatCurrencyInput(txtInsurance);
 
         Label lblAdvance = new Label("Tạm ứng (-) (VNĐ)");
         lblAdvance.setStyle(labelStyle);
         txtAdvance = new TextField(formatValue(advVal));
         txtAdvance.setPrefWidth(300);
         txtAdvance.setStyle(fieldStyle);
+        UIUtils.formatCurrencyInput(txtAdvance);
 
         grid.add(lblHoliday, 0, 0); grid.add(holidayBox, 1, 0);
         grid.add(lblResponsibility, 0, 1); grid.add(txtResponsibility, 1, 1);
@@ -368,16 +375,16 @@ public class PayrollForm {
         btnSaveAndExport.setOnMouseEntered(e -> btnSaveAndExport.setOpacity(0.9));
         btnSaveAndExport.setOnMouseExited(e -> btnSaveAndExport.setOpacity(1.0));
         btnSaveAndExport.setOnAction(e -> {
-            double holidayDays = parseDoubleSafe(txtHolidayDays.getText());
+            double holidayDays = parseDoubleDays(txtHolidayDays.getText());
             double totalPaidDays = actualWorkDaysFromAtt + holidayDays;
 
-            double resp = parseDoubleSafe(txtResponsibility.getText());
-            double oth = parseDoubleSafe(txtOther.getText());
-            double cons = parseDoubleSafe(txtConsulting.getText());
-            double serv = parseDoubleSafe(txtServiceComm.getText());
-            double ot = parseDoubleSafe(txtOvertime.getText());
-            double ins = parseDoubleSafe(txtInsurance.getText());
-            double adv = parseDoubleSafe(txtAdvance.getText());
+            double resp = UIUtils.parseCurrency(txtResponsibility.getText());
+            double oth = UIUtils.parseCurrency(txtOther.getText());
+            double cons = UIUtils.parseCurrency(txtConsulting.getText());
+            double serv = UIUtils.parseCurrency(txtServiceComm.getText());
+            double ot = UIUtils.parseCurrency(txtOvertime.getText());
+            double ins = UIUtils.parseCurrency(txtInsurance.getText());
+            double adv = UIUtils.parseCurrency(txtAdvance.getText());
 
             double basicSalary = existing != null ? existing.getBasicSalary() : employee.getBasicSalary();
             int standardDays = totalDays - 2;
@@ -407,13 +414,13 @@ public class PayrollForm {
 
     private String formatValue(double val) {
         if (val == 0.0) return "";
-        return String.format("%.0f", val);
+        return UIUtils.formatCurrency(val);
     }
 
-    private double parseDoubleSafe(String str) {
+    private double parseDoubleDays(String str) {
         if (str == null || str.trim().isEmpty()) return 0;
         try {
-            return Double.parseDouble(str.replaceAll("[^0-9.-]", ""));
+            return Double.parseDouble(str.replaceAll("[^0-9.]", ""));
         } catch (Exception e) {
             return 0;
         }
