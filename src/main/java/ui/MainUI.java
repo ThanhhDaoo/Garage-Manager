@@ -3000,8 +3000,9 @@ public class MainUI extends Application {
 
         // Action to load data
         Runnable loadDailyData = () -> {
-            int targetMonth = cbDailyMonth.getValue();
+            Integer targetMonth = cbDailyMonth.getValue();
             String targetYearStr = cbDailyYear.getValue();
+            if (targetMonth == null || targetYearStr == null) return;
             List<Invoice> invoices = new InvoiceService().getAllInvoices();
             
             List<Invoice> filtered = invoices.stream()
@@ -3009,7 +3010,7 @@ public class MainUI extends Application {
                     if (inv.getCreatedAt() == null || inv.getCreatedAt().length() < 10) return false;
                     try {
                         LocalDate d = LocalDate.parse(inv.getCreatedAt().substring(0, 10));
-                        boolean monthMatch = d.getMonthValue() == targetMonth;
+                        boolean monthMatch = d.getMonthValue() == targetMonth.intValue();
                         boolean yearMatch = String.valueOf(d.getYear()).equals(targetYearStr);
                         return monthMatch && yearMatch;
                     } catch (Exception ex) {
@@ -3024,6 +3025,16 @@ public class MainUI extends Application {
         };
 
         btnFilterDaily.setOnAction(e -> loadDailyData.run());
+        cbDailyMonth.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && cbDailyYear.getValue() != null) {
+                loadDailyData.run();
+            }
+        });
+        cbDailyYear.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && cbDailyMonth.getValue() != null) {
+                loadDailyData.run();
+            }
+        });
         
         btnExcelExport.setOnAction(e -> {
             int targetMonth = cbDailyMonth.getValue();
@@ -3225,6 +3236,7 @@ public class MainUI extends Application {
         // Action to load yearly data
         Runnable loadYearlyData = () -> {
             String targetYearStr = cbYearlyReportYear.getValue();
+            if (targetYearStr == null || targetYearStr.isEmpty()) return;
             List<Invoice> invoicesList = new InvoiceService().getAllInvoices();
             service.FixedExpenseService expenseService = new service.FixedExpenseService();
             dao.PayrollDAO payrollDAO = new dao.PayrollDAO();
@@ -3355,6 +3367,11 @@ public class MainUI extends Application {
         };
 
         btnFilterYearly.setOnAction(e -> loadYearlyData.run());
+        cbYearlyReportYear.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                loadYearlyData.run();
+            }
+        });
         
         btnExcelExportYearly.setOnAction(e -> {
             String targetYearStr = cbYearlyReportYear.getValue();
@@ -3830,14 +3847,17 @@ public class MainUI extends Application {
         btnTabDaily.setOnAction(e -> {
             setTabActive(btnTabDaily, btnTabSummary, btnTabYearly, btnTabDebt);
             tabContentArea.getChildren().setAll(tab2Content);
+            loadDailyData.run();
         });
         btnTabYearly.setOnAction(e -> {
             setTabActive(btnTabYearly, btnTabSummary, btnTabDaily, btnTabDebt);
             tabContentArea.getChildren().setAll(tab3Content);
+            loadYearlyData.run();
         });
         btnTabDebt.setOnAction(e -> {
             setTabActive(btnTabDebt, btnTabSummary, btnTabDaily, btnTabYearly);
             tabContentArea.getChildren().setAll(tab4Content);
+            loadDebtData.run();
         });
 
         // Initialize with Summary Tab
