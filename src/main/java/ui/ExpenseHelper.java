@@ -31,6 +31,12 @@ public class ExpenseHelper {
         searchField.setStyle("-fx-background-color: white; -fx-padding: 9 12; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8; -fx-font-size: 13px;");
         UIUtils.setupIMEFix(searchField);
 
+        ComboBox<String> cbCategoryFilter = new ComboBox<>();
+        cbCategoryFilter.getItems().addAll("Tất cả phân loại", "Cố định", "Biến thiên");
+        cbCategoryFilter.setValue("Tất cả phân loại");
+        cbCategoryFilter.setStyle("-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8; -fx-font-size: 13px; -fx-pref-height: 38px;");
+        cbCategoryFilter.setMinWidth(140);
+
         ComboBox<String> cbMonth = new ComboBox<>();
         for (int i = 1; i <= 12; i++) {
             cbMonth.getItems().add(String.format("%02d", i));
@@ -75,7 +81,7 @@ public class ExpenseHelper {
         );
         btnPdf.setMinWidth(120);
 
-        topBar.getChildren().addAll(searchField, cbMonth, cbYear, btnAdd, spacer, btnPdf);
+        topBar.getChildren().addAll(searchField, cbCategoryFilter, cbMonth, cbYear, btnAdd, spacer, btnPdf);
 
         // Table container
         VBox tableContainer = new VBox(0);
@@ -91,14 +97,14 @@ public class ExpenseHelper {
 
         Label colStt = createFixedLabel("STT", 45, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         Label colDate = createFixedLabel("Ngày Chi", 95, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colName = createFlexLabel("Khoản Mục Chi Phí", 140, 200, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colCategory = createFixedLabel("Phân Loại", 100, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colAmount = createFixedLabel("Số Tiền", 120, Pos.CENTER_RIGHT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
-        Label colNotes = createFlexLabel("Ghi Chú", 90, 130, Pos.CENTER_LEFT, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colName = createFlexLabel("Khoản Mục Chi Phí", 140, 200, Pos.CENTER_LEFT, new Insets(0, 8, 0, 8), "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colCategory = createFixedLabel("Phân Loại", 100, Pos.CENTER_LEFT, new Insets(0, 8, 0, 8), "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colAmount = createFixedLabel("Số Tiền", 135, Pos.CENTER_RIGHT, new Insets(0, 20, 0, 8), "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+        Label colNotes = createFlexLabel("Ghi Chú", 120, 180, Pos.CENTER_LEFT, new Insets(0, 8, 0, 16), "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
         Label colAction = createFixedLabel("Thao Tác", 80, Pos.CENTER, "-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
 
         HBox.setHgrow(colName, Priority.ALWAYS);
-        HBox.setHgrow(colNotes, Priority.SOMETIMES);
+        HBox.setHgrow(colNotes, Priority.ALWAYS);
         tableHeader.getChildren().addAll(colStt, colDate, colName, colCategory, colAmount, colNotes, colAction);
 
         VBox tableRows = new VBox(0);
@@ -129,13 +135,14 @@ public class ExpenseHelper {
         root.getChildren().addAll(topBar, tableContainer);
         contentArea.getChildren().add(root);
 
-        Runnable refreshList = () -> refreshExpenseList(contentArea, tableRows, searchField, cbMonth, cbYear, lblTotal);
+        Runnable refreshList = () -> refreshExpenseList(contentArea, tableRows, searchField, cbCategoryFilter, cbMonth, cbYear, lblSummary, lblTotal);
 
         // Wire event handlers with debounce for search
         javafx.animation.PauseTransition debounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(200));
         debounce.setOnFinished(e -> refreshList.run());
         searchField.textProperty().addListener((obs, oldVal, newVal) -> debounce.playFromStart());
 
+        cbCategoryFilter.setOnAction(e -> refreshList.run());
         cbMonth.setOnAction(e -> refreshList.run());
         cbYear.setOnAction(e -> refreshList.run());
         btnAdd.setOnAction(e -> {
@@ -146,42 +153,81 @@ public class ExpenseHelper {
         });
         btnPdf.setOnAction(e -> {
             String monthStr = cbYear.getValue() + "-" + cbMonth.getValue();
-            exportExpenseReportToPDF(btnPdf.getScene().getWindow(), monthStr);
+            exportExpenseReportToPDF(btnPdf.getScene().getWindow(), monthStr, cbCategoryFilter.getValue());
         });
 
         // Initial load
         refreshList.run();
     }
 
-    private static void refreshExpenseList(StackPane contentArea, VBox tableRows, TextField searchField, ComboBox<String> cbMonth, ComboBox<String> cbYear, Label lblTotal) {
+    private static void refreshExpenseList(StackPane contentArea, VBox tableRows, TextField searchField, ComboBox<String> cbCategoryFilter, ComboBox<String> cbMonth, ComboBox<String> cbYear, Label lblSummary, Label lblTotal) {
         tableRows.getChildren().clear();
         FixedExpenseService service = new FixedExpenseService();
         String monthStr = cbYear.getValue() + "-" + cbMonth.getValue();
         List<FixedExpense> list = service.getAllExpensesByMonth(monthStr);
         String query = searchField.getText().toLowerCase().trim();
+        String selectedCat = cbCategoryFilter.getValue();
 
-        Runnable refreshSelf = () -> refreshExpenseList(contentArea, tableRows, searchField, cbMonth, cbYear, lblTotal);
+        if (selectedCat != null && selectedCat.toLowerCase().contains("cố định")) {
+            lblSummary.setText("TỔNG CHI PHÍ CỐ ĐỊNH:");
+        } else if (selectedCat != null && selectedCat.toLowerCase().contains("biến thiên")) {
+            lblSummary.setText("TỔNG CHI PHÍ BIẾN THIÊN:");
+        } else {
+            lblSummary.setText("TỔNG CHI PHÍ THÁNG:");
+        }
+
+        Runnable refreshSelf = () -> refreshExpenseList(contentArea, tableRows, searchField, cbCategoryFilter, cbMonth, cbYear, lblSummary, lblTotal);
 
         double totalAmount = 0;
         int stt = 1;
         for (FixedExpense exp : list) {
-            if (query.isEmpty() || exp.getExpenseName().toLowerCase().contains(query) || exp.getFormattedDate().contains(query)) {
-                totalAmount += exp.getAmount();
+            String expCat = exp.getCategory() != null ? exp.getCategory().trim().toLowerCase() : "cố định";
 
-                HBox row = new HBox(0);
-                row.setAlignment(Pos.CENTER_LEFT);
-                row.setPadding(new Insets(10, 16, 10, 16));
-                row.setStyle("-fx-background-color: white; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
+            // Category filter
+            if (selectedCat != null && !selectedCat.contains("Tất cả")) {
+                if (selectedCat.toLowerCase().contains("cố định") && !expCat.contains("cố định")) {
+                    continue;
+                }
+                if (selectedCat.toLowerCase().contains("biến thiên") && !expCat.contains("biến thiên")) {
+                    continue;
+                }
+            }
 
-                row.setOnMouseEntered(e -> row.setStyle("-fx-background-color: #f9fafb; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;"));
-                row.setOnMouseExited(e -> row.setStyle("-fx-background-color: white; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;"));
+            // Search query filter
+            boolean matchSearch = query.isEmpty()
+                || exp.getExpenseName().toLowerCase().contains(query)
+                || exp.getFormattedDate().contains(query)
+                || (exp.getNotes() != null && exp.getNotes().toLowerCase().contains(query))
+                || expCat.contains(query);
+            if (!matchSearch) {
+                continue;
+            }
 
-                Label rStt = createFixedLabel(String.valueOf(stt++), 45, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
-                Label rDate = createFixedLabel(exp.getFormattedDate(), 95, Pos.CENTER, "-fx-text-fill: #1976D2; -fx-font-weight: 600; -fx-font-size: 13px;");
-                Label rName = createFlexLabel(exp.getExpenseName(), 140, 200, Pos.CENTER_LEFT, "-fx-font-weight: 500; -fx-text-fill: #212121; -fx-font-size: 13px;");
-                Label rCategory = createFixedLabel(exp.getCategory() != null ? exp.getCategory() : "-", 100, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
-                Label rAmount = createFixedLabel(String.format("%,.0f đ", exp.getAmount()), 120, Pos.CENTER_RIGHT, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
-                Label rNotes = createFlexLabel(exp.getNotes() != null && !exp.getNotes().isEmpty() ? exp.getNotes() : "-", 90, 130, Pos.CENTER_LEFT, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+            totalAmount += exp.getAmount();
+
+            HBox row = new HBox(0);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.setPadding(new Insets(10, 16, 10, 16));
+            row.setStyle("-fx-background-color: white; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;");
+
+            row.setOnMouseEntered(e -> row.setStyle("-fx-background-color: #f9fafb; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;"));
+            row.setOnMouseExited(e -> row.setStyle("-fx-background-color: white; -fx-border-color: #f3f4f6; -fx-border-width: 0 0 1 0;"));
+
+            boolean isFixed = expCat.contains("cố định");
+            String catDisplay = isFixed ? "Cố định" : "Biến thiên";
+            String catStyle = isFixed
+                ? "-fx-text-fill: #1565C0; -fx-font-weight: 600; -fx-font-size: 13px;"
+                : "-fx-text-fill: #E65100; -fx-font-weight: 600; -fx-font-size: 13px;";
+
+            Label rStt = createFixedLabel(String.valueOf(stt++), 45, Pos.CENTER, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+            Label rDate = createFixedLabel(exp.getFormattedDate(), 95, Pos.CENTER, "-fx-text-fill: #1976D2; -fx-font-weight: 600; -fx-font-size: 13px;");
+            Label rName = createFlexLabel(exp.getExpenseName(), 140, 200, Pos.CENTER_LEFT, new Insets(0, 8, 0, 8), "-fx-font-weight: 500; -fx-text-fill: #212121; -fx-font-size: 13px;");
+            Label rCategory = createFixedLabel(catDisplay, 100, Pos.CENTER_LEFT, new Insets(0, 8, 0, 8), catStyle);
+            Label rAmount = createFixedLabel(String.format("%,.0f đ", exp.getAmount()), 135, Pos.CENTER_RIGHT, new Insets(0, 20, 0, 8), "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
+            Label rNotes = createFlexLabel(exp.getNotes() != null && !exp.getNotes().isEmpty() ? exp.getNotes() : "-", 120, 180, Pos.CENTER_LEFT, new Insets(0, 8, 0, 16), "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+            if (exp.getNotes() != null && !exp.getNotes().trim().isEmpty()) {
+                rNotes.setTooltip(new Tooltip(exp.getNotes()));
+            }
 
                 HBox actions = new HBox(6);
                 actions.setPrefWidth(80);
@@ -212,44 +258,71 @@ public class ExpenseHelper {
                 actions.getChildren().addAll(btnEdit, btnDelete);
 
                 HBox.setHgrow(rName, Priority.ALWAYS);
-                HBox.setHgrow(rNotes, Priority.SOMETIMES);
+                HBox.setHgrow(rNotes, Priority.ALWAYS);
 
                 row.getChildren().addAll(rStt, rDate, rName, rCategory, rAmount, rNotes, actions);
                 tableRows.getChildren().add(row);
             }
-        }
         lblTotal.setText(String.format("%,.0f đ", totalAmount));
     }
 
     private static Label createFixedLabel(String text, double width, Pos alignment, String style) {
+        return createFixedLabel(text, width, alignment, null, style);
+    }
+
+    private static Label createFixedLabel(String text, double width, Pos alignment, Insets padding, String style) {
         Label label = new Label(text);
         label.setPrefWidth(width);
         label.setMinWidth(width);
         label.setMaxWidth(width);
         label.setAlignment(alignment);
+        if (padding != null) {
+            label.setPadding(padding);
+        }
         label.setStyle(style);
         return label;
     }
 
     private static Label createFlexLabel(String text, double minWidth, double prefWidth, Pos alignment, String style) {
+        return createFlexLabel(text, minWidth, prefWidth, alignment, null, style);
+    }
+
+    private static Label createFlexLabel(String text, double minWidth, double prefWidth, Pos alignment, Insets padding, String style) {
         Label label = new Label(text);
         label.setMinWidth(minWidth);
         label.setPrefWidth(prefWidth);
         label.setMaxWidth(Double.MAX_VALUE);
         label.setAlignment(alignment);
+        if (padding != null) {
+            label.setPadding(padding);
+        }
         label.setStyle(style);
         return label;
     }
 
     public static void exportExpenseReportToPDF(javafx.stage.Window window, String expenseMonth) {
+        exportExpenseReportToPDF(window, expenseMonth, "Tất cả");
+    }
+
+    public static void exportExpenseReportToPDF(javafx.stage.Window window, String expenseMonth, String categoryFilter) {
         try {
             int year = Integer.parseInt(expenseMonth.substring(0, 4));
             int month = Integer.parseInt(expenseMonth.substring(5, 7));
             String displayMonth = "Tháng " + month + " Năm " + year;
 
+            String catSuffix = "";
+            String titleText = "BẢNG PHÂN LOẠI CHI PHÍ";
+            if (categoryFilter != null && categoryFilter.toLowerCase().contains("cố định")) {
+                catSuffix = "_CoDinh";
+                titleText = "BẢNG PHÂN LOẠI CHI PHÍ CỐ ĐỊNH";
+            } else if (categoryFilter != null && categoryFilter.toLowerCase().contains("biến thiên")) {
+                catSuffix = "_BienThien";
+                titleText = "BẢNG PHÂN LOẠI CHI PHÍ BIẾN THIÊN";
+            }
+
             javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
-            fileChooser.setTitle("Lưu Báo Cáo Chi Phí Cố Định PDF");
-            fileChooser.setInitialFileName("BaoCaoChiPhi_" + expenseMonth + ".pdf");
+            fileChooser.setTitle("Lưu Báo Cáo Chi Phí PDF");
+            fileChooser.setInitialFileName("BaoCaoChiPhi_" + expenseMonth + catSuffix + ".pdf");
             fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
             
             java.io.File file = fileChooser.showSaveDialog(window);
@@ -275,7 +348,7 @@ public class ExpenseHelper {
             document.add(compAddr);
             document.add(compMst);
             
-            com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph("BẢNG PHÂN LOẠI CHI PHÍ CỐ ĐỊNH")
+            com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph(titleText)
                 .setFont(boldFont)
                 .setFontSize(14)
                 .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
@@ -292,7 +365,17 @@ public class ExpenseHelper {
 
             // Load data
             FixedExpenseService service = new FixedExpenseService();
-            List<FixedExpense> list = service.getAllExpensesByMonth(expenseMonth);
+            List<FixedExpense> rawList = service.getAllExpensesByMonth(expenseMonth);
+            List<FixedExpense> list = rawList.stream().filter(exp -> {
+                if (categoryFilter == null || categoryFilter.contains("Tất cả")) return true;
+                String expCat = exp.getCategory() != null ? exp.getCategory().trim().toLowerCase() : "cố định";
+                if (categoryFilter.toLowerCase().contains("cố định")) {
+                    return expCat.contains("cố định");
+                } else if (categoryFilter.toLowerCase().contains("biến thiên")) {
+                    return expCat.contains("biến thiên");
+                }
+                return true;
+            }).collect(java.util.stream.Collectors.toList());
 
             // Grid Table
             float[] columnWidths = {25f, 65f, 155f, 75f, 85f, 110f};
@@ -331,10 +414,12 @@ public class ExpenseHelper {
             int stt = 1;
             double totalSum = 0;
             for (FixedExpense exp : list) {
+                String expCat = exp.getCategory() != null ? exp.getCategory().trim() : "cố định";
+                String catDisplay = expCat.toLowerCase().contains("biến thiên") ? "Biến thiên" : "Cố định";
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.valueOf(stt++)).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER).setPadding(5));
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(exp.getFormattedDate()).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER).setPadding(5));
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(exp.getExpenseName()).setFont(font)).setPadding(5));
-                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(exp.getCategory() != null ? exp.getCategory() : "-").setFont(font)).setPadding(5));
+                table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(catDisplay).setFont(font)).setPadding(5));
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(String.format("%,.0f", exp.getAmount())).setFont(font)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT).setPadding(5));
                 table.addCell(new com.itextpdf.layout.element.Cell().add(new com.itextpdf.layout.element.Paragraph(exp.getNotes() != null && !exp.getNotes().isEmpty() ? exp.getNotes() : "-").setFont(font)).setPadding(5));
                 totalSum += exp.getAmount();
@@ -382,7 +467,7 @@ public class ExpenseHelper {
             document.add(sigTable);
             document.close();
 
-            Alert alert = util.AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công", "Xuất báo cáo chi phí cố định PDF thành công!");
+            Alert alert = util.AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công", "Xuất báo cáo chi phí PDF thành công!");
             alert.show();
 
         } catch (Exception e) {
