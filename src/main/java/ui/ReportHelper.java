@@ -20,7 +20,8 @@ public class ReportHelper {
                     if (inv.getCreatedAt() == null)
                         return false;
                     try {
-                        java.time.LocalDate invDate = java.time.LocalDate.parse(inv.getCreatedAt().substring(0, 10));
+                        java.time.LocalDate invDate = UIUtils.parseLocalDateSafe(inv.getCreatedAt());
+                        if (invDate == null) return false;
                         return !invDate.isBefore(fromDate) && !invDate.isAfter(toDate);
                     } catch (Exception e) {
                         return false;
@@ -268,15 +269,7 @@ public class ReportHelper {
                 displayTotal += vat;
             }
 
-            String dateFormatted = "";
-            if (inv.getCreatedAt() != null && inv.getCreatedAt().length() >= 10) {
-                try {
-                    java.time.LocalDate d = java.time.LocalDate.parse(inv.getCreatedAt().substring(0, 10));
-                    dateFormatted = d.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                } catch (Exception e) {
-                    dateFormatted = inv.getCreatedAt().substring(0, 10);
-                }
-            }
+            String dateFormatted = UIUtils.formatDateDMY(inv.getCreatedAt());
 
             model.DailyReportRow row = new model.DailyReportRow(
                     stt++,
@@ -1249,7 +1242,7 @@ public class ReportHelper {
                 c1.setCellValue(String.format("%05d", inv.getId()));
                 c1.setCellStyle(centerStyle);
                 org.apache.poi.ss.usermodel.Cell c2 = row.createCell(2);
-                c2.setCellValue(inv.getCreatedAt() != null ? inv.getCreatedAt() : "");
+                c2.setCellValue(UIUtils.formatDateDMY(inv.getCreatedAt()));
                 c2.setCellStyle(centerStyle);
                 org.apache.poi.ss.usermodel.Cell c3 = row.createCell(3);
                 c3.setCellValue(inv.getCustomerName());
@@ -1410,7 +1403,7 @@ public class ReportHelper {
                 addRowCell.accept(String.valueOf(stt++), com.itextpdf.layout.properties.TextAlignment.CENTER);
                 addRowCell.accept(String.format("%05d", inv.getId()),
                         com.itextpdf.layout.properties.TextAlignment.CENTER);
-                addRowCell.accept(inv.getCreatedAt() != null ? inv.getCreatedAt().substring(0, 16) : "",
+                addRowCell.accept(UIUtils.formatDateDMY(inv.getCreatedAt()),
                         com.itextpdf.layout.properties.TextAlignment.CENTER);
                 addRowCell.accept(inv.getCustomerName(), com.itextpdf.layout.properties.TextAlignment.LEFT);
                 addRowCell.accept(inv.getPhone() != null ? inv.getPhone() : "",

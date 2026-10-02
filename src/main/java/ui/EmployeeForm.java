@@ -185,11 +185,12 @@ public class EmployeeForm {
         Label lblDob = new Label("Ngày sinh");
         lblDob.setStyle(labelStyle);
         dpDob = new DatePicker();
+        UIUtils.formatDatePicker(dpDob);
         dpDob.setPrefWidth(300);
         dpDob.setMaxWidth(Double.MAX_VALUE);
         dpDob.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
         if (isEdit && employee.getDob() != null && !employee.getDob().isEmpty()) {
-            try { dpDob.setValue(LocalDate.parse(employee.getDob())); } catch (Exception ex) {}
+            try { dpDob.setValue(UIUtils.parseLocalDateSafe(employee.getDob())); } catch (Exception ex) {}
         }
 
         Label lblGender = new Label("Giới tính");
@@ -203,11 +204,12 @@ public class EmployeeForm {
         Label lblStartDate = new Label("Ngày vào làm");
         lblStartDate.setStyle(labelStyle);
         dpStartDate = new DatePicker();
+        UIUtils.formatDatePicker(dpStartDate);
         dpStartDate.setPrefWidth(300);
         dpStartDate.setMaxWidth(Double.MAX_VALUE);
         dpStartDate.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
         if (isEdit && employee.getStartDate() != null && !employee.getStartDate().isEmpty()) {
-            try { dpStartDate.setValue(LocalDate.parse(employee.getStartDate())); } catch (Exception ex) {}
+            try { dpStartDate.setValue(UIUtils.parseLocalDateSafe(employee.getStartDate())); } catch (Exception ex) {}
         } else {
             dpStartDate.setValue(LocalDate.now());
         }

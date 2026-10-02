@@ -375,28 +375,11 @@ public class MainUI extends Application {
     }
 
     private String formatDateTimeToDMY(String input) {
-        if (input == null || input.trim().isEmpty()) return "N/A";
-        String str = input.trim();
-        String[] parts = str.split(" ");
-        String datePart = parts[0];
-        String timePart = parts.length > 1 ? parts[1] : "";
-        String[] dateParts = datePart.split("-");
-        if (dateParts.length == 3 && dateParts[0].length() == 4) {
-            String formattedDate = dateParts[2] + "/" + dateParts[1] + "/" + dateParts[0];
-            return timePart.isEmpty() ? formattedDate : formattedDate + " " + timePart;
-        }
-        return str;
+        return UIUtils.formatDateTimeDMY(input);
     }
 
     private String formatInvoiceDateOnly(String input) {
-        if (input == null || input.trim().isEmpty()) return "—";
-        String str = input.trim();
-        String datePart = str.split("[ T]")[0];
-        String[] dateParts = datePart.split("-");
-        if (dateParts.length == 3 && dateParts[0].length() == 4) {
-            return dateParts[2] + "/" + dateParts[1] + "/" + dateParts[0];
-        }
-        return str;
+        return UIUtils.formatDateDMY(input);
     }
 
     private boolean matchesTimeFilters(String dateStr, String period, String month, String year) {
@@ -411,10 +394,8 @@ public class MainUI extends Application {
 
         if (dateStr == null || dateStr.trim().isEmpty()) return false;
         try {
-            String cleanDateStr = dateStr.split("[ T]")[0];
-            if (cleanDateStr.length() < 10) return false;
-
-            LocalDate date = LocalDate.parse(cleanDateStr);
+            LocalDate date = UIUtils.parseLocalDateSafe(dateStr);
+            if (date == null) return false;
             LocalDate today = LocalDate.now();
             
             if (hasPeriodFilter) {
@@ -2762,9 +2743,11 @@ public class MainUI extends Application {
             for (Invoice inv : filtered) {
                 if (inv.getCreatedAt() != null) {
                     try {
-                        LocalDate d = LocalDate.parse(inv.getCreatedAt().substring(0, 10));
-                        if (minDate == null || d.isBefore(minDate)) minDate = d;
-                        if (maxDate == null || d.isAfter(maxDate)) maxDate = d;
+                        LocalDate d = UIUtils.parseLocalDateSafe(inv.getCreatedAt());
+                        if (d != null) {
+                            if (minDate == null || d.isBefore(minDate)) minDate = d;
+                            if (maxDate == null || d.isAfter(maxDate)) maxDate = d;
+                        }
                     } catch (Exception ex) {}
                 }
             }
@@ -3009,7 +2992,8 @@ public class MainUI extends Application {
                 .filter(inv -> {
                     if (inv.getCreatedAt() == null || inv.getCreatedAt().length() < 10) return false;
                     try {
-                        LocalDate d = LocalDate.parse(inv.getCreatedAt().substring(0, 10));
+                        LocalDate d = UIUtils.parseLocalDateSafe(inv.getCreatedAt());
+                        if (d == null) return false;
                         boolean monthMatch = d.getMonthValue() == targetMonth.intValue();
                         boolean yearMatch = String.valueOf(d.getYear()).equals(targetYearStr);
                         return monthMatch && yearMatch;
@@ -3766,7 +3750,8 @@ public class MainUI extends Application {
                 // Filter date range
                 if (inv.getCreatedAt() == null || inv.getCreatedAt().length() < 10) continue;
                 try {
-                    LocalDate d = LocalDate.parse(inv.getCreatedAt().substring(0, 10));
+                    LocalDate d = UIUtils.parseLocalDateSafe(inv.getCreatedAt());
+                    if (d == null) continue;
                     boolean yearMatch = String.valueOf(d.getYear()).equals(selectedYear);
                     boolean monthMatch = selectedMonth.equals("Tất cả các tháng") || 
                                          selectedMonth.equals("Tháng " + d.getMonthValue());
@@ -3777,7 +3762,7 @@ public class MainUI extends Application {
                             .map(model.InvoiceItem::getItemName)
                             .collect(java.util.stream.Collectors.joining(", "));
                         
-                        rows.add(new DebtRow(inv, inv.getCreatedAt(), servicesSummary, inv.getTotalAmount()));
+                        rows.add(new DebtRow(inv, formatInvoiceDateOnly(inv.getCreatedAt()), servicesSummary, inv.getTotalAmount()));
                         totalDebtSum += inv.getTotalAmount();
                     }
                 } catch (Exception ex) {
@@ -5200,7 +5185,7 @@ public class MainUI extends Application {
                 .add(new com.itextpdf.layout.element.Paragraph(invoice.getAddress() != null ? invoice.getAddress() : "").setFont(font).setFontSize(10.5f).setFontColor(blackColor)));
 
             // Row 4: Thời gian nhận xe
-            String createdAt = invoice.getCreatedAt() != null ? invoice.getCreatedAt() : "";
+            String createdAt = formatDateTimeToDMY(invoice.getCreatedAt());
             custTable.addCell(new com.itextpdf.layout.element.Cell().setBorder(null).setPadding(1.5f)
                 .add(new com.itextpdf.layout.element.Paragraph("Thời gian nhận xe:").setFont(boldFont).setFontSize(10.5f).setFontColor(redColor)));
             custTable.addCell(new com.itextpdf.layout.element.Cell(1, 3).setBorder(null).setPadding(1.5f)

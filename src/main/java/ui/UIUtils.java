@@ -1,9 +1,13 @@
 package ui;
 
 import javafx.scene.Node;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputControl;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 public class UIUtils {
 
@@ -133,5 +137,88 @@ public class UIUtils {
                 }
             } catch (NumberFormatException ignored) {}
         });
+    }
+
+    public static final DateTimeFormatter DMY_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    public static void formatDatePicker(DatePicker datePicker) {
+        if (datePicker == null) return;
+        datePicker.setPromptText("dd/MM/yyyy");
+        datePicker.setConverter(new StringConverter<LocalDate>() {
+            @Override
+            public String toString(LocalDate date) {
+                return date != null ? DMY_FORMATTER.format(date) : "";
+            }
+
+            @Override
+            public LocalDate fromString(String string) {
+                return parseLocalDateSafe(string);
+            }
+        });
+
+        datePicker.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                commitDatePickerValue(datePicker);
+            }
+        });
+
+        if (datePicker.getEditor() != null) {
+            datePicker.getEditor().setOnAction(e -> commitDatePickerValue(datePicker));
+        }
+    }
+
+    public static void commitDatePickerValue(DatePicker datePicker) {
+        if (datePicker == null || datePicker.getEditor() == null) return;
+        try {
+            String text = datePicker.getEditor().getText();
+            if (text != null && !text.trim().isEmpty()) {
+                LocalDate parsed = parseLocalDateSafe(text);
+                if (parsed != null) {
+                    datePicker.setValue(parsed);
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
+    public static LocalDate parseLocalDateSafe(String text) {
+        if (text == null || text.trim().isEmpty()) return null;
+        String clean = text.trim();
+        if (clean.contains(" ") || clean.contains("T")) {
+            clean = clean.split("[ T]")[0].trim();
+        }
+        for (String pattern : new String[]{"dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "d-M-yyyy", "yyyy-MM-dd", "yyyy/MM/dd"}) {
+            try {
+                return LocalDate.parse(clean, DateTimeFormatter.ofPattern(pattern));
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    public static String formatDateDMY(LocalDate date) {
+        return date != null ? DMY_FORMATTER.format(date) : "";
+    }
+
+    public static String formatDateDMY(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) return "—";
+        LocalDate date = parseLocalDateSafe(dateStr);
+        if (date != null) {
+            return DMY_FORMATTER.format(date);
+        }
+        return dateStr;
+    }
+
+    public static String formatDateTimeDMY(String input) {
+        if (input == null || input.trim().isEmpty()) return "N/A";
+        String str = input.trim();
+        String[] parts = str.split("[ T]");
+        String datePart = parts[0];
+        String timePart = parts.length > 1 ? parts[1] : "";
+        LocalDate date = parseLocalDateSafe(datePart);
+        String formattedDate = date != null ? DMY_FORMATTER.format(date) : datePart;
+        
+        if (timePart.contains(".")) {
+            timePart = timePart.substring(0, timePart.indexOf('.'));
+        }
+        return timePart.isEmpty() ? formattedDate : formattedDate + " " + timePart;
     }
 }

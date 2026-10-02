@@ -376,10 +376,11 @@ public class CreateInvoiceForm {
                     cbPaymentMethod.setValue("Ghi nợ (N)");
                 }
             }
-            if (dpCreatedAt != null && existingInvoice.getCreatedAt() != null && existingInvoice.getCreatedAt().length() >= 10) {
-                try {
-                    dpCreatedAt.setValue(LocalDate.parse(existingInvoice.getCreatedAt().substring(0, 10)));
-                } catch (Exception ignored) {}
+            if (dpCreatedAt != null && existingInvoice.getCreatedAt() != null && !existingInvoice.getCreatedAt().trim().isEmpty()) {
+                LocalDate parsed = UIUtils.parseLocalDateSafe(existingInvoice.getCreatedAt());
+                if (parsed != null) {
+                    dpCreatedAt.setValue(parsed);
+                }
             }
             
             recalculateTotal();
@@ -593,11 +594,13 @@ public class CreateInvoiceForm {
         Label lblCreatedAt = new Label("Ngày lập hóa đơn *");
         lblCreatedAt.setStyle("-fx-font-size: 14px; -fx-text-fill: #424242; -fx-font-weight: 500;");
         dpCreatedAt = new DatePicker();
+        UIUtils.formatDatePicker(dpCreatedAt);
         LocalDate defaultDate = LocalDate.now();
-        if (prefilledCreatedAt != null && prefilledCreatedAt.trim().length() >= 10) {
-            try {
-                defaultDate = LocalDate.parse(prefilledCreatedAt.trim().substring(0, 10));
-            } catch (Exception ignored) {}
+        if (prefilledCreatedAt != null && !prefilledCreatedAt.trim().isEmpty()) {
+            LocalDate parsed = UIUtils.parseLocalDateSafe(prefilledCreatedAt);
+            if (parsed != null) {
+                defaultDate = parsed;
+            }
         }
         dpCreatedAt.setValue(defaultDate);
         dpCreatedAt.setStyle(
@@ -607,13 +610,6 @@ public class CreateInvoiceForm {
                         "-fx-font-size: 14px;" +
                         "-fx-pref-height: 44px;" +
                         "-fx-pref-width: 300px;");
-        dpCreatedAt.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                try {
-                    dpCreatedAt.setValue(dpCreatedAt.getConverter().fromString(dpCreatedAt.getEditor().getText()));
-                } catch (Exception ignored) {}
-            }
-        });
 
         grid.add(lblName, 0, 0);
         grid.add(txtName, 1, 0);
@@ -2548,6 +2544,7 @@ public class CreateInvoiceForm {
             }
 
             // Determine invoice creation date
+            UIUtils.commitDatePickerValue(dpCreatedAt);
             LocalDate selectedDate = (dpCreatedAt != null && dpCreatedAt.getValue() != null) ? dpCreatedAt.getValue() : LocalDate.now();
             String timeStr = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
             String createdAtStr;

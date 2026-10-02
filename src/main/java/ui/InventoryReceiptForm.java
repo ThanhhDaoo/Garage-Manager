@@ -236,6 +236,7 @@ public class InventoryReceiptForm {
         Label lblDate = new Label("Ngày nhập *");
         lblDate.setStyle(labelStyle);
         dpDate = new DatePicker(LocalDate.now());
+        UIUtils.formatDatePicker(dpDate);
         dpDate.setMaxWidth(Double.MAX_VALUE);
         dpDate.setStyle("-fx-font-size: 14px; -fx-pref-height: 44px;");
 
