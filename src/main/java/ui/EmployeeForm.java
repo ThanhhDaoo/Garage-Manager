@@ -348,25 +348,14 @@ public class EmployeeForm {
     }
 
     private String getDateStringFromDatePicker(DatePicker dp) {
+        UIUtils.commitDatePickerValue(dp);
         if (dp.getValue() != null) {
             return dp.getValue().toString();
         }
         String text = dp.getEditor().getText();
         if (text != null && !text.trim().isEmpty()) {
-            try {
-                LocalDate date = dp.getConverter().fromString(text);
-                if (date != null) return date.toString();
-            } catch (Exception e) {
-                String cleanText = text.trim();
-                String[] formats = {"dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "d-M-yyyy", "yyyy-MM-dd"};
-                for (String fmt : formats) {
-                    try {
-                        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern(fmt);
-                        LocalDate date = LocalDate.parse(cleanText, dtf);
-                        return date.toString();
-                    } catch (Exception ex) {}
-                }
-            }
+            LocalDate date = UIUtils.parseLocalDateSafe(text);
+            if (date != null) return date.toString();
         }
         return "";
     }

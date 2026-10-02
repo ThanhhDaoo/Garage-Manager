@@ -219,7 +219,7 @@ public class HRHelper {
         Label colPhone = createLabel(emp.getPhone() != null ? emp.getPhone() : "-", 120, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
         Label colPosition = createLabel(emp.getPosition() != null ? emp.getPosition() : "-", 140, Pos.CENTER_LEFT, "-fx-text-fill: #4b5563; -fx-font-size: 13px;");
         Label colSalary = createLabel(String.format("%,.0f đ", emp.getBasicSalary()), 130, Pos.CENTER_LEFT, "-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 13px;");
-        Label colStartDate = createLabel(emp.getStartDate() != null ? emp.getStartDate() : "-", 120, Pos.CENTER_LEFT, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
+        Label colStartDate = createLabel(emp.getStartDate() != null ? UIUtils.formatDateDMY(emp.getStartDate()) : "-", 120, Pos.CENTER_LEFT, "-fx-text-fill: #6b7280; -fx-font-size: 13px;");
 
         HBox actions = new HBox(8);
         actions.setPrefWidth(100);

@@ -6964,7 +6964,7 @@ public class MainUI extends Application {
         colSalary.setPrefWidth(130);
         colSalary.setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: bold;");
 
-        Label colStartDate = new Label(emp.getStartDate() != null ? emp.getStartDate() : "-");
+        Label colStartDate = new Label(emp.getStartDate() != null ? UIUtils.formatDateDMY(emp.getStartDate()) : "-");
         colStartDate.setPrefWidth(120);
         colStartDate.setStyle("-fx-text-fill: #616161;");
 
@@ -7055,9 +7055,10 @@ public class MainUI extends Application {
         Label lblDob = new Label("Ngày sinh");
         lblDob.setStyle("-fx-font-weight: 500;");
         DatePicker dpDob = new DatePicker();
+        UIUtils.formatDatePicker(dpDob);
         dpDob.setStyle("-fx-pref-width: 300px; -fx-font-size: 13px;");
         if (emp != null && emp.getDob() != null && !emp.getDob().isEmpty()) {
-            try { dpDob.setValue(LocalDate.parse(emp.getDob())); } catch (Exception ex) {}
+            try { dpDob.setValue(UIUtils.parseLocalDateSafe(emp.getDob())); } catch (Exception ex) {}
         }
 
         Label lblGender = new Label("Giới tính");
@@ -7070,9 +7071,10 @@ public class MainUI extends Application {
         Label lblStartDate = new Label("Ngày vào làm");
         lblStartDate.setStyle("-fx-font-weight: 500;");
         DatePicker dpStartDate = new DatePicker();
+        UIUtils.formatDatePicker(dpStartDate);
         dpStartDate.setStyle("-fx-pref-width: 300px; -fx-font-size: 13px;");
         if (emp != null && emp.getStartDate() != null && !emp.getStartDate().isEmpty()) {
-            try { dpStartDate.setValue(LocalDate.parse(emp.getStartDate())); } catch (Exception ex) {}
+            try { dpStartDate.setValue(UIUtils.parseLocalDateSafe(emp.getStartDate())); } catch (Exception ex) {}
         } else {
             dpStartDate.setValue(LocalDate.now());
         }
@@ -7129,6 +7131,8 @@ public class MainUI extends Application {
             saveEmp.setName(name);
             saveEmp.setPhone(txtPhone.getText().trim());
             saveEmp.setAddress(txtAddress.getText().trim());
+            UIUtils.commitDatePickerValue(dpDob);
+            UIUtils.commitDatePickerValue(dpStartDate);
             saveEmp.setDob(dpDob.getValue() != null ? dpDob.getValue().toString() : "");
             saveEmp.setGender(cbGender.getValue());
             saveEmp.setStartDate(dpStartDate.getValue() != null ? dpStartDate.getValue().toString() : "");
