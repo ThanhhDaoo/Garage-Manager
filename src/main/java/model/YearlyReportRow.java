@@ -15,6 +15,7 @@ public class YearlyReportRow {
     private double profitPaint;
     private double variableCost;
     private double fixedCost;
+    private double payrollCost;
     private double totalNetProfit;
     private double warehouseImport;
 
@@ -25,12 +26,20 @@ public class YearlyReportRow {
                            double variableCost, double fixedCost, double totalNetProfit) {
         this(month, revenueWash, revenueCare, revenueAccessory, revenuePaint,
              totalRevenue, vat, costWash, profitWash, profitCare, profitAccessory, profitPaint,
-             variableCost, fixedCost, totalNetProfit, 0.0);
+             variableCost, fixedCost, 0.0, totalNetProfit, 0.0);
     }
 
     public YearlyReportRow(String month, double revenueWash, double revenueCare, double revenueAccessory, double revenuePaint,
                            double totalRevenue, double vat, double costWash, double profitWash, double profitCare, double profitAccessory, double profitPaint,
                            double variableCost, double fixedCost, double totalNetProfit, double warehouseImport) {
+        this(month, revenueWash, revenueCare, revenueAccessory, revenuePaint,
+             totalRevenue, vat, costWash, profitWash, profitCare, profitAccessory, profitPaint,
+             variableCost, fixedCost, 0.0, totalNetProfit, warehouseImport);
+    }
+
+    public YearlyReportRow(String month, double revenueWash, double revenueCare, double revenueAccessory, double revenuePaint,
+                           double totalRevenue, double vat, double costWash, double profitWash, double profitCare, double profitAccessory, double profitPaint,
+                           double variableCost, double fixedCost, double payrollCost, double totalNetProfit, double warehouseImport) {
         this.month = month;
         this.revenueWash = revenueWash;
         this.revenueCare = revenueCare;
@@ -45,6 +54,7 @@ public class YearlyReportRow {
         this.profitPaint = profitPaint;
         this.variableCost = variableCost;
         this.fixedCost = fixedCost;
+        this.payrollCost = payrollCost;
         this.totalNetProfit = totalNetProfit;
         this.warehouseImport = warehouseImport;
     }
@@ -90,6 +100,9 @@ public class YearlyReportRow {
 
     public double getFixedCost() { return fixedCost; }
     public void setFixedCost(double fixedCost) { this.fixedCost = fixedCost; }
+
+    public double getPayrollCost() { return payrollCost; }
+    public void setPayrollCost(double payrollCost) { this.payrollCost = payrollCost; }
 
     public double getTotalNetProfit() { return totalNetProfit; }
     public void setTotalNetProfit(double totalNetProfit) { this.totalNetProfit = totalNetProfit; }

@@ -3199,6 +3199,11 @@ public class MainUI extends Application {
         colFixedCostY.setPrefWidth(110);
         formatCurrencyColumnYearly(colFixedCostY);
 
+        TableColumn<model.YearlyReportRow, Double> colPayrollCostY = new TableColumn<>("Chi phí nhân viên");
+        colPayrollCostY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("payrollCost"));
+        colPayrollCostY.setPrefWidth(125);
+        formatCurrencyColumnYearly(colPayrollCostY);
+
         TableColumn<model.DailyReportRow, Double> colNetProfitY_raw = new TableColumn<>("TỔNG LỢI NHUẬN");
         TableColumn<model.YearlyReportRow, Double> colNetProfitY = (TableColumn<model.YearlyReportRow, Double>)(Object)colNetProfitY_raw;
         colNetProfitY.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalNetProfit"));
@@ -3215,7 +3220,7 @@ public class MainUI extends Application {
         colWarehouseImportY.setPrefWidth(120);
         formatCurrencyColumnYearly(colWarehouseImportY);
 
-        tableYearly.getColumns().addAll(colYearlyMonth, dtParentY, colTotalY, colVatY, lnParentY, colVarCostY, colFixedCostY, colNetProfitY, colWarehouseImportY);
+        tableYearly.getColumns().addAll(colYearlyMonth, dtParentY, colTotalY, colVatY, lnParentY, colVarCostY, colFixedCostY, colPayrollCostY, colNetProfitY, colWarehouseImportY);
 
         // Action to load yearly data
         Runnable loadYearlyData = () -> {
@@ -3232,7 +3237,7 @@ public class MainUI extends Application {
             double totalWashAll = 0, totalCareAll = 0, totalAccAll = 0, totalPaintAll = 0, totalRevenueAll = 0;
             double costWashAll = 0, profitWashAll = 0;
             double profitCareAll = 0, profitAccAll = 0, profitPaintAll = 0;
-            double varCostAll = 0, fixedCostAll = 0, netProfitAll = 0;
+            double varCostAll = 0, fixedCostAll = 0, payrollCostAll = 0, netProfitAll = 0;
             double totalVatAll = 0;
             double warehouseImportAll = 0;
 
@@ -3320,7 +3325,7 @@ public class MainUI extends Application {
                 rows.add(new model.YearlyReportRow(
                     "Tháng " + m, mWash, mCare, mAcc, mPaint,
                     mTotal, mVat, costWash, profitWash, profitCare, profitAccessory, profitPaint,
-                    varCost, fixedCost, totalNetProfit, mWarehouseImport
+                    varCost, fixedCost, totalPayrollCost, totalNetProfit, mWarehouseImport
                 ));
 
                 totalWashAll += mWash;
@@ -3336,6 +3341,7 @@ public class MainUI extends Application {
                 profitPaintAll += profitPaint;
                 varCostAll += varCost;
                 fixedCostAll += fixedCost;
+                payrollCostAll += totalPayrollCost;
                 netProfitAll += totalNetProfit;
                 warehouseImportAll += mWarehouseImport;
             }
@@ -3343,7 +3349,7 @@ public class MainUI extends Application {
             rows.add(new model.YearlyReportRow(
                 "TỔNG CỘNG", totalWashAll, totalCareAll, totalAccAll, totalPaintAll,
                 totalRevenueAll, totalVatAll, costWashAll, profitWashAll, profitCareAll, profitAccAll, profitPaintAll,
-                varCostAll, fixedCostAll, netProfitAll, warehouseImportAll
+                varCostAll, fixedCostAll, payrollCostAll, netProfitAll, warehouseImportAll
             ));
 
             tableYearly.getItems().clear();
