@@ -31,7 +31,6 @@ public class ToolHelper {
     private static Label lblLowStockWarning;
 
     private static TextField txtSearch;
-    private static ComboBox<String> cbCategoryFilter;
     private static ComboBox<String> cbStatusFilter;
 
     public static void showToolManagement(MainUI mainUI, StackPane contentArea) {
@@ -131,19 +130,11 @@ public class ToolHelper {
         );
         UIUtils.setupIMEFix(txtSearch);
 
-        cbCategoryFilter = new ComboBox<>();
-        cbCategoryFilter.getItems().addAll("Tất cả phân loại", "Đồ lau rửa", "Dụng cụ cầm tay", "Đồ bảo hộ", "Hóa chất tiêu hao", "Khác");
-        cbCategoryFilter.setValue("Tất cả phân loại");
-        cbCategoryFilter.setMinWidth(Region.USE_PREF_SIZE);
-        cbCategoryFilter.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px; -fx-pref-width: 150px;");
-
         cbStatusFilter = new ComboBox<>();
         cbStatusFilter.getItems().addAll("Tất cả trạng thái", "Đủ dùng", "Cần mua thêm");
         cbStatusFilter.setValue("Tất cả trạng thái");
         cbStatusFilter.setMinWidth(Region.USE_PREF_SIZE);
         cbStatusFilter.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px; -fx-pref-width: 140px;");
-
-        cbCategoryFilter.valueProperty().addListener((obs, oldVal, newVal) -> filterData());
         cbStatusFilter.valueProperty().addListener((obs, oldVal, newVal) -> filterData());
 
         Region filterSpacer = new Region();
@@ -178,7 +169,7 @@ public class ToolHelper {
         btnMonthlyReport.setOnAction(e -> showMonthlyReportDialog(contentArea));
 
         filterBar.getChildren().addAll(
-                txtSearch, cbCategoryFilter, cbStatusFilter, filterSpacer, btnLogs, btnMonthlyReport
+                txtSearch, cbStatusFilter, filterSpacer, btnLogs, btnMonthlyReport
         );
 
         // Tools Table
@@ -227,11 +218,6 @@ public class ToolHelper {
                 }
             }
         });
-
-        TableColumn<Tool, String> colCat = new TableColumn<>("Phân Loại");
-        colCat.setMinWidth(110);
-        colCat.setPrefWidth(125);
-        colCat.setCellValueFactory(new PropertyValueFactory<>("category"));
 
         TableColumn<Tool, String> colUnit = new TableColumn<>("ĐVT");
         colUnit.setMinWidth(55);
@@ -409,7 +395,7 @@ public class ToolHelper {
         });
 
         tableView.getColumns().addAll(
-                colStt, colCode, colName, colCat, colUnit,
+                colStt, colCode, colName, colUnit,
                 colTotal, colDamaged, colUsable, colMin, colCost, colStatus, colAction
         );
         tableView.setItems(filteredData);
@@ -462,7 +448,6 @@ public class ToolHelper {
 
     private static void filterData() {
         String search = txtSearch != null && txtSearch.getText() != null ? txtSearch.getText().trim().toLowerCase() : "";
-        String cat = cbCategoryFilter != null ? cbCategoryFilter.getValue() : "Tất cả phân loại";
         String status = cbStatusFilter != null ? cbStatusFilter.getValue() : "Tất cả trạng thái";
 
         List<Tool> filtered = new ArrayList<>();
@@ -477,10 +462,8 @@ public class ToolHelper {
 
             boolean matchSearch = search.isEmpty() ||
                     (t.getToolCode() != null && t.getToolCode().toLowerCase().contains(search)) ||
-                    (t.getName() != null && t.getName().toLowerCase().contains(search)) ||
-                    (t.getCategory() != null && t.getCategory().toLowerCase().contains(search));
+                    (t.getName() != null && t.getName().toLowerCase().contains(search));
 
-            boolean matchCat = cat == null || "Tất cả phân loại".equals(cat) || cat.equalsIgnoreCase(t.getCategory());
             boolean matchStatus = true;
             if ("Đủ dùng".equals(status)) {
                 matchStatus = !t.isLowStock();
@@ -488,7 +471,7 @@ public class ToolHelper {
                 matchStatus = t.isLowStock();
             }
 
-            if (matchSearch && matchCat && matchStatus) {
+            if (matchSearch && matchStatus) {
                 filtered.add(t);
             }
         }
@@ -552,12 +535,6 @@ public class ToolHelper {
         txtName.setStyle(fieldStyle);
         UIUtils.setupIMEFix(txtName);
 
-        ComboBox<String> cbCat = new ComboBox<>();
-        cbCat.getItems().addAll("Đồ lau rửa", "Dụng cụ cầm tay", "Đồ bảo hộ", "Hóa chất tiêu hao", "Khác");
-        cbCat.setValue(isEdit && existing.getCategory() != null ? existing.getCategory() : "Đồ lau rửa");
-        cbCat.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-pref-height: 36px;");
-        cbCat.setMaxWidth(Double.MAX_VALUE);
-
         TextField txtUnit = new TextField(isEdit ? existing.getUnit() : "Cái");
         txtUnit.setStyle(fieldStyle);
         UIUtils.setupIMEFix(txtUnit);
@@ -578,11 +555,10 @@ public class ToolHelper {
 
         grid.add(createFieldLabel("Mã dụng cụ *", labelStyle), 0, 0); grid.add(txtCode, 1, 0);
         grid.add(createFieldLabel("Tên dụng cụ *", labelStyle), 0, 1); grid.add(txtName, 1, 1);
-        grid.add(createFieldLabel("Phân loại", labelStyle), 0, 2); grid.add(cbCat, 1, 2);
-        grid.add(createFieldLabel("Đơn vị tính", labelStyle), 0, 3); grid.add(txtUnit, 1, 3);
-        grid.add(createFieldLabel("Định mức tối thiểu", labelStyle), 0, 4); grid.add(txtMinQty, 1, 4);
-        grid.add(createFieldLabel("Đơn giá tham khảo (đ)", labelStyle), 0, 5); grid.add(txtPrice, 1, 5);
-        grid.add(createFieldLabel("Ghi chú", labelStyle), 0, 6); grid.add(txtNotes, 1, 6);
+        grid.add(createFieldLabel("Đơn vị tính", labelStyle), 0, 2); grid.add(txtUnit, 1, 2);
+        grid.add(createFieldLabel("Định mức tối thiểu", labelStyle), 0, 3); grid.add(txtMinQty, 1, 3);
+        grid.add(createFieldLabel("Đơn giá tham khảo (đ)", labelStyle), 0, 4); grid.add(txtPrice, 1, 4);
+        grid.add(createFieldLabel("Ghi chú", labelStyle), 0, 5); grid.add(txtNotes, 1, 5);
 
         content.getChildren().addAll(title, grid);
         dialogRoot.setCenter(content);
@@ -617,14 +593,14 @@ public class ToolHelper {
             if (isEdit) {
                 existing.setToolCode(code);
                 existing.setName(name);
-                existing.setCategory(cbCat.getValue());
+                existing.setCategory("");
                 existing.setUnit(txtUnit.getText().trim());
                 existing.setMinQty(minQty);
                 existing.setCostPrice(price);
                 existing.setNotes(txtNotes.getText().trim());
                 dao.updateTool(existing);
             } else {
-                Tool t = new Tool(0, code, name, cbCat.getValue(), txtUnit.getText().trim(), 0, 0, 0, minQty, price, "Đang sử dụng", txtNotes.getText().trim(), null);
+                Tool t = new Tool(0, code, name, "", txtUnit.getText().trim(), 0, 0, 0, minQty, price, "Đang sử dụng", txtNotes.getText().trim(), null);
                 dao.addTool(t);
             }
 
@@ -997,20 +973,33 @@ public class ToolHelper {
         Label title = new Label("📋 Nhật Ký Biến Động Dụng Cụ (Nhập mua & Báo hỏng)");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #512DA8;");
 
-        // Filter Bar
+        // Filter Bar (Tháng trước, Năm sau)
         HBox filterBar = new HBox(10);
         filterBar.setAlignment(Pos.CENTER_LEFT);
 
+        Label lblMonth = new Label("Tháng:");
+        lblMonth.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #424242;");
         ComboBox<String> cbMonth = new ComboBox<>();
-        cbMonth.getItems().add("Tất cả thời gian");
-        int curYear = LocalDate.now().getYear();
-        for (int y = curYear; y >= curYear - 2; y--) {
-            for (int m = 12; m >= 1; m--) {
-                cbMonth.getItems().add(String.format("%d-%02d", y, m));
-            }
+        cbMonth.getItems().add("Tất cả");
+        for (int m = 1; m <= 12; m++) {
+            cbMonth.getItems().add(String.format("%02d", m));
         }
-        cbMonth.setValue(String.format("%d-%02d", curYear, LocalDate.now().getMonthValue()));
-        cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px;");
+        cbMonth.setValue(String.format("%02d", LocalDate.now().getMonthValue()));
+        cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px; -fx-pref-width: 85px;");
+        cbMonth.setMinWidth(85);
+
+        Label lblYear = new Label("Năm:");
+        lblYear.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #424242;");
+        ComboBox<String> cbYear = new ComboBox<>();
+        int curYear = LocalDate.now().getYear();
+        for (int y = curYear + 1; y >= curYear - 4; y--) {
+            cbYear.getItems().add(String.valueOf(y));
+        }
+        cbYear.setValue(String.valueOf(curYear));
+        cbYear.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px; -fx-pref-width: 90px;");
+        cbYear.setMinWidth(90);
+
+        filterBar.getChildren().addAll(lblMonth, cbMonth, lblYear, cbYear);
 
         TableView<ToolLog> logTable = new TableView<>();
         logTable.setStyle("-fx-background-color: white; -fx-border-color: #e0e0e0; -fx-border-radius: 8;");
@@ -1135,14 +1124,18 @@ public class ToolHelper {
         VBox.setVgrow(logTable, Priority.ALWAYS);
 
         Runnable loadLogs = () -> {
-            String selectedMonth = cbMonth.getValue();
-            if ("Tất cả thời gian".equals(selectedMonth)) selectedMonth = "Tất cả";
-            logTable.getItems().setAll(dao.getLogsByMonth(selectedMonth));
+            String m = cbMonth.getValue();
+            String y = cbYear.getValue();
+            if (m == null || "Tất cả".equals(m)) {
+                logTable.getItems().setAll(dao.getLogsByMonth(y));
+            } else {
+                logTable.getItems().setAll(dao.getLogsByMonth(y + "-" + m));
+            }
         };
         cbMonth.valueProperty().addListener((obs, o, n) -> loadLogs.run());
+        cbYear.valueProperty().addListener((obs, o, n) -> loadLogs.run());
         loadLogs.run();
 
-        filterBar.getChildren().addAll(new Label("Lọc theo tháng: ") {{ setStyle("-fx-font-weight: bold;"); }}, cbMonth);
         content.getChildren().addAll(title, filterBar, logTable);
         dialogRoot.setCenter(content);
 
@@ -1184,17 +1177,28 @@ public class ToolHelper {
         HBox topBar = new HBox(12);
         topBar.setAlignment(Pos.CENTER_LEFT);
 
+        Label lblMonth = new Label("Tháng:");
+        lblMonth.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #00796B;");
         ComboBox<String> cbMonth = new ComboBox<>();
-        int curYear = LocalDate.now().getYear();
-        for (int y = curYear; y >= curYear - 2; y--) {
-            for (int m = 12; m >= 1; m--) {
-                cbMonth.getItems().add(String.format("%d-%02d", y, m));
-            }
+        for (int m = 1; m <= 12; m++) {
+            cbMonth.getItems().add(String.format("%02d", m));
         }
-        cbMonth.setValue(String.format("%d-%02d", curYear, LocalDate.now().getMonthValue()));
-        cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px;");
+        cbMonth.setValue(String.format("%02d", LocalDate.now().getMonthValue()));
+        cbMonth.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px; -fx-pref-width: 80px;");
+        cbMonth.setMinWidth(80);
 
-        topBar.getChildren().addAll(new Label("Chọn tháng kiểm kê: ") {{ setStyle("-fx-font-weight: bold;"); }}, cbMonth);
+        Label lblYear = new Label("Năm:");
+        lblYear.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #00796B;");
+        ComboBox<String> cbYear = new ComboBox<>();
+        int curYear = LocalDate.now().getYear();
+        for (int y = curYear + 1; y >= curYear - 4; y--) {
+            cbYear.getItems().add(String.valueOf(y));
+        }
+        cbYear.setValue(String.valueOf(curYear));
+        cbYear.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-font-size: 13px; -fx-pref-height: 36px; -fx-pref-width: 90px;");
+        cbYear.setMinWidth(90);
+
+        topBar.getChildren().addAll(lblMonth, cbMonth, lblYear, cbYear);
 
         // Summary text area / table
         TableView<MonthlyReportRow> reportTable = new TableView<>();
@@ -1239,7 +1243,7 @@ public class ToolHelper {
         VBox.setVgrow(reportTable, Priority.ALWAYS);
 
         Runnable refreshReport = () -> {
-            String month = cbMonth.getValue();
+            String month = cbYear.getValue() + "-" + cbMonth.getValue();
             List<ToolLog> logs = dao.getLogsByMonth(month);
 
             java.util.Map<Integer, Double> purchasedMap = new java.util.HashMap<>();
@@ -1279,6 +1283,7 @@ public class ToolHelper {
         };
 
         cbMonth.valueProperty().addListener((obs, o, n) -> refreshReport.run());
+        cbYear.valueProperty().addListener((obs, o, n) -> refreshReport.run());
         refreshReport.run();
 
         content.getChildren().addAll(title, topBar, reportTable);
