@@ -182,3 +182,35 @@ CREATE TABLE IF NOT EXISTS inventory_receipts (
     created_at TEXT DEFAULT (datetime('now','localtime')),
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS tools (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tool_code TEXT UNIQUE,
+    name TEXT NOT NULL,
+    category TEXT DEFAULT 'Khác',
+    unit TEXT DEFAULT 'Cái',
+    total_qty REAL NOT NULL DEFAULT 0,
+    damaged_qty REAL NOT NULL DEFAULT 0,
+    usable_qty REAL NOT NULL DEFAULT 0,
+    min_qty REAL NOT NULL DEFAULT 0,
+    cost_price REAL NOT NULL DEFAULT 0,
+    status TEXT DEFAULT 'Đang sử dụng',
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now','localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS tool_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tool_id INTEGER NOT NULL,
+    tool_name TEXT NOT NULL,
+    action_type TEXT NOT NULL,
+    quantity REAL NOT NULL,
+    unit_price REAL DEFAULT 0,
+    total_price REAL DEFAULT 0,
+    employee_name TEXT,
+    log_date TEXT NOT NULL,
+    reason TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (tool_id) REFERENCES tools(id) ON DELETE CASCADE
+);

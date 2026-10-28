@@ -208,6 +208,7 @@ public class MainUI extends Application {
         Button btnPackage = createModernMenuButton("📦", "Gói Dịch Vụ", "#2196F3", false);
         Button btnProduct = createModernMenuButton("🛒", "Sản Phẩm", "#2196F3", false);
         Button btnInventory = createModernMenuButton("📥", "Quản Lý Nhập Kho", "#2196F3", false);
+        Button btnTool = createModernMenuButton("🧰", "Quản Lý Dụng Cụ", "#2196F3", false);
         Button btnHR = createModernMenuButton("👥", "Nhân Sự", "#2196F3", false);
         Button btnExpense = createModernMenuButton("💰", "Quản Lý Chi Phí", "#2196F3", false);
         Button btnReport = createModernMenuButton("📈", "Báo Cáo", "#2196F3", false);
@@ -247,6 +248,11 @@ public class MainUI extends Application {
             setActiveButton(btnInventory);
             showInventoryManagement();
         });
+        btnTool.setOnAction(e -> {
+            resetMenuButtons();
+            setActiveButton(btnTool);
+            showToolManagement();
+        });
         btnReport.setOnAction(e -> {
             resetMenuButtons();
             setActiveButton(btnReport);
@@ -278,7 +284,7 @@ public class MainUI extends Application {
 
         sidebar.getChildren().addAll(
             btnDashboard, btnAppointment, btnInvoice, btnService, 
-            btnPackage, btnProduct, btnInventory, btnHR, btnExpense, btnReport, spacer, btnLogout
+            btnPackage, btnProduct, btnInventory, btnTool, btnHR, btnExpense, btnReport, spacer, btnLogout
         );
 
         return sidebar;
@@ -6829,6 +6835,11 @@ public class MainUI extends Application {
     private void showInventoryManagement() {
         currentView = "inventory";
         InventoryHelper.showInventoryManagement(this, contentArea);
+    }
+
+    private void showToolManagement() {
+        currentView = "tool";
+        ToolHelper.showToolManagement(this, contentArea);
     }
 
     private VBox createEmployeeTab() {
