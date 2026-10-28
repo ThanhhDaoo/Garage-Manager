@@ -172,48 +172,66 @@ public class ToolDAO {
 
         String updateToolSql = "UPDATE tools SET total_qty = total_qty + ?, usable_qty = usable_qty + ?, cost_price = ? WHERE id = ?";
 
+        String insertExpSql = "INSERT INTO fixed_expenses (expense_name, category, amount, expense_month, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)";
+
         try (Connection conn = DatabaseManager.getConnection()) {
+            boolean oldAutoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
-            int logId = -1;
+            try {
+                int logId = -1;
 
-            try (PreparedStatement psLog = conn.prepareStatement(insertLogSql, Statement.RETURN_GENERATED_KEYS)) {
-                psLog.setInt(1, tool.getId());
-                psLog.setString(2, tool.getName());
-                psLog.setDouble(3, quantity);
-                psLog.setDouble(4, unitPrice);
-                psLog.setDouble(5, totalPrice);
-                psLog.setString(6, logDate);
-                psLog.setString(7, notes);
-                psLog.executeUpdate();
+                try (PreparedStatement psLog = conn.prepareStatement(insertLogSql, Statement.RETURN_GENERATED_KEYS)) {
+                    psLog.setInt(1, tool.getId());
+                    psLog.setString(2, tool.getName());
+                    psLog.setDouble(3, quantity);
+                    psLog.setDouble(4, unitPrice);
+                    psLog.setDouble(5, totalPrice);
+                    psLog.setString(6, logDate);
+                    psLog.setString(7, notes != null ? notes : "");
+                    psLog.executeUpdate();
 
-                try (ResultSet keys = psLog.getGeneratedKeys()) {
-                    if (keys.next()) {
-                        logId = keys.getInt(1);
+                    try (ResultSet keys = psLog.getGeneratedKeys()) {
+                        if (keys.next()) {
+                            logId = keys.getInt(1);
+                        }
                     }
                 }
+
+                try (PreparedStatement psTool = conn.prepareStatement(updateToolSql)) {
+                    psTool.setDouble(1, quantity);
+                    psTool.setDouble(2, quantity);
+                    psTool.setDouble(3, unitPrice > 0 ? unitPrice : tool.getCostPrice());
+                    psTool.setInt(4, tool.getId());
+                    psTool.executeUpdate();
+                }
+
+                // Đồng bộ sang chi phí biến thiên nếu có giá trị > 0
+                if (totalPrice > 0 && logId > 0) {
+                    String expMonth = logDate != null && logDate.length() >= 7 ? logDate.substring(0, 7) : java.time.LocalDate.now().toString().substring(0, 7);
+                    String expName = "Mua dụng cụ: " + tool.getName() + " (SL: " + new java.text.DecimalFormat("#.##").format(quantity) + " " + (tool.getUnit() != null ? tool.getUnit() : "cái") + ")";
+                    String expNotes = "Mã phiếu dụng cụ: DC-LOG-" + String.format("%04d", logId);
+                    String expCreatedAt = (logDate != null && logDate.length() >= 10) ? logDate.substring(0, 10) + " 12:00:00" : logDate;
+
+                    try (PreparedStatement psExp = conn.prepareStatement(insertExpSql)) {
+                        psExp.setString(1, expName);
+                        psExp.setString(2, "biến thiên");
+                        psExp.setDouble(3, totalPrice);
+                        psExp.setString(4, expMonth);
+                        psExp.setString(5, expNotes);
+                        psExp.setString(6, expCreatedAt);
+                        psExp.executeUpdate();
+                    }
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                e.printStackTrace();
+                throw e;
+            } finally {
+                conn.setAutoCommit(oldAutoCommit);
             }
-
-            try (PreparedStatement psTool = conn.prepareStatement(updateToolSql)) {
-                psTool.setDouble(1, quantity);
-                psTool.setDouble(2, quantity);
-                psTool.setDouble(3, unitPrice > 0 ? unitPrice : tool.getCostPrice());
-                psTool.setInt(4, tool.getId());
-                psTool.executeUpdate();
-            }
-
-            // Đồng bộ sang chi phí biến thiên nếu có giá trị > 0
-            if (totalPrice > 0 && logId > 0) {
-                String expMonth = logDate != null && logDate.length() >= 7 ? logDate.substring(0, 7) : java.time.LocalDate.now().toString().substring(0, 7);
-                String expName = "Mua dụng cụ: " + tool.getName() + " (SL: " + new java.text.DecimalFormat("#.##").format(quantity) + " " + tool.getUnit() + ")";
-                String expNotes = "Mã phiếu dụng cụ: DC-LOG-" + String.format("%04d", logId);
-                String expCreatedAt = (logDate != null && logDate.length() >= 10) ? logDate.substring(0, 10) + " 12:00:00" : logDate;
-
-                FixedExpense expense = new FixedExpense(0, expName, "biến thiên", totalPrice, expMonth, expNotes, expCreatedAt);
-                new FixedExpenseDAO().addExpense(expense);
-            }
-
-            conn.commit();
-            return true;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -235,28 +253,36 @@ public class ToolDAO {
         String updateToolSql = "UPDATE tools SET damaged_qty = damaged_qty + ?, usable_qty = MAX(0, usable_qty - ?) WHERE id = ?";
 
         try (Connection conn = DatabaseManager.getConnection()) {
+            boolean oldAutoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement psLog = conn.prepareStatement(insertLogSql)) {
+                    psLog.setInt(1, tool.getId());
+                    psLog.setString(2, tool.getName());
+                    psLog.setDouble(3, quantity);
+                    psLog.setString(4, employeeName != null ? employeeName : "");
+                    psLog.setString(5, logDate);
+                    psLog.setString(6, reason != null ? reason : "");
+                    psLog.setString(7, notes != null ? notes : "");
+                    psLog.executeUpdate();
+                }
 
-            try (PreparedStatement psLog = conn.prepareStatement(insertLogSql)) {
-                psLog.setInt(1, tool.getId());
-                psLog.setString(2, tool.getName());
-                psLog.setDouble(3, quantity);
-                psLog.setString(4, employeeName);
-                psLog.setString(5, logDate);
-                psLog.setString(6, reason);
-                psLog.setString(7, notes);
-                psLog.executeUpdate();
+                try (PreparedStatement psTool = conn.prepareStatement(updateToolSql)) {
+                    psTool.setDouble(1, quantity);
+                    psTool.setDouble(2, quantity);
+                    psTool.setInt(3, tool.getId());
+                    psTool.executeUpdate();
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                e.printStackTrace();
+                throw e;
+            } finally {
+                conn.setAutoCommit(oldAutoCommit);
             }
-
-            try (PreparedStatement psTool = conn.prepareStatement(updateToolSql)) {
-                psTool.setDouble(1, quantity);
-                psTool.setDouble(2, quantity);
-                psTool.setInt(3, tool.getId());
-                psTool.executeUpdate();
-            }
-
-            conn.commit();
-            return true;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -288,49 +314,60 @@ public class ToolDAO {
     public boolean deleteToolLog(int logId) {
         String selectSql = "SELECT * FROM tool_logs WHERE id = ?";
         try (Connection conn = DatabaseManager.getConnection()) {
+            boolean oldAutoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
-            ToolLog log = null;
-            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
-                ps.setInt(1, logId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        log = mapResultSetToToolLog(rs);
-                    }
-                }
-            }
-
-            if (log != null) {
-                // Hoàn tác số lượng vào tools
-                if ("NHAP_MUA".equalsIgnoreCase(log.getActionType())) {
-                    String revertToolSql = "UPDATE tools SET total_qty = MAX(0, total_qty - ?), usable_qty = MAX(0, usable_qty - ?) WHERE id = ?";
-                    try (PreparedStatement ps = conn.prepareStatement(revertToolSql)) {
-                        ps.setDouble(1, log.getQuantity());
-                        ps.setDouble(2, log.getQuantity());
-                        ps.setInt(3, log.getToolId());
-                        ps.executeUpdate();
-                    }
-                    // Xóa chi phí biến thiên liên ứng
-                    String noteCode = "Mã phiếu dụng cụ: DC-LOG-" + String.format("%04d", log.getId());
-                    new FixedExpenseDAO().deleteExpenseByReceiptCode(noteCode);
-                } else if ("BAO_HONG".equalsIgnoreCase(log.getActionType())) {
-                    String revertToolSql = "UPDATE tools SET damaged_qty = MAX(0, damaged_qty - ?), usable_qty = usable_qty + ? WHERE id = ?";
-                    try (PreparedStatement ps = conn.prepareStatement(revertToolSql)) {
-                        ps.setDouble(1, log.getQuantity());
-                        ps.setDouble(2, log.getQuantity());
-                        ps.setInt(3, log.getToolId());
-                        ps.executeUpdate();
-                    }
-                }
-
-                String deleteLogSql = "DELETE FROM tool_logs WHERE id = ?";
-                try (PreparedStatement ps = conn.prepareStatement(deleteLogSql)) {
+            try {
+                ToolLog log = null;
+                try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                     ps.setInt(1, logId);
-                    ps.executeUpdate();
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            log = mapResultSetToToolLog(rs);
+                        }
+                    }
                 }
-            }
 
-            conn.commit();
-            return true;
+                if (log != null) {
+                    if ("NHAP_MUA".equalsIgnoreCase(log.getActionType())) {
+                        String revertToolSql = "UPDATE tools SET total_qty = MAX(0, total_qty - ?), usable_qty = MAX(0, usable_qty - ?) WHERE id = ?";
+                        try (PreparedStatement ps = conn.prepareStatement(revertToolSql)) {
+                            ps.setDouble(1, log.getQuantity());
+                            ps.setDouble(2, log.getQuantity());
+                            ps.setInt(3, log.getToolId());
+                            ps.executeUpdate();
+                        }
+                        String noteCode = "Mã phiếu dụng cụ: DC-LOG-" + String.format("%04d", log.getId());
+                        String delExpSql = "DELETE FROM fixed_expenses WHERE notes LIKE ?";
+                        try (PreparedStatement psExp = conn.prepareStatement(delExpSql)) {
+                            psExp.setString(1, "%" + noteCode + "%");
+                            psExp.executeUpdate();
+                        }
+                    } else if ("BAO_HONG".equalsIgnoreCase(log.getActionType())) {
+                        String revertToolSql = "UPDATE tools SET damaged_qty = MAX(0, damaged_qty - ?), usable_qty = usable_qty + ? WHERE id = ?";
+                        try (PreparedStatement ps = conn.prepareStatement(revertToolSql)) {
+                            ps.setDouble(1, log.getQuantity());
+                            ps.setDouble(2, log.getQuantity());
+                            ps.setInt(3, log.getToolId());
+                            ps.executeUpdate();
+                        }
+                    }
+
+                    String deleteLogSql = "DELETE FROM tool_logs WHERE id = ?";
+                    try (PreparedStatement ps = conn.prepareStatement(deleteLogSql)) {
+                        ps.setInt(1, logId);
+                        ps.executeUpdate();
+                    }
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                e.printStackTrace();
+                throw e;
+            } finally {
+                conn.setAutoCommit(oldAutoCommit);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }

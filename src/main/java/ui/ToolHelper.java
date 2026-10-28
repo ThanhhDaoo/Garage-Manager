@@ -765,6 +765,7 @@ public class ToolHelper {
             }
 
             double unitPrice = UIUtils.parseCurrency(txtUnitPrice.getText().trim());
+            UIUtils.commitDatePickerValue(dpDate);
             LocalDate date = dpDate.getValue() != null ? dpDate.getValue() : LocalDate.now();
 
             boolean success = dao.recordPurchase(tool.getId(), qty, unitPrice, date.toString(), txtNotes.getText().trim());
@@ -936,6 +937,7 @@ public class ToolHelper {
             }
 
             String empName = cbEmployee.getValue() != null ? cbEmployee.getValue().trim() : "";
+            UIUtils.commitDatePickerValue(dpDate);
             LocalDate date = dpDate.getValue() != null ? dpDate.getValue() : LocalDate.now();
             String reason = txtReason.getText().trim();
 
