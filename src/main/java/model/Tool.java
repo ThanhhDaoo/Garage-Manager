@@ -75,7 +75,10 @@ public class Tool {
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 
     public boolean isLowStock() {
-        return this.usableQty <= this.minQty;
+        if (this.minQty <= 0) {
+            return this.usableQty <= 0;
+        }
+        return this.usableQty < this.minQty;
     }
 }
 

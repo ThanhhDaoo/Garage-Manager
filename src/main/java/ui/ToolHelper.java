@@ -531,8 +531,8 @@ public class ToolHelper {
         txtUnit.setStyle(fieldStyle);
         UIUtils.setupIMEFix(txtUnit);
 
-        TextField txtMinQty = new TextField(isEdit ? new DecimalFormat("#.##").format(existing.getMinQty()) : "5");
-        txtMinQty.setPromptText("Cảnh báo khi dưới mức này");
+        TextField txtMinQty = new TextField(isEdit ? new DecimalFormat("#.##").format(existing.getMinQty()) : "0");
+        txtMinQty.setPromptText("VD: 5 (cảnh báo khi dưới mức này)");
         txtMinQty.setStyle(fieldStyle);
         UIUtils.setupIMEFix(txtMinQty);
 
