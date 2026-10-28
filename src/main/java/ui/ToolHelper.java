@@ -677,6 +677,39 @@ public class ToolHelper {
             cbTools.setValue(allTools.get(0));
         }
 
+        TextField txtSearchTool = new TextField();
+        txtSearchTool.setPromptText("🔍 Tìm mã, tên...");
+        txtSearchTool.setStyle(fieldStyle);
+        txtSearchTool.setPrefWidth(140);
+        txtSearchTool.setMinWidth(110);
+        UIUtils.setupIMEFix(txtSearchTool);
+        txtSearchTool.textProperty().addListener((obs, oldVal, newVal) -> {
+            Tool currentSelection = cbTools.getValue();
+            if (newVal == null || newVal.trim().isEmpty()) {
+                cbTools.getItems().setAll(allTools);
+            } else {
+                String search = newVal.toLowerCase().trim();
+                List<Tool> filtered = new ArrayList<>();
+                for (Tool t : allTools) {
+                    if ((t.getName() != null && t.getName().toLowerCase().contains(search)) ||
+                        (t.getToolCode() != null && t.getToolCode().toLowerCase().contains(search))) {
+                        filtered.add(t);
+                    }
+                }
+                cbTools.getItems().setAll(filtered);
+                if (!filtered.isEmpty() && (currentSelection == null || !filtered.contains(currentSelection))) {
+                    cbTools.setValue(filtered.get(0));
+                }
+            }
+            if (currentSelection != null && cbTools.getItems().contains(currentSelection)) {
+                cbTools.setValue(currentSelection);
+            }
+        });
+
+        HBox toolSelectBox = new HBox(8, txtSearchTool, cbTools);
+        toolSelectBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(cbTools, Priority.ALWAYS);
+
         TextField txtQty = new TextField("1");
         txtQty.setStyle(fieldStyle);
         UIUtils.setupIMEFix(txtQty);
@@ -720,7 +753,7 @@ public class ToolHelper {
         txtNotes.setStyle(fieldStyle);
         UIUtils.setupIMEFix(txtNotes);
 
-        grid.add(createFieldLabel("Chọn dụng cụ *", labelStyle), 0, 0); grid.add(cbTools, 1, 0);
+        grid.add(createFieldLabel("Chọn dụng cụ *", labelStyle), 0, 0); grid.add(toolSelectBox, 1, 0);
         grid.add(createFieldLabel("Số lượng mua *", labelStyle), 0, 1); grid.add(txtQty, 1, 1);
         grid.add(createFieldLabel("Đơn giá nhập (đ) *", labelStyle), 0, 2); grid.add(txtUnitPrice, 1, 2);
         grid.add(createFieldLabel("Thành tiền (đ)", labelStyle), 0, 3); grid.add(txtTotal, 1, 3);
@@ -848,6 +881,39 @@ public class ToolHelper {
             cbTools.setValue(allTools.get(0));
         }
 
+        TextField txtSearchTool = new TextField();
+        txtSearchTool.setPromptText("🔍 Tìm mã, tên...");
+        txtSearchTool.setStyle(fieldStyle);
+        txtSearchTool.setPrefWidth(140);
+        txtSearchTool.setMinWidth(110);
+        UIUtils.setupIMEFix(txtSearchTool);
+        txtSearchTool.textProperty().addListener((obs, oldVal, newVal) -> {
+            Tool currentSelection = cbTools.getValue();
+            if (newVal == null || newVal.trim().isEmpty()) {
+                cbTools.getItems().setAll(allTools);
+            } else {
+                String search = newVal.toLowerCase().trim();
+                List<Tool> filtered = new ArrayList<>();
+                for (Tool t : allTools) {
+                    if ((t.getName() != null && t.getName().toLowerCase().contains(search)) ||
+                        (t.getToolCode() != null && t.getToolCode().toLowerCase().contains(search))) {
+                        filtered.add(t);
+                    }
+                }
+                cbTools.getItems().setAll(filtered);
+                if (!filtered.isEmpty() && (currentSelection == null || !filtered.contains(currentSelection))) {
+                    cbTools.setValue(filtered.get(0));
+                }
+            }
+            if (currentSelection != null && cbTools.getItems().contains(currentSelection)) {
+                cbTools.setValue(currentSelection);
+            }
+        });
+
+        HBox toolSelectBox = new HBox(8, txtSearchTool, cbTools);
+        toolSelectBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(cbTools, Priority.ALWAYS);
+
         Label lblCurrentUsable = new Label();
         lblCurrentUsable.setStyle("-fx-font-size: 12px; -fx-text-fill: #2E7D32; -fx-font-weight: bold;");
         Runnable updateCurrentStock = () -> {
@@ -887,7 +953,7 @@ public class ToolHelper {
         txtNotes.setStyle(fieldStyle);
         UIUtils.setupIMEFix(txtNotes);
 
-        grid.add(createFieldLabel("Dụng cụ bị hỏng *", labelStyle), 0, 0); grid.add(new VBox(4, cbTools, lblCurrentUsable), 1, 0);
+        grid.add(createFieldLabel("Dụng cụ bị hỏng *", labelStyle), 0, 0); grid.add(new VBox(4, toolSelectBox, lblCurrentUsable), 1, 0);
         grid.add(createFieldLabel("Số lượng hỏng/mất *", labelStyle), 0, 1); grid.add(txtQty, 1, 1);
         grid.add(createFieldLabel("Thợ làm hỏng / Báo cáo", labelStyle), 0, 2); grid.add(cbEmployee, 1, 2);
         grid.add(createFieldLabel("Ngày ghi nhận *", labelStyle), 0, 3); grid.add(dpDate, 1, 3);
