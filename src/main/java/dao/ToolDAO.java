@@ -230,7 +230,11 @@ public class ToolDAO {
                 e.printStackTrace();
                 throw e;
             } finally {
-                conn.setAutoCommit(oldAutoCommit);
+                try {
+                    if (conn != null && !conn.isClosed()) {
+                        conn.setAutoCommit(oldAutoCommit);
+                    }
+                } catch (SQLException ignored) {}
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -281,7 +285,11 @@ public class ToolDAO {
                 e.printStackTrace();
                 throw e;
             } finally {
-                conn.setAutoCommit(oldAutoCommit);
+                try {
+                    if (conn != null && !conn.isClosed()) {
+                        conn.setAutoCommit(oldAutoCommit);
+                    }
+                } catch (SQLException ignored) {}
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -366,7 +374,11 @@ public class ToolDAO {
                 e.printStackTrace();
                 throw e;
             } finally {
-                conn.setAutoCommit(oldAutoCommit);
+                try {
+                    if (conn != null && !conn.isClosed()) {
+                        conn.setAutoCommit(oldAutoCommit);
+                    }
+                } catch (SQLException ignored) {}
             }
         } catch (SQLException e) {
             e.printStackTrace();

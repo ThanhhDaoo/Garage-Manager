@@ -261,21 +261,21 @@ public class ToolHelper {
             }
         });
 
-        TableColumn<Tool, Double> colUsable = new TableColumn<>("Còn Dùng Tốt");
+        TableColumn<Tool, Tool> colUsable = new TableColumn<>("Còn Dùng Tốt");
         colUsable.setMinWidth(85);
         colUsable.setPrefWidth(100);
         colUsable.setStyle("-fx-alignment: CENTER-RIGHT;");
-        colUsable.setCellValueFactory(new PropertyValueFactory<>("usableQty"));
+        colUsable.setCellValueFactory(cellData -> new javafx.beans.property.ReadOnlyObjectWrapper<>(cellData.getValue()));
         colUsable.setCellFactory(col -> new TableCell<>() {
             @Override
-            protected void updateItem(Double item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
+            protected void updateItem(Tool t, boolean empty) {
+                super.updateItem(t, empty);
+                if (empty || t == null) {
                     setText(null);
+                    setStyle("-fx-alignment: CENTER-RIGHT;");
                 } else {
-                    Tool t = getTableRow() != null ? getTableRow().getItem() : null;
-                    setText(new DecimalFormat("#.##").format(item));
-                    if (t != null && t.isLowStock()) {
+                    setText(new DecimalFormat("#.##").format(t.getUsableQty()));
+                    if (t.isLowStock()) {
                         setStyle("-fx-alignment: CENTER-RIGHT; -fx-font-weight: 800; -fx-text-fill: #D32F2F;");
                     } else {
                         setStyle("-fx-alignment: CENTER-RIGHT; -fx-font-weight: 800; -fx-text-fill: #2E7D32;");
@@ -312,18 +312,18 @@ public class ToolHelper {
             }
         });
 
-        TableColumn<Tool, Void> colStatus = new TableColumn<>("Trạng Thái");
+        TableColumn<Tool, Tool> colStatus = new TableColumn<>("Trạng Thái");
         colStatus.setMinWidth(110);
         colStatus.setPrefWidth(120);
         colStatus.setStyle("-fx-alignment: CENTER;");
+        colStatus.setCellValueFactory(cellData -> new javafx.beans.property.ReadOnlyObjectWrapper<>(cellData.getValue()));
         colStatus.setCellFactory(col -> new TableCell<>() {
             @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+            protected void updateItem(Tool t, boolean empty) {
+                super.updateItem(t, empty);
+                if (empty || t == null) {
                     setGraphic(null);
                 } else {
-                    Tool t = getTableRow().getItem();
                     Label pill = new Label();
                     pill.setPadding(new Insets(3, 8, 3, 8));
                     pill.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-background-radius: 10;");
@@ -340,10 +340,11 @@ public class ToolHelper {
             }
         });
 
-        TableColumn<Tool, Void> colAction = new TableColumn<>("Thao Tác");
+        TableColumn<Tool, Tool> colAction = new TableColumn<>("Thao Tác");
         colAction.setMinWidth(140);
         colAction.setPrefWidth(160);
         colAction.setStyle("-fx-alignment: CENTER;");
+        colAction.setCellValueFactory(cellData -> new javafx.beans.property.ReadOnlyObjectWrapper<>(cellData.getValue()));
         colAction.setCellFactory(col -> new TableCell<>() {
             private final Button btnDamageRow = new Button("⚠️");
             private final Button btnEditRow = new Button("✏");
@@ -354,23 +355,23 @@ public class ToolHelper {
                 pane.setAlignment(Pos.CENTER);
                 btnDamageRow.setTooltip(new Tooltip("Báo hỏng dụng cụ này"));
                 btnDamageRow.setStyle("-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-cursor: hand; -fx-background-radius: 6; -fx-padding: 4 8;");
-                btnDamageRow.setOnAction(e -> {
-                    Tool t = getTableRow().getItem();
-                    if (t != null) showDamageDialog(t, contentArea);
-                });
 
                 btnEditRow.setTooltip(new Tooltip("Sửa thông tin dụng cụ"));
                 btnEditRow.setStyle("-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2; -fx-cursor: hand; -fx-background-radius: 6; -fx-padding: 4 8;");
-                btnEditRow.setOnAction(e -> {
-                    Tool t = getTableRow().getItem();
-                    if (t != null) showToolForm(t, contentArea);
-                });
 
                 btnDeleteRow.setTooltip(new Tooltip("Xóa dụng cụ"));
                 btnDeleteRow.setStyle("-fx-background-color: #FFEBEE; -fx-text-fill: #D32F2F; -fx-cursor: hand; -fx-background-radius: 6; -fx-padding: 4 8;");
-                btnDeleteRow.setOnAction(e -> {
-                    Tool t = getTableRow().getItem();
-                    if (t != null) {
+            }
+
+            @Override
+            protected void updateItem(Tool t, boolean empty) {
+                super.updateItem(t, empty);
+                if (empty || t == null) {
+                    setGraphic(null);
+                } else {
+                    btnDamageRow.setOnAction(e -> showDamageDialog(t, contentArea));
+                    btnEditRow.setOnAction(e -> showToolForm(t, contentArea));
+                    btnDeleteRow.setOnAction(e -> {
                         Alert alert = AlertHelper.createAlert(Alert.AlertType.CONFIRMATION, "Xác nhận xóa",
                                 "Bạn có chắc chắn muốn xóa dụng cụ '" + t.getName() + "'?\nToàn bộ nhật ký liên quan cũng sẽ bị xóa.");
                         alert.showAndWait().ifPresent(res -> {
@@ -379,16 +380,7 @@ public class ToolHelper {
                                 loadData();
                             }
                         });
-                    }
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setGraphic(null);
-                } else {
+                    });
                     setGraphic(pane);
                 }
             }
@@ -574,7 +566,10 @@ public class ToolHelper {
 
         Button btnCancel = new Button("Hủy");
         btnCancel.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #424242; -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;");
-        btnCancel.setOnAction(e -> container.getChildren().remove(overlay));
+        btnCancel.setOnAction(e -> {
+            UIUtils.clearFocus(MainUI.getMainStage());
+            container.getChildren().remove(overlay);
+        });
 
         Button btnSave = new Button("Lưu");
         btnSave.setStyle("-fx-background-color: #1976D2; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 8 20; -fx-cursor: hand;");
@@ -604,8 +599,9 @@ public class ToolHelper {
                 dao.addTool(t);
             }
 
+            UIUtils.clearFocus(MainUI.getMainStage());
             container.getChildren().remove(overlay);
-            loadData();
+            javafx.application.Platform.runLater(ToolHelper::loadData);
         });
 
         btnBar.getChildren().addAll(btnCancel, btnSave);
@@ -744,7 +740,10 @@ public class ToolHelper {
 
         Button btnCancel = new Button("Hủy");
         btnCancel.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #424242; -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;");
-        btnCancel.setOnAction(e -> container.getChildren().remove(overlay));
+        btnCancel.setOnAction(e -> {
+            UIUtils.clearFocus(MainUI.getMainStage());
+            container.getChildren().remove(overlay);
+        });
 
         Button btnSave = new Button("Xác nhận nhập kho & ghi chi phí");
         btnSave.setStyle("-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 8 20; -fx-cursor: hand;");
@@ -770,11 +769,9 @@ public class ToolHelper {
 
             boolean success = dao.recordPurchase(tool.getId(), qty, unitPrice, date.toString(), txtNotes.getText().trim());
             if (success) {
+                UIUtils.clearFocus(MainUI.getMainStage());
                 container.getChildren().remove(overlay);
-                loadData();
-                AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công",
-                        "Đã nhập thêm " + new DecimalFormat("#.##").format(qty) + " " + tool.getUnit() + " '" + tool.getName() + "' thành công!\n" +
-                                "Đã tự động tạo 1 khoản chi phí biến thiên: " + UIUtils.formatCurrency(qty * unitPrice) + " đ vào tháng " + date.toString().substring(0, 7)).show();
+                javafx.application.Platform.runLater(ToolHelper::loadData);
             } else {
                 AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể lưu thông tin nhập mua!").show();
             }
@@ -910,7 +907,10 @@ public class ToolHelper {
 
         Button btnCancel = new Button("Hủy");
         btnCancel.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #424242; -fx-background-radius: 8; -fx-padding: 8 16; -fx-cursor: hand;");
-        btnCancel.setOnAction(e -> container.getChildren().remove(overlay));
+        btnCancel.setOnAction(e -> {
+            UIUtils.clearFocus(MainUI.getMainStage());
+            container.getChildren().remove(overlay);
+        });
 
         Button btnSave = new Button("Xác nhận báo hỏng");
         btnSave.setStyle("-fx-background-color: #E65100; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 8 20; -fx-cursor: hand;");
@@ -930,24 +930,28 @@ public class ToolHelper {
                 return;
             }
 
+            String reason = txtReason.getText().trim();
+            if (reason.isEmpty()) {
+                AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng nhập lý do hỏng/hao hụt!").show();
+                return;
+            }
+
             if (qty > tool.getUsableQty()) {
                 AlertHelper.createAlert(Alert.AlertType.WARNING, "Cảnh báo",
                         "Số lượng báo hỏng (" + new DecimalFormat("#.##").format(qty) + ") lớn hơn số lượng còn dùng tốt trong kho (" +
                                 new DecimalFormat("#.##").format(tool.getUsableQty()) + ")!").show();
+                return;
             }
 
             String empName = cbEmployee.getValue() != null ? cbEmployee.getValue().trim() : "";
             UIUtils.commitDatePickerValue(dpDate);
             LocalDate date = dpDate.getValue() != null ? dpDate.getValue() : LocalDate.now();
-            String reason = txtReason.getText().trim();
 
             boolean success = dao.recordDamage(tool.getId(), qty, empName, date.toString(), reason, txtNotes.getText().trim());
             if (success) {
+                UIUtils.clearFocus(MainUI.getMainStage());
                 container.getChildren().remove(overlay);
-                loadData();
-                AlertHelper.createAlert(Alert.AlertType.INFORMATION, "Thành công",
-                        "Đã ghi nhận báo hỏng " + new DecimalFormat("#.##").format(qty) + " " + tool.getUnit() + " '" + tool.getName() + "'.\n" +
-                                "Số lượng còn dùng tốt hiện tại: " + new DecimalFormat("#.##").format(Math.max(0, tool.getUsableQty() - qty)) + " " + tool.getUnit()).show();
+                javafx.application.Platform.runLater(ToolHelper::loadData);
             } else {
                 AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể lưu báo hỏng!").show();
             }
@@ -1005,6 +1009,16 @@ public class ToolHelper {
 
         TableView<ToolLog> logTable = new TableView<>();
         logTable.setStyle("-fx-background-color: white; -fx-border-color: #e0e0e0; -fx-border-radius: 8;");
+
+        Runnable loadLogs = () -> {
+            String m = cbMonth.getValue();
+            String y = cbYear.getValue();
+            if (m == null || "Tất cả".equals(m)) {
+                logTable.getItems().setAll(dao.getLogsByMonth(y));
+            } else {
+                logTable.getItems().setAll(dao.getLogsByMonth(y + "-" + m));
+            }
+        };
 
         TableColumn<ToolLog, String> colDate = new TableColumn<>("Ngày");
         colDate.setMinWidth(85);
@@ -1087,36 +1101,34 @@ public class ToolHelper {
             return new javafx.beans.property.SimpleStringProperty(res);
         });
 
-        TableColumn<ToolLog, Void> colAction = new TableColumn<>("Xóa");
+        TableColumn<ToolLog, ToolLog> colAction = new TableColumn<>("Xóa");
         colAction.setMinWidth(60);
         colAction.setPrefWidth(65);
         colAction.setStyle("-fx-alignment: CENTER;");
+        colAction.setCellValueFactory(cellData -> new javafx.beans.property.ReadOnlyObjectWrapper<>(cellData.getValue()));
         colAction.setCellFactory(col -> new TableCell<>() {
             private final Button btnDel = new Button("🗑");
             {
                 btnDel.setStyle("-fx-background-color: #FFEBEE; -fx-text-fill: #D32F2F; -fx-cursor: hand; -fx-background-radius: 6; -fx-padding: 3 6;");
-                btnDel.setOnAction(e -> {
-                    ToolLog l = getTableRow().getItem();
-                    if (l != null) {
+            }
+
+            @Override
+            protected void updateItem(ToolLog l, boolean empty) {
+                super.updateItem(l, empty);
+                if (empty || l == null) {
+                    setGraphic(null);
+                } else {
+                    btnDel.setOnAction(e -> {
                         Alert alert = AlertHelper.createAlert(Alert.AlertType.CONFIRMATION, "Xác nhận xóa nhật ký",
                                 "Bạn có chắc chắn muốn xóa dòng nhật ký này?\nSố lượng dụng cụ và chi phí tương ứng sẽ được hoàn tác.");
                         alert.showAndWait().ifPresent(res -> {
                             if (res == ButtonType.OK) {
                                 dao.deleteToolLog(l.getId());
-                                logTable.getItems().setAll(dao.getLogsByMonth(cbMonth.getValue()));
+                                loadLogs.run();
                                 loadData();
                             }
                         });
-                    }
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setGraphic(null);
-                } else {
+                    });
                     setGraphic(btnDel);
                 }
             }
@@ -1125,15 +1137,6 @@ public class ToolHelper {
         logTable.getColumns().addAll(colDate, colType, colToolName, colQty, colTotal, colEmp, colReason, colAction);
         VBox.setVgrow(logTable, Priority.ALWAYS);
 
-        Runnable loadLogs = () -> {
-            String m = cbMonth.getValue();
-            String y = cbYear.getValue();
-            if (m == null || "Tất cả".equals(m)) {
-                logTable.getItems().setAll(dao.getLogsByMonth(y));
-            } else {
-                logTable.getItems().setAll(dao.getLogsByMonth(y + "-" + m));
-            }
-        };
         cbMonth.valueProperty().addListener((obs, o, n) -> loadLogs.run());
         cbYear.valueProperty().addListener((obs, o, n) -> loadLogs.run());
         loadLogs.run();
@@ -1151,7 +1154,10 @@ public class ToolHelper {
 
         Button btnClose = new Button("Đóng");
         btnClose.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #424242; -fx-background-radius: 8; -fx-padding: 8 20; -fx-cursor: hand;");
-        btnClose.setOnAction(e -> container.getChildren().remove(overlay));
+        btnClose.setOnAction(e -> {
+            UIUtils.clearFocus(MainUI.getMainStage());
+            container.getChildren().remove(overlay);
+        });
 
         btnBar.getChildren().add(btnClose);
         dialogRoot.setBottom(btnBar);
@@ -1301,7 +1307,10 @@ public class ToolHelper {
 
         Button btnClose = new Button("Đóng");
         btnClose.setStyle("-fx-background-color: #e0e0e0; -fx-text-fill: #424242; -fx-background-radius: 8; -fx-padding: 8 20; -fx-cursor: hand;");
-        btnClose.setOnAction(e -> container.getChildren().remove(overlay));
+        btnClose.setOnAction(e -> {
+            UIUtils.clearFocus(MainUI.getMainStage());
+            container.getChildren().remove(overlay);
+        });
 
         btnBar.getChildren().add(btnClose);
         dialogRoot.setBottom(btnBar);
