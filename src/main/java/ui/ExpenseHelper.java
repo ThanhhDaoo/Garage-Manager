@@ -235,9 +235,20 @@ public class ExpenseHelper {
                 actions.setMaxWidth(80);
                 actions.setAlignment(Pos.CENTER);
 
+                boolean isSystemSync = exp.getNotes() != null && (exp.getNotes().contains("NK-") || exp.getNotes().contains("DC-LOG-"));
+
                 Button btnEdit = new Button("✏");
                 btnEdit.setStyle("-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2; -fx-font-size: 12px; -fx-padding: 5 8; -fx-background-radius: 6; -fx-cursor: hand;");
                 btnEdit.setOnAction(e -> {
+                    if (isSystemSync) {
+                        String sourceModule = exp.getNotes().contains("DC-LOG-") ? "Quản Lý Dụng Cụ" : "Quản Lý Nhập Kho";
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setTitle("Chứng từ tự động");
+                        alert.setHeaderText(null);
+                        alert.setContentText("Khoản chi phí này được tự động đồng bộ từ module '" + sourceModule + "'.\nĐể đảm bảo tính nhất quán của số lượng tồn kho và chi phí, vui lòng chỉnh sửa tại module " + sourceModule + ".");
+                        alert.show();
+                        return;
+                    }
                     ExpenseForm form = new ExpenseForm(exp, refreshSelf);
                     form.showInOverlay(contentArea);
                 });
@@ -245,6 +256,15 @@ public class ExpenseHelper {
                 Button btnDelete = new Button("🗑");
                 btnDelete.setStyle("-fx-background-color: #FFEBEE; -fx-text-fill: #D32F2F; -fx-font-size: 12px; -fx-padding: 5 8; -fx-background-radius: 6; -fx-cursor: hand;");
                 btnDelete.setOnAction(e -> {
+                    if (isSystemSync) {
+                        String sourceModule = exp.getNotes().contains("DC-LOG-") ? "Quản Lý Dụng Cụ -> Nhật Ký" : "Quản Lý Nhập Kho";
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setTitle("Chứng từ tự động");
+                        alert.setHeaderText(null);
+                        alert.setContentText("Khoản chi phí này được tự động đồng bộ từ module '" + sourceModule + "'.\nĐể đảm bảo số lượng tồn kho được hoàn tác chuẩn xác, vui lòng thực hiện hủy/xóa phiếu tại module " + sourceModule + ".");
+                        alert.show();
+                        return;
+                    }
                     Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Bạn có chắc muốn xóa khoản chi phí \"" + exp.getExpenseName() + "\"?", ButtonType.YES, ButtonType.NO);
                     confirm.setHeaderText(null);
                     confirm.showAndWait().ifPresent(res -> {

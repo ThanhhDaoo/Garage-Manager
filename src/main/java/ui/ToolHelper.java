@@ -266,6 +266,7 @@ public class ToolHelper {
         colUsable.setPrefWidth(100);
         colUsable.setStyle("-fx-alignment: CENTER-RIGHT;");
         colUsable.setCellValueFactory(cellData -> new javafx.beans.property.ReadOnlyObjectWrapper<>(cellData.getValue()));
+        colUsable.setComparator((t1, t2) -> Double.compare(t1.getUsableQty(), t2.getUsableQty()));
         colUsable.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(Tool t, boolean empty) {
@@ -317,6 +318,7 @@ public class ToolHelper {
         colStatus.setPrefWidth(120);
         colStatus.setStyle("-fx-alignment: CENTER;");
         colStatus.setCellValueFactory(cellData -> new javafx.beans.property.ReadOnlyObjectWrapper<>(cellData.getValue()));
+        colStatus.setComparator((t1, t2) -> Boolean.compare(t1.isLowStock(), t2.isLowStock()));
         colStatus.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(Tool t, boolean empty) {
@@ -343,6 +345,7 @@ public class ToolHelper {
         TableColumn<Tool, Tool> colAction = new TableColumn<>("Thao Tác");
         colAction.setMinWidth(140);
         colAction.setPrefWidth(160);
+        colAction.setSortable(false);
         colAction.setStyle("-fx-alignment: CENTER;");
         colAction.setCellValueFactory(cellData -> new javafx.beans.property.ReadOnlyObjectWrapper<>(cellData.getValue()));
         colAction.setCellFactory(col -> new TableCell<>() {
@@ -1178,6 +1181,7 @@ public class ToolHelper {
         TableColumn<ToolLog, ToolLog> colAction = new TableColumn<>("Xóa");
         colAction.setMinWidth(60);
         colAction.setPrefWidth(65);
+        colAction.setSortable(false);
         colAction.setStyle("-fx-alignment: CENTER;");
         colAction.setCellValueFactory(cellData -> new javafx.beans.property.ReadOnlyObjectWrapper<>(cellData.getValue()));
         colAction.setCellFactory(col -> new TableCell<>() {
