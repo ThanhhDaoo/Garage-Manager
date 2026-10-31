@@ -593,10 +593,18 @@ public class ToolHelper {
                 existing.setMinQty(minQty);
                 existing.setCostPrice(price);
                 existing.setNotes(txtNotes.getText().trim());
-                dao.updateTool(existing);
+                boolean ok = dao.updateTool(existing);
+                if (!ok) {
+                    AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể cập nhật dụng cụ! Có thể mã dụng cụ '" + code + "' đã bị trùng.").show();
+                    return;
+                }
             } else {
                 Tool t = new Tool(0, code, name, "", txtUnit.getText().trim(), 0, 0, 0, minQty, price, "Đang sử dụng", txtNotes.getText().trim(), null);
-                dao.addTool(t);
+                boolean ok = dao.addTool(t);
+                if (!ok) {
+                    AlertHelper.createAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể thêm dụng cụ mới! Có thể mã dụng cụ '" + code + "' đã tồn tại.").show();
+                    return;
+                }
             }
 
             UIUtils.clearFocus(MainUI.getMainStage());
@@ -1331,15 +1339,17 @@ public class ToolHelper {
                 }
             }
 
+            List<Tool> currentTools = dao.getAllTools();
             List<MonthlyReportRow> rows = new ArrayList<>();
-            for (Tool t : allTools) {
+            for (Tool t : currentTools) {
                 double pQty = purchasedMap.getOrDefault(t.getId(), 0.0);
                 double dQty = damagedMap.getOrDefault(t.getId(), 0.0);
+                String unit = (t.getUnit() != null && !t.getUnit().trim().isEmpty()) ? t.getUnit().trim() : "Cái";
 
                 String sug = "-";
                 if (t.isLowStock()) {
-                    double need = Math.max(0, t.getMinQty() * 2 - t.getUsableQty());
-                    sug = "🔴 Mua thêm ~" + new DecimalFormat("#.##").format(need) + " " + t.getUnit();
+                    double need = t.getMinQty() > 0 ? Math.max(1, t.getMinQty() - t.getUsableQty()) : 1;
+                    sug = "🔴 Cần mua ~" + new DecimalFormat("#.##").format(need) + " " + unit;
                 } else {
                     sug = "🟢 Đủ dùng";
                 }
@@ -1347,9 +1357,9 @@ public class ToolHelper {
                 rows.add(new MonthlyReportRow(
                         t.getToolCode(),
                         t.getName(),
-                        new DecimalFormat("#.##").format(pQty) + " " + t.getUnit(),
-                        new DecimalFormat("#.##").format(dQty) + " " + t.getUnit(),
-                        new DecimalFormat("#.##").format(t.getUsableQty()) + " " + t.getUnit(),
+                        new DecimalFormat("#.##").format(pQty) + " " + unit,
+                        new DecimalFormat("#.##").format(dQty) + " " + unit,
+                        new DecimalFormat("#.##").format(t.getUsableQty()) + " " + unit,
                         sug
                 ));
             }

@@ -145,11 +145,57 @@ public class ToolDAO {
     }
 
     public boolean deleteTool(int id) {
-        String sql = "DELETE FROM tools WHERE id = ?";
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            return ps.executeUpdate() > 0;
+        String selectLogsSql = "SELECT id FROM tool_logs WHERE tool_id = ?";
+        String delExpSql = "DELETE FROM fixed_expenses WHERE notes LIKE ?";
+        String delLogsSql = "DELETE FROM tool_logs WHERE tool_id = ?";
+        String delToolSql = "DELETE FROM tools WHERE id = ?";
+
+        try (Connection conn = DatabaseManager.getConnection()) {
+            boolean oldAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                List<Integer> logIds = new ArrayList<>();
+                try (PreparedStatement ps = conn.prepareStatement(selectLogsSql)) {
+                    ps.setInt(1, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            logIds.add(rs.getInt("id"));
+                        }
+                    }
+                }
+
+                for (int logId : logIds) {
+                    String noteCode = "Mã phiếu dụng cụ: DC-LOG-" + String.format("%04d", logId);
+                    try (PreparedStatement psExp = conn.prepareStatement(delExpSql)) {
+                        psExp.setString(1, "%" + noteCode + "%");
+                        psExp.executeUpdate();
+                    }
+                }
+
+                try (PreparedStatement psLogs = conn.prepareStatement(delLogsSql)) {
+                    psLogs.setInt(1, id);
+                    psLogs.executeUpdate();
+                }
+
+                boolean success = false;
+                try (PreparedStatement psTool = conn.prepareStatement(delToolSql)) {
+                    psTool.setInt(1, id);
+                    success = psTool.executeUpdate() > 0;
+                }
+
+                conn.commit();
+                return success;
+            } catch (SQLException e) {
+                conn.rollback();
+                e.printStackTrace();
+                throw e;
+            } finally {
+                try {
+                    if (conn != null && !conn.isClosed()) {
+                        conn.setAutoCommit(oldAutoCommit);
+                    }
+                } catch (SQLException ignored) {}
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }

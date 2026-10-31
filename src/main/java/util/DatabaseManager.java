@@ -104,10 +104,13 @@ public class DatabaseManager {
             int deletedOrphanExpenses = stmt.executeUpdate(
                     "DELETE FROM fixed_expenses WHERE notes LIKE 'Mã phiếu nhập: NK-%' " +
                             "AND CAST(SUBSTR(notes, 19, 4) AS INTEGER) NOT IN (SELECT id FROM inventory_receipts);");
-            if (deletedAtt > 0 || deletedPayroll > 0 || deletedItems > 0 || deletedOrphanExpenses > 0) {
+            int deletedOrphanToolExpenses = stmt.executeUpdate(
+                    "DELETE FROM fixed_expenses WHERE notes LIKE 'Mã phiếu dụng cụ: DC-LOG-%' " +
+                            "AND CAST(SUBSTR(notes, 26, 4) AS INTEGER) NOT IN (SELECT id FROM tool_logs);");
+            if (deletedAtt > 0 || deletedPayroll > 0 || deletedItems > 0 || deletedOrphanExpenses > 0 || deletedOrphanToolExpenses > 0) {
                 System.out.println(String.format(
-                        "✓ Đã dọn dẹp dữ liệu mồ côi: %d dòng chấm công, %d dòng bảng lương, %d dòng chi tiết hóa đơn, %d dòng chi phí nhập kho.",
-                        deletedAtt, deletedPayroll, deletedItems, deletedOrphanExpenses));
+                        "✓ Đã dọn dẹp dữ liệu mồ côi: %d dòng chấm công, %d dòng bảng lương, %d dòng chi tiết hóa đơn, %d dòng chi phí nhập kho, %d dòng chi phí dụng cụ.",
+                        deletedAtt, deletedPayroll, deletedItems, deletedOrphanExpenses, deletedOrphanToolExpenses));
             }
 
             // Tự động điều chỉnh các hóa đơn cũ để khớp với chính sách thuế VAT mới:
@@ -829,7 +832,8 @@ public class DatabaseManager {
             // Tự động reset sqlite_sequence cho các bảng rỗng khi khởi động ứng dụng
             String[] tablesToReset = {
                     "invoices", "inventory_receipts", "fixed_expenses", "products",
-                    "employees", "appointments", "services", "packages", "attendance", "payroll"
+                    "employees", "appointments", "services", "packages", "attendance", "payroll",
+                    "tools", "tool_logs"
             };
             for (String table : tablesToReset) {
                 try (Statement countStmt = conn.createStatement();
